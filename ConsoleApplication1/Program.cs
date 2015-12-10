@@ -13,19 +13,17 @@ namespace ConsoleApplication1
     {
         static void Main(string[] args)
         {
-            var cloudDrive = new CloudDrive("D:\\CloudDriveTestCache");
-            try
-            {
-                cloudDrive.Mount("r:\\", DokanOptions.DebugMode | DokanOptions.StderrOutput | DokanOptions.RemovableDrive);
-                Console.WriteLine("Success");
-                Dokan.Unmount('r');
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex);
-            }
+            //var cloudDrive = new VirtualDrive("D:\\CloudDriveTestCache");
+            //try
+            //{
+            //    cloudDrive.Mount("r:\\", DokanOptions.DebugMode | DokanOptions.StderrOutput | DokanOptions.NetworkDrive);
+            //    Console.WriteLine("Success");
+            //}
+            //catch (Exception ex)
+            //{
+            //    Console.WriteLine(ex);
+            //}
 
-            Console.WriteLine(File.ReadAllText("d:\\debug.txt"));
         }
     }
 }

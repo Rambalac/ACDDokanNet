@@ -24,10 +24,10 @@ namespace amazon_clouddrive_dokan
             try
             {
 
-                var cloudDrive = new CloudDrive("D:\\CloudDriveTestCache");
-                cloudDrive.Mount("r:\\", DokanOptions.DebugMode | DokanOptions.StderrOutput | DokanOptions.RemovableDrive);
-                Console.WriteLine("Success");
-                Dokan.Unmount('r');
+                //var cloudDrive = new VirtualDrive("D:\\CloudDriveTestCache");
+                //cloudDrive.Mount("r:\\", DokanOptions.DebugMode | DokanOptions.StderrOutput | DokanOptions.RemovableDrive);
+                //Console.WriteLine("Success");
+                //Dokan.Unmount('r');
             }
             catch (DokanException ex)
             {

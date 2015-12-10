@@ -12,105 +12,60 @@ using FileAccess = DokanNet.FileAccess;
 
 namespace amazon_clouddrive_dokan
 {
-    public abstract class CloudItem
-    {
-        public string NodeId;
-        private string mappedPath;
-        public abstract bool IsDir { get; }
 
-        private string name;
-        public string MappedPath
+    public class VirtualDrive : IDokanOperations
+    {
+        FSProvider provider;
+        public VirtualDrive(FSProvider provider)
         {
-            get
-            {
-                return mappedPath;
-            }
-
-            set
-            {
-                mappedPath = value;
-                name = Path.GetFileName(value);
-            }
+            this.provider = provider;
         }
-
-        public string Name
-        {
-            get
-            {
-                return name;
-            }
-        }
-    }
-    public class CloudFile : CloudItem
-    {
-        public string Nodeid;
-        public string CachedPath;
-        public FileStream Stream;
-
-        public override bool IsDir => false;
-    }
-
-    public class CloudDir : CloudItem
-    {
-        public override bool IsDir => true;
-        public List<CloudItem> Items { get; } = new List<CloudItem>();
-    }
-
-    public class CloudDrive : IDokanOperations
-    {
-        string cacheFolder;
-        public CloudDrive(string cacheFolder)
-        {
-            if (Directory.Exists(cacheFolder)) Directory.Delete(cacheFolder, true);
-            Directory.CreateDirectory(cacheFolder);
-            this.cacheFolder = cacheFolder;
-            mappedToDir["\\"] = new CloudDir();
-        }
-
-        readonly Dictionary<string, CloudFile> mappedToFile = new Dictionary<string, CloudFile>();
-        readonly Dictionary<string, CloudDir> mappedToDir = new Dictionary<string, CloudDir>();
 
         public void Cleanup(string fileName, DokanFileInfo info)
         {
+            var disp = info.Context as IDisposable;
+            if (disp != null)
+            {
+                disp.Dispose();
+            }
+            info.Context = null;
+
+            if (info.DeleteOnClose)
+            {
+                if (info.IsDirectory)
+                {
+                    provider.DeleteDir(fileName);
+                }
+                else
+                {
+                    provider.DeleteFile(fileName);
+                }
+            }
+
         }
 
         public void CloseFile(string fileName, DokanFileInfo info)
         {
-
-            if (info.IsDirectory) throw new ArgumentException("CloseFile: Cannot be directory", nameof(info));
-            var file = mappedToFile[fileName];
-            file.Stream.Close();
-            if (info.DeleteOnClose) DeleteFile(fileName);
+            var str = info.Context as Stream;
+            if (str != null)
+            {
+                str.Close();
+                str.Dispose();
+            }
+            info.Context = null;
         }
 
         private void DeleteFile(string fileName)
         {
 
-            var parent = mappedToDir[Path.GetDirectoryName(fileName)];
-            var file = mappedToFile[fileName];
-            mappedToFile.Remove(fileName);
-            parent.Items.Remove(file);
+            provider.DeleteFile(fileName);
         }
 
         NtStatus _CreateDirectory(string fileName, DokanFileInfo info)
         {
-
-
-            if (mappedToDir.ContainsKey(fileName)) return DokanResult.AlreadyExists;
-            var parent = mappedToDir[Path.GetDirectoryName(fileName)];
-            var dir = new CloudDir();
-            parent.Items.Add(dir);
-            mappedToDir.Add(fileName, dir);
-
+            if (provider.Exists(fileName)) return DokanResult.AlreadyExists;
+            provider.CreateDir(fileName);
             return DokanResult.Success;
-        }
-
-        FileAttributes? GetFlags(string path)
-        {
-            if (mappedToDir.ContainsKey(path)) return FileAttributes.Directory;
-            if (mappedToFile.ContainsKey(path)) return FileAttributes.Normal;
-
-            return null;
         }
 
         private const FileAccess DataAccess = FileAccess.ReadData | FileAccess.WriteData | FileAccess.AppendData |
@@ -129,9 +84,7 @@ namespace amazon_clouddrive_dokan
                 return DokanResult.Success;
             }
 
-            var flags = GetFlags(fileName);
-            bool pathExists = flags != null;
-            bool pathIsDirectory = flags == FileAttributes.Directory;
+            var item = provider.GetItem(fileName);
 
             bool readWriteAttributes = (access & DataAccess) == 0;
 
@@ -139,11 +92,11 @@ namespace amazon_clouddrive_dokan
             {
                 case FileMode.Open:
 
-                    if (!pathExists) return DokanResult.FileNotFound;
-                    if (readWriteAttributes || pathIsDirectory)
+                    if (item == null) return DokanResult.FileNotFound;
+                    if (item.isDir)
                     // check if driver only wants to read attributes, security info, or open directory
                     {
-                        info.IsDirectory = pathIsDirectory;
+                        info.IsDirectory = item.isDir;
                         info.Context = new object();
                         // must set it to something if you return DokanError.Success
 
@@ -152,11 +105,12 @@ namespace amazon_clouddrive_dokan
                     break;
 
                 case FileMode.CreateNew:
-                    if (pathExists) return DokanResult.FileExists;
+                    if (item != null) return DokanResult.FileExists;
+                    provider.CreateFile(fileName);
                     break;
 
                 case FileMode.Truncate:
-                    if (!pathExists) return DokanResult.FileNotFound;
+                    if (item == null) return DokanResult.FileNotFound;
                     break;
             }
 
@@ -166,42 +120,16 @@ namespace amazon_clouddrive_dokan
 
         private NtStatus _OpenFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
         {
-            var file = mappedToFile[fileName];
-
             bool readAccess = (access & DataWriteAccess) == 0;
 
-            info.Context = file.Stream = new FileStream(fileName, mode, readAccess ? System.IO.FileAccess.Read : System.IO.FileAccess.ReadWrite, share, 4096, options);
+            info.Context = provider.Open(mode, readAccess ? System.IO.FileAccess.Read : System.IO.FileAccess.ReadWrite, share, options);
             return DokanResult.Success;
         }
 
-        NtStatus _CreateFile(string fileName, DokanNet.FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
-        {
-
-            var parent = mappedToDir[Path.GetDirectoryName(fileName)];
-
-            var localId = Guid.NewGuid().ToString();
-            var cachedPath = Path.Combine(cacheFolder, localId);
-
-            var file = new CloudFile
-            {
-                Nodeid = localId,
-                MappedPath = fileName,
-                CachedPath = cachedPath
-            };
-            parent.Items.Add(file);
-
-            mappedToFile.Add(fileName, file);
-
-            return DokanResult.Success;
-        }
 
         public NtStatus DeleteDirectory(string fileName, DokanFileInfo info)
         {
-
-            var parent = mappedToDir[Path.GetDirectoryName(fileName)];
-            var dir = mappedToDir[fileName];
-            mappedToDir.Remove(fileName);
-            parent.Items.Remove(dir);
+            provider.DeleteDir(fileName);
 
             return DokanResult.Success;
         }
@@ -214,20 +142,11 @@ namespace amazon_clouddrive_dokan
             return DokanResult.Success;
         }
 
-        public NtStatus EnumerateNamedStreams(string fileName, IntPtr enumContext, out string streamName, out long streamSize, DokanFileInfo info)
-        {
-
-            streamName = String.Empty;
-            streamSize = 0;
-            return DokanResult.NotImplemented;
-        }
-
         public NtStatus FindFiles(string fileName, out IList<FileInformation> files, DokanFileInfo info)
         {
+            var items = provider.GetDirItems(fileName);
 
-            var parent = mappedToDir[fileName];
-
-            files = parent.Items.Select(i => new FileInformation
+            files = items.Select(i => new FileInformation
             {
                 FileName = i.Name,
                 Attributes = i.IsDir ? FileAttributes.Directory : FileAttributes.Normal,
@@ -240,36 +159,27 @@ namespace amazon_clouddrive_dokan
 
         public NtStatus FlushFileBuffers(string fileName, DokanFileInfo info)
         {
-
-            var file = mappedToFile[fileName];
-            file.Stream.Flush();
-
+            if (info.Context != null)
+                ((Stream)info.Context).Flush();
             return DokanResult.Success;
         }
 
         public NtStatus GetDiskFreeSpace(out long freeBytesAvailable, out long totalNumberOfBytes, out long totalNumberOfFreeBytes, DokanFileInfo info)
         {
-            var di = new DriveInfo(Path.GetPathRoot(cacheFolder));
-            freeBytesAvailable = di.AvailableFreeSpace;
-            totalNumberOfBytes = di.TotalSize;
-            totalNumberOfFreeBytes = di.TotalFreeSpace;
+            freeBytesAvailable = provider.AvailableFreeSpace;
+            totalNumberOfBytes = provider.TotalSize;
+            totalNumberOfFreeBytes = provider.TotalFreeSpace;
 
             return DokanResult.Success;
         }
 
         public NtStatus GetFileInformation(string fileName, out FileInformation fileInfo, DokanFileInfo info)
         {
+            var item = provider.GetItem(fileName);
 
-            CloudDir dir;
-            if (mappedToDir.TryGetValue(fileName, out dir))
+            if (item != null)
             {
-                fileInfo = GetFileInformation(dir);
-                return DokanResult.Success;
-            }
-            CloudFile file;
-            if (!mappedToFile.TryGetValue(fileName, out file))
-            {
-                fileInfo = GetFileInformation(dir);
+                fileInfo = GetFileInformation(item);
                 return DokanResult.Success;
             }
 
@@ -311,28 +221,18 @@ namespace amazon_clouddrive_dokan
 
         public NtStatus MoveFile(string oldName, string newName, bool replace, DokanFileInfo info)
         {
-            if (mappedToFile.ContainsKey(newName))
-            {
-                if (replace)
-                    DeleteFile(newName);
-                else
-                    return DokanResult.FileExists;
-            }
-            var file = mappedToFile[oldName];
-            mappedToFile.Remove(oldName);
-            file.MappedPath = newName;
-            mappedToFile.Add(newName, file);
-
+            provider.MoveFile(oldName, newName, replace);
             return DokanResult.Success;
         }
 
         public NtStatus ReadFile(string fileName, byte[] buffer, out int bytesRead, long offset, DokanFileInfo info)
         {
+            var stream = info.Context as Stream;
+            stream.Position = offset;
 
-            var file = mappedToFile[fileName];
-            file.Stream.Position = offset;
-            bytesRead = file.Stream.Read(buffer, 0, buffer.Length);
+            stream.Write(buffer, 0, buffer.Length);
 
+            bytesRead = stream.Read(buffer, 0, buffer.Length);
             return DokanResult.Success;
         }
 
@@ -343,10 +243,7 @@ namespace amazon_clouddrive_dokan
 
         public NtStatus SetEndOfFile(string fileName, long length, DokanFileInfo info)
         {
-
-            var file = mappedToFile[fileName];
-            file.Stream.SetLength(length);
-            return DokanResult.Success;
+            return DokanResult.Error;
         }
 
         public NtStatus SetFileAttributes(string fileName, FileAttributes attributes, DokanFileInfo info)
@@ -376,10 +273,10 @@ namespace amazon_clouddrive_dokan
 
         public NtStatus WriteFile(string fileName, byte[] buffer, out int bytesWritten, long offset, DokanFileInfo info)
         {
+            var stream = info.Context as Stream;
+            stream.Position = offset;
 
-            var file = mappedToFile[fileName];
-            file.Stream.Position = offset;
-            file.Stream.Write(buffer, 0, buffer.Length);
+            stream.Write(buffer, 0, buffer.Length);
             bytesWritten = buffer.Length;
             return DokanResult.Success;
         }
