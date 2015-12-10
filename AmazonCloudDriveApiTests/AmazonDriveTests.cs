@@ -14,7 +14,10 @@ namespace Azi.Amazon.CloudDrive.Tests
         public async void SafeAuthenticationAsyncTest()
         {
             var amazon = new AmazonDrive();
-            await amazon.SafeAuthenticationAsync("amzn1.application-oa2-client.ce45fa54a8ec4daeb7f082343fa1e8d8", CloudDriveScope.ReadAll | CloudDriveScope.Write, TimeSpan.FromSeconds(60));
+            await amazon.SafeAuthenticationAsync(
+                AmazonSecret.clientId,
+                AmazonSecret.clientSecret,
+                CloudDriveScope.ReadAll | CloudDriveScope.Write, TimeSpan.FromSeconds(60));
         }
 
     }

@@ -7,13 +7,13 @@ using System.Threading.Tasks;
 namespace Azi.Amazon.CloudDrive
 {
 
-    public class AmazonNodes
+    public class AmazonFolders
     {
         private readonly AmazonDrive amazon;
-        JsonHttp json => amazon.json;
+        HttpClient json => amazon.http;
         static TimeSpan generalExpiration => AmazonDrive.generalExpiration;
 
-        public AmazonNodes(AmazonDrive amazonDrive)
+        public AmazonFolders(AmazonDrive amazonDrive)
         {
             this.amazon = amazonDrive;
         }
@@ -21,7 +21,7 @@ namespace Azi.Amazon.CloudDrive
         public async Task<IList<AmazonChild>> GetChildren(string id = null)
         {
             var url = (id != null) ? "{0}/nodes/{1}/children" : "{0}/nodes?filters=isRoot:true";
-            var children = await json.GetAsync<Children>(url, await amazon.GetMetadataUrl(), id);
+            var children = await json.GetJsonAsync<Children>(string.Format(url, await amazon.GetMetadataUrl(), id));
             return children.data;
         }
     }

@@ -38,6 +38,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Net.Http.Formatting, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
     <Reference Include="System.Web.Helpers, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -48,13 +49,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AmazonAccount.cs" />
+    <Compile Include="AmazonFiles.cs" />
+    <Compile Include="AmazonFolders.cs" />
+    <Compile Include="HttpClient.cs" />
     <Compile Include="Json\AmazonChild.cs" />
     <Compile Include="AmazonDrive.cs" />
-    <Compile Include="AmazonNodes.cs" />
     <Compile Include="Json\Children.cs" />
     <Compile Include="Json\ContentProperties.cs" />
     <Compile Include="Json\Image.cs" />
-    <Compile Include="JsonHttp.cs" />
     <Compile Include="Json\Endpoint.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
