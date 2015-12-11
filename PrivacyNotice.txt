@@ -1,0 +1,1 @@
+All your files are yours. App is not using any intermediate server and only your PC will have access to your files.
