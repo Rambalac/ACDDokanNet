@@ -59,6 +59,14 @@
       <Project>{213aa535-db16-4cf9-b3f1-324ff9347f8d}</Project>
       <Name>amazon-clouddrive-dokan</Name>
     </ProjectReference>
+    <ProjectReference Include="..\AmazonCloudDriveApiTests\AmazonCloudDriveApiTests.csproj">
+      <Project>{2f292d5a-a32d-4f7d-83b1-739ba50d55bf}</Project>
+      <Name>AmazonCloudDriveApiTests</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\AmazonCloudDriveApi\AmazonCloudDriveApi.csproj">
+      <Project>{6b9bd9ba-3b77-4f1a-b132-45e68d9951ee}</Project>
+      <Name>AmazonCloudDriveApi</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

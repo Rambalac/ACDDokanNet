@@ -1,8 +1,8 @@
 ﻿using Azi.Amazon.CloudDrive.Json;
+using Azi.Tools;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace Azi.Amazon.CloudDrive
@@ -20,13 +20,13 @@ namespace Azi.Amazon.CloudDrive
 
         public async Task<AmazonChild> Overwrite(string id, Stream stream)
         {
-            var url = string.Format("{0}/nodes/{1}/content", await amazon.GetMetadataUrl(), id);
+            var url = string.Format("{0}/nodes/{1}/content", await amazon.GetContentUrl(), id);
             return await http.PostFile<AmazonChild>(url, null, stream);
         }
 
         public async Task<AmazonChild> UploadNew(string parenId, string fileName, Stream stream)
         {
-            var url = string.Format("{0}/nodes", await amazon.GetMetadataUrl());
+            var url = string.Format("{0}/nodes", await amazon.GetContentUrl());
             var form = new Dictionary<string, string>
             {
                 {"name",fileName},
@@ -38,7 +38,7 @@ namespace Azi.Amazon.CloudDrive
 
         public async Task Download(string id, Stream stream)
         {
-            var url = string.Format("{0}/nodes/{1}/content", await amazon.GetMetadataUrl(), id);
+            var url = string.Format("{0}/nodes/{1}/content", await amazon.GetContentUrl(), id);
             await http.GetToStreamAsync(url, stream);
         }
     }

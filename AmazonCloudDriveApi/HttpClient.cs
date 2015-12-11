@@ -3,13 +3,14 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web.Helpers;
 
-namespace Azi.Amazon.CloudDrive
+namespace Azi.Tools
 {
     public class HttpClient
     {
@@ -27,7 +28,10 @@ namespace Azi.Amazon.CloudDrive
         }
         public async Task<System.Net.Http.HttpClient> GetHttpClient()
         {
-            var result = new System.Net.Http.HttpClient();
+            var result = new System.Net.Http.HttpClient(new HttpClientHandler
+            {
+                AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip
+            });
             await headersSetter(result.DefaultRequestHeaders);
             return result;
         }
@@ -52,6 +56,7 @@ namespace Azi.Amazon.CloudDrive
         {
             using (var client = await GetHttpClient())
             {
+
                 var response = await client.GetAsync(url);
                 if (!response.IsSuccessStatusCode) throw new HttpRequestException(response.ReasonPhrase);
 

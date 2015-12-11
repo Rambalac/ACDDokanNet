@@ -18,6 +18,15 @@ namespace AmazonCloudDriveApi
             return false;
         }
 
+        public static bool Do(int times, Func<int, bool> act)
+        {
+            for (int time = 0; time < times - 1; time++)
+            {
+                if (act(time)) return true;
+            }
+            return false;
+        }
+
         internal static async Task<bool> Do(int times, Func<int, TimeSpan> retryDelay, Func<Task<bool>> act)
         {
             for (int time = 0; time < times - 1; time++)

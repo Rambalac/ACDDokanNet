@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web.Helpers;
+using System.Text.RegularExpressions;
 
 namespace Azi.Amazon.CloudDrive.Tests
 {
@@ -17,7 +18,7 @@ namespace Azi.Amazon.CloudDrive.Tests
             await amazon.SafeAuthenticationAsync(
                 AmazonSecret.clientId,
                 AmazonSecret.clientSecret,
-                CloudDriveScope.ReadAll | CloudDriveScope.Write, TimeSpan.FromSeconds(60));
+                CloudDriveScope.ReadAll | CloudDriveScope.Write, TimeSpan.FromMinutes(10));
         }
 
     }

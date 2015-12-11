@@ -1,4 +1,6 @@
 ﻿using amazon_clouddrive_dokan;
+using Azi.Amazon.CloudDrive;
+using Azi.Amazon.CloudDrive.Tests;
 using DokanNet;
 using System;
 using System.Collections.Generic;
@@ -13,17 +15,15 @@ namespace ConsoleApplication1
     {
         static void Main(string[] args)
         {
-            //var cloudDrive = new VirtualDrive("D:\\CloudDriveTestCache");
-            //try
-            //{
-            //    cloudDrive.Mount("r:\\", DokanOptions.DebugMode | DokanOptions.StderrOutput | DokanOptions.NetworkDrive);
-            //    Console.WriteLine("Success");
-            //}
-            //catch (Exception ex)
-            //{
-            //    Console.WriteLine(ex);
-            //}
+                var amazon = new AmazonDrive();
+                amazon.SafeAuthenticationAsync(
+                    AmazonSecret.clientId,
+                    AmazonSecret.clientSecret,
+                    CloudDriveScope.ReadAll | CloudDriveScope.Write, TimeSpan.FromMinutes(10)).Wait();
 
+
+                var cloudDrive = new VirtualDrive(new FSProvider(amazon));
+                cloudDrive.Mount("r:\\", DokanOptions.DebugMode | DokanOptions.StderrOutput | DokanOptions.NetworkDrive);
         }
     }
 }

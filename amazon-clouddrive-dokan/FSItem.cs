@@ -12,7 +12,7 @@ using FileAccess = DokanNet.FileAccess;
 
 namespace amazon_clouddrive_dokan
 {
-    public class CloudItem
+    public class FSItem
     {
         public string path;
         public string Path => path;
@@ -27,7 +27,7 @@ namespace amazon_clouddrive_dokan
             }
         }
 
-        internal CloudItem(string path, bool isDir)
+        internal FSItem(string path, bool isDir)
         {
             this.path = path;
             this.isDir = isDir;

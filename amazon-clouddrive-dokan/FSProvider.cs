@@ -1,4 +1,5 @@
 ﻿using Azi.Amazon.CloudDrive;
+using Azi.Amazon.CloudDrive.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -11,13 +12,16 @@ namespace amazon_clouddrive_dokan
 {
     public class FSProvider
     {
-        readonly Dictionary<string, CloudItem> mappedToFile = new Dictionary<string, CloudItem>();
-
         AmazonDrive amazon;
 
-        public long AvailableFreeSpace { get; internal set; }
-        public long TotalSize { get; internal set; }
-        public long TotalFreeSpace { get; internal set; }
+        public FSProvider(AmazonDrive amazon)
+        {
+            this.amazon = amazon;
+        }
+
+        public long AvailableFreeSpace => amazon.Account.GetQuota().Result.available;
+        public long TotalSize => amazon.Account.GetQuota().Result.quota;
+        public long TotalFreeSpace => amazon.Account.GetQuota().Result.available;
 
         public void DeleteFile(string fileName)
         {
@@ -34,7 +38,7 @@ namespace amazon_clouddrive_dokan
             throw new NotImplementedException();
         }
 
-        public Stream Open(FileMode mode, FileAccess fileAccess, FileShare share, FileOptions options)
+        public Stream OpenFile(string fileName, FileMode mode, FileAccess fileAccess, FileShare share, FileOptions options)
         {
             throw new NotImplementedException();
         }
@@ -49,14 +53,60 @@ namespace amazon_clouddrive_dokan
             throw new NotImplementedException();
         }
 
-        public IList<CloudItem> GetDirItems(string fileName)
+        Dictionary<string, AmazonChild> pathToNode = new Dictionary<string, AmazonChild>();
+
+        string[] fsItemKinds = { "FILE", "FOLDER" };
+        string folderKind = "FOLDER";
+        public async Task<IList<FSItem>> GetDirItems(string folderPath)
         {
-            throw new NotImplementedException();
+            var folderNode = FetchNode(folderPath).Result;
+            var nodes = await amazon.Nodes.GetChildren(folderNode?.id);
+            var result = new List<FSItem>(nodes.Count);
+            if (folderPath == "\\") folderPath = "";
+            foreach (var node in nodes.Where(n => fsItemKinds.Contains(n.kind)))
+            {
+                var path = folderPath + "\\" + node.name;
+                pathToNode[path] = node;
+                result.Add(new FSItem(path, IsDir(node)));
+            }
+
+            return result;
         }
 
-        public CloudItem GetItem(string fileName)
+        bool IsDir(AmazonChild node) => node.kind == folderKind;
+
+        public FSItem GetItem(string itemPath)
         {
-            throw new NotImplementedException();
+            if (itemPath == "\\")
+                return new FSItem(itemPath, true);
+            var node = FetchNode(itemPath).Result;
+
+            return (node != null) ? new FSItem(itemPath, IsDir(node)) : null;
+        }
+
+        private async Task<AmazonChild> FetchNode(string itemPath)
+        {
+            if (itemPath == "\\" || itemPath == "") return null;
+            AmazonChild result;
+            if (pathToNode.TryGetValue(itemPath, out result)) return result;
+
+            var folders = new LinkedList<string>();
+            var curpath = itemPath;
+            AmazonChild node = null;
+            do
+            {
+                folders.AddFirst(Path.GetFileName(curpath));
+                curpath = Path.GetDirectoryName(curpath);
+                if (curpath == "\\" || string.IsNullOrEmpty(curpath)) break;
+            } while (pathToNode.TryGetValue(curpath, out node));
+            foreach (var name in folders)
+            {
+                var newnode = await amazon.Nodes.GetChild(node?.id, name);
+                curpath = curpath + "\\" + name;
+                pathToNode[curpath] = newnode;
+                node = newnode;
+            }
+            return node;
         }
 
         public void MoveFile(string oldName, string newName, bool replace)

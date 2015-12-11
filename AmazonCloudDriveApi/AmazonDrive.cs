@@ -1,14 +1,18 @@
 ﻿using AmazonCloudDriveApi;
 using AmazonCloudDriveApi.Json;
 using Azi.Amazon.CloudDrive.Json;
+using Azi.Tools;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web.Helpers;
 
@@ -36,16 +40,16 @@ namespace Azi.Amazon.CloudDrive
         CloudDriveScope scope;
         Token token;
 
-        internal readonly HttpClient http;
+        internal readonly Tools.HttpClient http;
         public readonly AmazonAccount Account;
-        public readonly AmazonFolders Folders;
+        public readonly AmazonNodes Nodes;
         public readonly AmazonFiles Files;
 
         public AmazonDrive()
         {
-            http = new HttpClient(HeadersSetter);
+            http = new Tools.HttpClient(HeadersSetter);
             Account = new AmazonAccount(this);
-            Folders = new AmazonFolders(this);
+            Nodes = new AmazonNodes(this);
             Files = new AmazonFiles(this);
         }
 
@@ -61,14 +65,21 @@ namespace Azi.Amazon.CloudDrive
         internal async Task<string> GetContentUrl() => (await Account.GetEndpoint()).contentUrl;
         internal async Task<string> GetMetadataUrl() => (await Account.GetEndpoint()).metadataUrl;
 
+        readonly CacheControlHeaderValue standartCache = new CacheControlHeaderValue { NoCache = true };
+
         private async Task HeadersSetter(HttpRequestHeaders headers)
         {
-            headers.Add("Authorization", "Bearer " + await GetToken());
+            var token = await GetToken();
+            if (token != null)
+                headers.Add("Authorization", "Bearer " + token);
+            headers.CacheControl = standartCache;
+            headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("gzip"));
+            headers.UserAgent.Add(new ProductInfoHeaderValue("AZIACDDokanNet", this.GetType().Assembly.ImageRuntimeVersion));
         }
 
         private async Task<string> GetToken()
         {
-            return token.access_token;
+            return token?.access_token;
         }
 
         private async Task UpdateToken()
@@ -84,20 +95,36 @@ namespace Azi.Amazon.CloudDrive
 
         }
 
+        static readonly Regex browserPathPattern = new Regex("^(?<path>[^\" ]+)|\"(?<path>[^\"]+)\" (?<args>.*)$");
+        public Process OpenUrlInDefaultBrowser(string url)
+        {
+            using (var nameKey = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.html\UserChoice", false))
+            {
+                var appName = nameKey.GetValue("Progid") as string;
+                using (var commandKey = Registry.ClassesRoot.OpenSubKey($@"{appName}\shell\open\command", false))
+                {
+                    var str = commandKey.GetValue(null) as string;
+                    var m = browserPathPattern.Match(str);
+                    if (!m.Success || !m.Groups["path"].Success) throw new InvalidOperationException("Can not find default browser path");
+                    var path = m.Groups["path"].Value;
+                    var args = m.Groups["args"].Value.Replace("%1", url);
+                    return Process.Start(path, args);
+                }
+            }
+        }
+
         public async Task SafeAuthenticationAsync(string clientId, string secret, CloudDriveScope scope, TimeSpan timeout)
         {
             using (var listener = new HttpListener())
             {
-                var random = new Random();
-                int port = 0;
+                int port = 45674;
                 string redirectUrl = null;
 
-                if (!Retry.Do(10, () =>
+                if (!Retry.Do(3, (time) =>
                 {
                     try
                     {
-                        port = random.Next(10000, 65000);
-                        redirectUrl = $"http://localhost:{port}/";
+                        redirectUrl = $"http://localhost:{port + time}/signin/";
                         listener.Prefixes.Add(redirectUrl);
                         return true;
                     }
@@ -108,37 +135,69 @@ namespace Azi.Amazon.CloudDrive
                 })) throw new InvalidOperationException("Cannot select port for redirect url");
 
                 listener.Start();
-                System.Diagnostics.Process.Start(BuildLoginUrl(clientId, redirectUrl, scope));
-                var task = listener.GetContextAsync();
-                if (await Task.WhenAny(task, Task.Delay(timeout)) == task)
+                using (var tabProcess = Process.Start(BuildLoginUrl(clientId, redirectUrl, scope)))
                 {
-                    var context = await task;
-                    var code = context.Request.Url.ParseQueryString()["code"];
-
-                    var form = new Dictionary<string, string>
+                    try
                     {
-                        { "grant_type","authorization_code" },
-                        {"code ",code},
-                        {"client_id",clientId},
-                        {"client_secret",secret},
-                        {"redirect_uri ",redirectUrl}
-                    };
-                    token = await http.PostForm<Token>("https://api.amazon.com/auth/o2/token", form);
+                        var task = listener.GetContextAsync();
+                        if (await Task.WhenAny(task, Task.Delay(timeout)) == task)
+                        {
+                            await ProcessRedirect(await task, clientId, secret, redirectUrl);
 
-
-                    await Account.GetEndpoint();
-
-
-                    this.clientId = clientId;
-                    this.clientSecret = secret;
-                    this.scope = scope;
+                            this.clientId = clientId;
+                            this.clientSecret = secret;
+                            this.scope = scope;
+                        }
+                        else
+                        {
+                            throw new TimeoutException("No redirection detected");
+                        }
+                    }
+                    finally
+                    {
+                        listener.Stop();
+                        //tabProcess.Kill();
+                    }
                 }
-                else
-                {
-                    listener.Abort();
-                    throw new TimeoutException("No redirection detected");
-                }
+
             }
+        }
+
+        private async Task ProcessRedirect(HttpListenerContext context, string clientId, string secret, string redirectUrl)
+        {
+            ///signin/?error_description=Access+not+permitted.&error=access_denied
+            var error = context.Request.Url.ParseQueryString()["error_description"];
+            if (error != null)
+            {
+                throw new InvalidOperationException(error);
+            }
+
+            var code = context.Request.Url.ParseQueryString()["code"];
+
+            await SendRedirectResponse(context.Response);
+
+            var form = new Dictionary<string, string>
+                                {
+                                    { "grant_type","authorization_code" },
+                                    {"code",code},
+                                    {"client_id",clientId},
+                                    {"client_secret",secret},
+                                    {"redirect_uri",redirectUrl}
+                                };
+            token = await http.PostForm<Token>("https://api.amazon.com/auth/o2/token", form);
+
+
+            await Account.GetEndpoint();
+        }
+
+        readonly byte[] closeTabResponse = Encoding.UTF8.GetBytes("<SCRIPT>window.close();</SCRIPT>You can close this tab");
+
+        private async Task SendRedirectResponse(HttpListenerResponse response)
+        {
+            response.StatusCode = 200;
+            response.ContentLength64 = closeTabResponse.Length;
+            await response.OutputStream.WriteAsync(closeTabResponse, 0, closeTabResponse.Length);
+            response.OutputStream.Close();
         }
 
         static readonly Dictionary<CloudDriveScope, string> scopeToStringMap = new Dictionary<CloudDriveScope, string>

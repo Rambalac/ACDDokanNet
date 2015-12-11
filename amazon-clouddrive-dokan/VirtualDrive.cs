@@ -122,7 +122,7 @@ namespace amazon_clouddrive_dokan
         {
             bool readAccess = (access & DataWriteAccess) == 0;
 
-            info.Context = provider.Open(mode, readAccess ? System.IO.FileAccess.Read : System.IO.FileAccess.ReadWrite, share, options);
+            info.Context = provider.OpenFile(fileName, mode, readAccess ? System.IO.FileAccess.Read : System.IO.FileAccess.ReadWrite, share, options);
             return DokanResult.Success;
         }
 
@@ -144,7 +144,7 @@ namespace amazon_clouddrive_dokan
 
         public NtStatus FindFiles(string fileName, out IList<FileInformation> files, DokanFileInfo info)
         {
-            var items = provider.GetDirItems(fileName);
+            var items = provider.GetDirItems(fileName).Result;
 
             files = items.Select(i => new FileInformation
             {
@@ -187,7 +187,7 @@ namespace amazon_clouddrive_dokan
             return DokanResult.PathNotFound;
         }
 
-        private FileInformation GetFileInformation(CloudItem i)
+        private FileInformation GetFileInformation(FSItem i)
         {
             return new FileInformation
             {
