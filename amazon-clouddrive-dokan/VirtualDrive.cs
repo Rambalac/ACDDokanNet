@@ -44,6 +44,11 @@ namespace amazon_clouddrive_dokan
 
         }
 
+        public void Mount(string path)
+        {
+            this.Mount(path, DokanOptions.DebugMode | DokanOptions.StderrOutput | DokanOptions.NetworkDrive);
+        }
+
         public void CloseFile(string fileName, DokanFileInfo info)
         {
             var str = info.Context as Stream;
@@ -115,14 +120,16 @@ namespace amazon_clouddrive_dokan
             }
 
             return _OpenFile(fileName, access, share, mode, options, attributes, info);
-
         }
 
         private NtStatus _OpenFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
         {
             bool readAccess = (access & DataWriteAccess) == 0;
+            var result = provider.OpenFile(fileName, mode, readAccess ? System.IO.FileAccess.Read : System.IO.FileAccess.ReadWrite, share, options);
 
-            info.Context = provider.OpenFile(fileName, mode, readAccess ? System.IO.FileAccess.Read : System.IO.FileAccess.ReadWrite, share, options);
+            if (result == null) return DokanResult.AccessDenied;
+
+            info.Context = result;
             return DokanResult.Success;
         }
 
@@ -285,6 +292,16 @@ namespace amazon_clouddrive_dokan
         {
             streams = new FileInformation[0];
             return DokanResult.NotImplemented;
+        }
+
+        public NtStatus Mounted(DokanFileInfo info)
+        {
+            
+        }
+
+        public NtStatus Unmounted(DokanFileInfo info)
+        {
+            
         }
     }
 }

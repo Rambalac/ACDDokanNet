@@ -52,16 +52,29 @@ namespace Azi.Tools
             return result;
         }
 
-        public async Task GetToStreamAsync(string url, Stream stream)
+        public async Task GetToStreamAsync(string url, Stream stream, long? fileOffset = null, long? length = null)
         {
             using (var client = await GetHttpClient())
             {
+                var request = new HttpRequestMessage
+                {
+                    RequestUri = new Uri(url),
+                };
+                if (fileOffset != null || length != null)
+                    request.Headers.Range = new RangeHeaderValue(fileOffset, length);
 
-                var response = await client.GetAsync(url);
+                var response = await client.SendAsync(request);
                 if (!response.IsSuccessStatusCode) throw new HttpRequestException(response.ReasonPhrase);
 
                 await response.Content.CopyToAsync(stream);
             }
+        }
+
+        public async Task<int> GetToBufferAsync(string url, byte[] buffer, int bufferIndex, long fileOffset, int length)
+        {
+            var stream = new MemoryStream(buffer, bufferIndex, length);
+            await GetToStreamAsync(url, stream, fileOffset, length);
+            return (int)stream.Length;
         }
 
         public async Task<T> PostForm<T>(string url, Dictionary<string, string> pars)

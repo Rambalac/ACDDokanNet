@@ -36,10 +36,16 @@ namespace Azi.Amazon.CloudDrive
             return await http.PostFile<AmazonChild>(url, form, stream);
         }
 
-        public async Task Download(string id, Stream stream)
+        public async Task Download(string id, Stream stream, long? fileOffset = null, long? length = null)
         {
             var url = string.Format("{0}/nodes/{1}/content", await amazon.GetContentUrl(), id);
-            await http.GetToStreamAsync(url, stream);
+            await http.GetToStreamAsync(url, stream, fileOffset, length);
+        }
+
+        public async Task<int> Download(string id, byte[] buffer, int bufferIndex, long fileOffset, int length)
+        {
+            var url = string.Format("{0}/nodes/{1}/content", await amazon.GetContentUrl(), id);
+            return await http.GetToBufferAsync(url, buffer, bufferIndex, fileOffset, length);
         }
     }
 }

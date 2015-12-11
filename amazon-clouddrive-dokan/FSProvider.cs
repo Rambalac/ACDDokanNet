@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 
 namespace amazon_clouddrive_dokan
 {
+
     public class FSProvider
     {
         AmazonDrive amazon;
@@ -30,7 +31,7 @@ namespace amazon_clouddrive_dokan
 
         public bool Exists(string fileName)
         {
-            throw new NotImplementedException();
+            return FetchNode(fileName) != null;
         }
 
         public void CreateDir(string fileName)
@@ -38,9 +39,15 @@ namespace amazon_clouddrive_dokan
             throw new NotImplementedException();
         }
 
+        const int fileMemoryBufferSize = 1 << 10;
+
         public Stream OpenFile(string fileName, FileMode mode, FileAccess fileAccess, FileShare share, FileOptions options)
         {
-            throw new NotImplementedException();
+            if (fileAccess != FileAccess.Read) return null; //TODO
+
+            var node = FetchNode(fileName).Result;
+            if (node == null) return null;
+            return new BufferedStream(new UncachedAmazonFileStream(node, amazon), fileMemoryBufferSize);
         }
 
         public void CreateFile(string fileName)
