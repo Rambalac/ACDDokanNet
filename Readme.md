@@ -3,7 +3,7 @@ ACD Dokan
 
 [Dokan.NET](https://github.com/dokan-dev/dokan-dotnet) based driver for Amazon Cloud Drive. In other words Amazon Cloud Drive as disk drive in Windows.
 
-Login is done via default browser, so it does not need you login and password.
+Login is done via default browser, so it does not need your login and password.
 
 Prerequisites
 -------------
