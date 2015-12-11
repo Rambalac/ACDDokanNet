@@ -7,7 +7,12 @@ Login is done via default browser, so it does not need your login and password.
 
 Prerequisites
 -------------
-[Dokany](https://github.com/dokan-dev/dokany/releases) is required.
+* For use
+** [Dokany](https://github.com/dokan-dev/dokany/releases) is required.
+
+* For developing
+** VS 2015
+** .NET 4.6
 
 Warning
 -------
