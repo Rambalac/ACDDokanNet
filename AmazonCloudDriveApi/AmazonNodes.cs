@@ -1,9 +1,7 @@
-﻿using AmazonCloudDriveApi;
-using Azi.Amazon.CloudDrive.Json;
+﻿using Azi.Amazon.CloudDrive.Json;
 using Azi.Tools;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -64,7 +62,8 @@ namespace Azi.Amazon.CloudDrive
             var url = "{0}/nodes?filters=isRoot:true";
             var result = await json.GetJsonAsync<Children>(string.Format(url, await amazon.GetMetadataUrl()));
             if (result.count == 0) return null;
-            return result.data[0];
+            root = result.data[0];
+            return root;
         }
     }
 }

@@ -2,12 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 using System.Security.AccessControl;
-using System.Globalization;
-using System.Diagnostics;
 using FileAccess = DokanNet.FileAccess;
 
 namespace amazon_clouddrive_dokan
@@ -98,10 +94,10 @@ namespace amazon_clouddrive_dokan
                 case FileMode.Open:
 
                     if (item == null) return DokanResult.FileNotFound;
-                    if (item.isDir)
+                    if (item.IsDir)
                     // check if driver only wants to read attributes, security info, or open directory
                     {
-                        info.IsDirectory = item.isDir;
+                        info.IsDirectory = item.IsDir;
                         info.Context = new object();
                         // must set it to something if you return DokanError.Success
 
@@ -200,9 +196,9 @@ namespace amazon_clouddrive_dokan
             {
                 FileName = i.Name,
                 Attributes = i.IsDir ? FileAttributes.Directory : FileAttributes.Normal,
-                LastAccessTime = DateTime.Now,
-                LastWriteTime = DateTime.Now,
-                CreationTime = DateTime.Now
+                LastAccessTime = i.LastAccessTime,
+                LastWriteTime = i.LastWriteTime,
+                CreationTime = i.CreationTime
             };
         }
 
@@ -236,8 +232,6 @@ namespace amazon_clouddrive_dokan
         {
             var stream = info.Context as Stream;
             stream.Position = offset;
-
-            stream.Write(buffer, 0, buffer.Length);
 
             bytesRead = stream.Read(buffer, 0, buffer.Length);
             return DokanResult.Success;
@@ -280,12 +274,20 @@ namespace amazon_clouddrive_dokan
 
         public NtStatus WriteFile(string fileName, byte[] buffer, out int bytesWritten, long offset, DokanFileInfo info)
         {
-            var stream = info.Context as Stream;
-            stream.Position = offset;
+            try
+            {
+                var stream = info.Context as Stream;
+                stream.Position = offset;
 
-            stream.Write(buffer, 0, buffer.Length);
-            bytesWritten = buffer.Length;
-            return DokanResult.Success;
+                stream.Write(buffer, 0, buffer.Length);
+                bytesWritten = buffer.Length;
+                return DokanResult.Success;
+            }
+            catch (Exception)
+            {
+                bytesWritten = 0;
+                return DokanResult.AccessDenied;
+            }
         }
 
         public NtStatus FindStreams(string fileName, out IList<FileInformation> streams, DokanFileInfo info)
@@ -296,12 +298,12 @@ namespace amazon_clouddrive_dokan
 
         public NtStatus Mounted(DokanFileInfo info)
         {
-            
+            return DokanResult.Success;
         }
 
         public NtStatus Unmounted(DokanFileInfo info)
         {
-            
+            return DokanResult.Success;
         }
     }
 }

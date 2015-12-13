@@ -1,36 +1,22 @@
-﻿using DokanNet;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.IO;
-using System.Security.AccessControl;
-using System.Globalization;
-using System.Diagnostics;
-using FileAccess = DokanNet.FileAccess;
+﻿using System;
 
 namespace amazon_clouddrive_dokan
 {
     public class FSItem
     {
-        public string path;
-        public string Path => path;
-        public bool isDir;
-        public bool IsDir => isDir;
+        public string Path;
+        public bool IsDir;
 
         public string Name
         {
             get
             {
-                return System.IO.Path.GetFileName(path);
+                return System.IO.Path.GetFileName(Path);
             }
         }
 
-        internal FSItem(string path, bool isDir)
-        {
-            this.path = path;
-            this.isDir = isDir;
-        }
+        public DateTime LastAccessTime { get; internal set; }
+        public DateTime LastWriteTime { get; internal set; }
+        public DateTime CreationTime { get; internal set; }
     }
 }
