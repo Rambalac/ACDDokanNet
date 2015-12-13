@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 
@@ -74,21 +73,31 @@ namespace amazon_clouddrive_dokan
             {
                 var path = folderPath + "\\" + node.name;
                 pathToNode[path] = node;
-                result.Add(new FSItem(path, IsDir(node)));
+                result.Add(FromNode(path, node));
             }
 
             return result;
         }
 
-        bool IsDir(AmazonChild node) => node.kind == folderKind;
-
         public FSItem GetItem(string itemPath)
         {
             if (itemPath == "\\")
-                return new FSItem(itemPath, true);
+                return new FSItem { Path = itemPath, IsDir = true };
             var node = FetchNode(itemPath).Result;
 
-            return (node != null) ? new FSItem(itemPath, IsDir(node)) : null;
+            return (node != null) ? FromNode(itemPath, node) : null;
+        }
+
+        private FSItem FromNode(string itemPath, AmazonChild node)
+        {
+            return new FSItem
+            {
+                Path = itemPath,
+                IsDir = node.kind == folderKind,
+                CreationTime = node.createdDate,
+                LastAccessTime = node.modifiedDate,
+                LastWriteTime = node.modifiedDate
+            };
         }
 
         private async Task<AmazonChild> FetchNode(string itemPath)

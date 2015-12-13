@@ -1,11 +1,5 @@
 ﻿using Xunit;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Web.Helpers;
-using System.Text.RegularExpressions;
 
 namespace Azi.Amazon.CloudDrive.Tests
 {

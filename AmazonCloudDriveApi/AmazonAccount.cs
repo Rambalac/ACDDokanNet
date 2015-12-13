@@ -1,10 +1,6 @@
 ﻿using AmazonCloudDriveApi.Json;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using Azi.Amazon.CloudDrive;
 using Azi.Tools;
 
 namespace Azi.Amazon.CloudDrive

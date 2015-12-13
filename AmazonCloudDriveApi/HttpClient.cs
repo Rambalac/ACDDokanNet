@@ -2,13 +2,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Text;
 using System.Threading.Tasks;
-using System.Web.Helpers;
 
 namespace Azi.Tools
 {
@@ -58,10 +55,10 @@ namespace Azi.Tools
             {
                 var request = new HttpRequestMessage
                 {
-                    RequestUri = new Uri(url),
+                    RequestUri = new Uri(url)
                 };
                 if (fileOffset != null || length != null)
-                    request.Headers.Range = new RangeHeaderValue(fileOffset, length);
+                    request.Headers.Range = new RangeHeaderValue(fileOffset, fileOffset + length - 1);
 
                 var response = await client.SendAsync(request);
                 if (!response.IsSuccessStatusCode) throw new HttpRequestException(response.ReasonPhrase);
@@ -72,9 +69,11 @@ namespace Azi.Tools
 
         public async Task<int> GetToBufferAsync(string url, byte[] buffer, int bufferIndex, long fileOffset, int length)
         {
-            var stream = new MemoryStream(buffer, bufferIndex, length);
-            await GetToStreamAsync(url, stream, fileOffset, length);
-            return (int)stream.Length;
+            using (var stream = new MemoryStream(buffer, bufferIndex, length))
+            {
+                await GetToStreamAsync(url, stream, fileOffset, length);
+                return (int)stream.Position;
+            }
         }
 
         public async Task<T> PostForm<T>(string url, Dictionary<string, string> pars)

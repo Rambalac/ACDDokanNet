@@ -1,11 +1,7 @@
 ﻿using Azi.Amazon.CloudDrive;
 using Azi.Amazon.CloudDrive.Json;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace amazon_clouddrive_dokan
 {
@@ -38,7 +34,8 @@ namespace amazon_clouddrive_dokan
 
             set
             {
-                Seek(value, SeekOrigin.Begin);
+                if (position != value)
+                    Seek(value, SeekOrigin.Begin);
             }
         }
 
