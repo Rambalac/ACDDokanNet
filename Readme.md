@@ -26,7 +26,7 @@ News
 
 ### 2015-12-14
 
-Not it can read files. But it's still not cached and reading from apps, like photos, can be very very slow. But linear reading like copying is possible.
+Now it can read files. But it's still not cached and reading from apps, like photos, can be very very slow. But linear reading like copying is possible.
 
 ### 2015-12-11
 
