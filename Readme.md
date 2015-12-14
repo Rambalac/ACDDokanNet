@@ -24,6 +24,10 @@ As it's say Gamma version it may crush together with your OS and/or (really it s
 News
 ----
 
+### 2015-12-14
+
+Not it can read files. But it's still not cached and reading from apps, like photos, can be very very slow. But linear reading like copying is possible.
+
 ### 2015-12-11
 
 Can browse folders!
