@@ -65,9 +65,8 @@ namespace Azi.Amazon.CloudDrive
 
         private async Task HeadersSetter(HttpRequestHeaders headers)
         {
-            var token = await GetToken();
             if (token != null)
-                headers.Add("Authorization", "Bearer " + token);
+                headers.Add("Authorization", "Bearer " + await GetToken());
             headers.CacheControl = standartCache;
             headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("gzip"));
             headers.UserAgent.Add(new ProductInfoHeaderValue("AZIACDDokanNet", this.GetType().Assembly.ImageRuntimeVersion));
@@ -75,6 +74,8 @@ namespace Azi.Amazon.CloudDrive
 
         private async Task<string> GetToken()
         {
+            if (token == null) throw new InvalidOperationException("Not authenticated");
+            if (token.IsExpired) await UpdateToken();
             return token?.access_token;
         }
 

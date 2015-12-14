@@ -92,6 +92,7 @@ namespace amazon_clouddrive_dokan
         {
             return new FSItem
             {
+                Length = node.contentProperties?.size ?? 0,
                 Path = itemPath,
                 IsDir = node.kind == folderKind,
                 CreationTime = node.createdDate,

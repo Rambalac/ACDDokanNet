@@ -151,6 +151,7 @@ namespace amazon_clouddrive_dokan
 
             files = items.Select(i => new FileInformation
             {
+                Length = i.Length,
                 FileName = i.Name,
                 Attributes = i.IsDir ? FileAttributes.Directory : FileAttributes.Normal,
                 LastAccessTime = DateTime.Now,
@@ -194,6 +195,7 @@ namespace amazon_clouddrive_dokan
         {
             return new FileInformation
             {
+                Length = i.Length,
                 FileName = i.Name,
                 Attributes = i.IsDir ? FileAttributes.Directory : FileAttributes.Normal,
                 LastAccessTime = i.LastAccessTime,

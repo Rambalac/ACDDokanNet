@@ -4,16 +4,11 @@ namespace amazon_clouddrive_dokan
 {
     public class FSItem
     {
-        public string Path;
-        public bool IsDir;
+        public string Path { get; internal set; }
+        public bool IsDir { get; internal set; }
+        public long Length { get; internal set; }
 
-        public string Name
-        {
-            get
-            {
-                return System.IO.Path.GetFileName(Path);
-            }
-        }
+        public string Name => System.IO.Path.GetFileName(Path);
 
         public DateTime LastAccessTime { get; internal set; }
         public DateTime LastWriteTime { get; internal set; }
