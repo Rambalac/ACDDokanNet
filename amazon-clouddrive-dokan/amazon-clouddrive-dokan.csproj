@@ -59,6 +59,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="DiskCachedAmazonFileStream.cs" />
     <Compile Include="FSItem.cs" />
     <Compile Include="FSProvider.cs" />
     <Compile Include="UncachedAmazonFileStream.cs" />
