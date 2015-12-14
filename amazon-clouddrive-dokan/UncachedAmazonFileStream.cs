@@ -46,6 +46,8 @@ namespace amazon_clouddrive_dokan
 
         public override int Read(byte[] buffer, int offset, int count)
         {
+            if (position >= node.contentProperties.size) return 0;
+            if (position + count > node.contentProperties.size) count = (int)(node.contentProperties.size - position);
             var red = amazon.Files.Download(node.id, buffer, offset, position, count).Result;
             position += red;
             return red;

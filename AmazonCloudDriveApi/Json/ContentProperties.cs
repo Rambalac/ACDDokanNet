@@ -5,7 +5,7 @@ namespace Azi.Amazon.CloudDrive.Json
 
     public class ContentProperties
     {
-        public int size { get; set; }
+        public long size { get; set; }
         public int version { get; set; }
         public string contentType { get; set; }
         public string md5 { get; set; }
