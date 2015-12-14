@@ -46,7 +46,7 @@ namespace amazon_clouddrive_dokan
 
             var node = FetchNode(fileName).Result;
             if (node == null) return null;
-            return new BufferedStream(new UncachedAmazonFileStream(node, amazon), fileMemoryBufferSize);
+            return new BufferedStream(new DiskCachedAmazonFileStream(node, amazon), fileMemoryBufferSize);
         }
 
         public void CreateFile(string fileName)
