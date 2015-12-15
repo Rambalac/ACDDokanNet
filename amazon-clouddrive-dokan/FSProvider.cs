@@ -28,6 +28,8 @@ namespace Azi.ACDDokanNet
         public long TotalSize => amazon.Account.GetQuota().Result.quota;
         public long TotalFreeSpace => amazon.Account.GetQuota().Result.available;
 
+        public string VolumeName => "Cloud Drive";
+
         public void DeleteFile(string fileName)
         {
             throw new NotImplementedException();

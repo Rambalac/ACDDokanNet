@@ -62,6 +62,7 @@
     <Compile Include="DiskCachedAmazonFileStream.cs" />
     <Compile Include="FSItem.cs" />
     <Compile Include="FSProvider.cs" />
+    <Compile Include="Log.cs" />
     <Compile Include="UncachedAmazonFileStream.cs" />
     <Compile Include="VirtualDrive.cs" />
     <Page Include="MainWindow.xaml">

@@ -56,6 +56,7 @@ namespace Azi.ACDDokanNet
 
         }
 
+
         bool DownloadFile()
         {
             try
@@ -64,9 +65,9 @@ namespace Azi.ACDDokanNet
                 lock (blocker)
                 {
                     if (!fileDownloadBlockers.TryAdd(node.id, blocker)) return true;
-                    using (var file = File.Open(cachedFilePath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-                        try
-                        {
+                    try
+                    {
+                        using (var file = File.Open(cachedFilePath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
                             try
                             {
                                 while (file.Length < node.contentProperties.size)
@@ -80,12 +81,12 @@ namespace Azi.ACDDokanNet
                             {
                                 throw new InvalidOperationException("Download failed", e);
                             }
-                        }
-                        finally
-                        {
-                            object o;
-                            fileDownloadBlockers.TryRemove(node.id, out o);
-                        }
+                    }
+                    finally
+                    {
+                        object o;
+                        fileDownloadBlockers.TryRemove(node.id, out o);
+                    }
                 }
             }
             catch (IOException)
