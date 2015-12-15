@@ -1,4 +1,5 @@
 ﻿using AmazonCloudDriveApi;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -78,17 +79,59 @@ namespace Azi.Tools
 
         public async Task<T> PostForm<T>(string url, Dictionary<string, string> pars)
         {
+            return await SendForm<T>(HttpMethod.Post, url, pars);
+        }
+
+        public async Task<R> Patch<P, R>(string url, P obj)
+        {
+            return await Send<P, R>(new HttpMethod("PATCH"), url, obj);
+        }
+
+        public async Task<R> Post<P, R>(string url, P obj)
+        {
+            return await Send<P, R>(HttpMethod.Post, url, obj);
+        }
+
+        public async Task<T> SendForm<T>(HttpMethod method, string url, Dictionary<string, string> pars)
+        {
             T result = default(T);
             await Retry.Do(retryTimes, retryDelay, async () =>
             {
                 using (var client = await GetHttpClient())
                 {
                     var content = new FormUrlEncodedContent(pars);
+                    var request = new HttpRequestMessage(method, url);
+                    request.Content = content;
 
-                    var response = await client.PostAsync(url, content);
+                    var response = await client.SendAsync(request);
                     if (!response.IsSuccessStatusCode) return false;
 
                     result = await response.Content.ReadAsAsync<T>();
+                    return true;
+                }
+            });
+            return result;
+        }
+
+        public async Task<R> Send<P, R>(HttpMethod method, string url, P obj)
+        {
+            R result = default(R);
+            await Retry.Do(retryTimes, retryDelay, async () =>
+            {
+                using (var client = await GetHttpClient())
+                {
+                    var data = JsonConvert.SerializeObject(obj);
+                    var content = new StringContent(data);
+                    var request = new HttpRequestMessage(method, url);
+                    request.Content = content;
+
+                    var response = await client.SendAsync(request);
+                    if (!response.IsSuccessStatusCode) return false;
+
+                    if (typeof(R) == typeof(string))
+                        result = (R)(object)await response.Content.ReadAsStringAsync();
+                    else
+                        result = await response.Content.ReadAsAsync<R>();
                     return true;
                 }
             });

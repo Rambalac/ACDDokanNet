@@ -11,7 +11,7 @@ namespace Azi.Amazon.CloudDrive
     public class AmazonNodes
     {
         private readonly AmazonDrive amazon;
-        HttpClient json => amazon.http;
+        HttpClient http => amazon.http;
         static TimeSpan generalExpiration => AmazonDrive.generalExpiration;
 
         public AmazonNodes(AmazonDrive amazonDrive)
@@ -22,7 +22,7 @@ namespace Azi.Amazon.CloudDrive
         public async Task<AmazonChild> GetNode(string id)
         {
             var url = "{0}/nodes/{1}";
-            var result = await json.GetJsonAsync<AmazonChild>(string.Format(url, await amazon.GetMetadataUrl(), id));
+            var result = await http.GetJsonAsync<AmazonChild>(string.Format(url, await amazon.GetMetadataUrl(), id));
             return result;
         }
 
@@ -30,7 +30,7 @@ namespace Azi.Amazon.CloudDrive
         {
             if (id == null) id = (await GetRoot()).id;
             var url = "{0}/nodes/{1}/children";
-            var children = await json.GetJsonAsync<Children>(string.Format(url, await amazon.GetMetadataUrl(), id));
+            var children = await http.GetJsonAsync<Children>(string.Format(url, await amazon.GetMetadataUrl(), id));
             return children.data;
         }
 
@@ -49,21 +49,42 @@ namespace Azi.Amazon.CloudDrive
         {
             if (parentid == null) parentid = (await GetRoot()).id;
             var url = string.Format("{0}/nodes?filters={1} AND {2}", await amazon.GetMetadataUrl(), MakeParentFilter(parentid), MakeNameFilter(name));
-            var result = await json.GetJsonAsync<Children>(url);
+            var result = await http.GetJsonAsync<Children>(url);
             if (result.count == 0) return null;
             return result.data[0];
         }
 
         AmazonChild root;
-        private async Task<AmazonChild> GetRoot()
+        public async Task<AmazonChild> GetRoot()
         {
             if (root != null) return root;
 
             var url = "{0}/nodes?filters=isRoot:true";
-            var result = await json.GetJsonAsync<Children>(string.Format(url, await amazon.GetMetadataUrl()));
+            var result = await http.GetJsonAsync<Children>(string.Format(url, await amazon.GetMetadataUrl()));
             if (result.count == 0) return null;
             root = result.data[0];
             return root;
+        }
+
+        public async Task<AmazonChild> Rename(string id, string newName)
+        {
+            var url = "{0}/nodes/{1}";
+            var data = new
+            {
+                name = newName
+            };
+            return await http.Patch<object, AmazonChild>(string.Format(url, await amazon.GetMetadataUrl(), id), data);
+        }
+
+        public async Task<AmazonChild> Move(string id, string oldDirId, string newDirId)
+        {
+            var url = "{0}/nodes/{1}/children";
+            var data = new
+            {
+                fromParent = oldDirId,
+                childId = id
+            };
+            return await http.Post<object, AmazonChild>(string.Format(url, await amazon.GetMetadataUrl(), newDirId), data);
         }
     }
 }

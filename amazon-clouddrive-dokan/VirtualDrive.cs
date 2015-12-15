@@ -120,6 +120,8 @@ namespace amazon_clouddrive_dokan
 
         private NtStatus _OpenFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
         {
+            if (access == (FileAccess.ReadAttributes | FileAccess.Delete | FileAccess.Synchronize)) return DokanResult.Success;
+
             bool readAccess = (access & DataWriteAccess) == 0;
             var result = provider.OpenFile(fileName, mode, readAccess ? System.IO.FileAccess.Read : System.IO.FileAccess.ReadWrite, share, options);
 
@@ -179,14 +181,18 @@ namespace amazon_clouddrive_dokan
 
         public NtStatus GetFileInformation(string fileName, out FileInformation fileInfo, DokanFileInfo info)
         {
-            var item = provider.GetItem(fileName);
+            try {
+                var item = provider.GetItem(fileName);
 
-            if (item != null)
+                if (item != null)
+                {
+                    fileInfo = GetFileInformation(item);
+                    return DokanResult.Success;
+                }
+            }catch(Exception e)
             {
-                fileInfo = GetFileInformation(item);
-                return DokanResult.Success;
-            }
 
+            }
             fileInfo = new FileInformation();
             return DokanResult.PathNotFound;
         }
