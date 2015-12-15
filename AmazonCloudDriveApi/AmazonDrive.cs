@@ -34,7 +34,7 @@ namespace Azi.Amazon.CloudDrive
         string clientSecret;
 
         CloudDriveScope scope;
-        Token token;
+        AuthToken token;
 
         internal readonly Tools.HttpClient http;
         public readonly AmazonAccount Account;
@@ -88,7 +88,7 @@ namespace Azi.Amazon.CloudDrive
                         {"client_id",clientId},
                         {"client_secret",""}
                     };
-            token = await http.PostForm<Token>("https://api.amazon.com/auth/o2/token", form);
+            token = await http.PostForm<AuthToken>("https://api.amazon.com/auth/o2/token", form);
 
         }
 
@@ -181,7 +181,7 @@ namespace Azi.Amazon.CloudDrive
                                     {"client_secret",secret},
                                     {"redirect_uri",redirectUrl}
                                 };
-            token = await http.PostForm<Token>("https://api.amazon.com/auth/o2/token", form);
+            token = await http.PostForm<AuthToken>("https://api.amazon.com/auth/o2/token", form);
 
 
             await Account.GetEndpoint();

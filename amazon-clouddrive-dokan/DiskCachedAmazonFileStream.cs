@@ -67,18 +67,27 @@ namespace amazon_clouddrive_dokan
                 {
                     if (!fileDownloadBlockers.TryAdd(node.id, blocker)) return true;
                     using (var file = File.Open(cachedFilePath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-                    {
                         try
                         {
-                            amazon.Files.Download(node.id, file).Wait();
-                            file.Close();
-                            return true;
+                            try
+                            {
+                                while (file.Length < node.contentProperties.size)
+                                {
+                                    amazon.Files.Download(node.id, file, file.Length).Wait();
+                                }
+                                file.Close();
+                                return true;
+                            }
+                            catch (IOException e)
+                            {
+                                throw new InvalidOperationException("Download failed", e);
+                            }
                         }
-                        catch (IOException e)
+                        finally
                         {
-                            throw new InvalidOperationException("Download failed", e);
+                            object o;
+                            fileDownloadBlockers.TryRemove(node.id, out o);
                         }
-                    }
                 }
             }
             catch (IOException)
@@ -103,9 +112,16 @@ namespace amazon_clouddrive_dokan
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            if (cachedFile == null) OpenFile();
+            try
+            {
+                if (cachedFile == null) OpenFile();
 
-            return cachedFile.Read(buffer, offset, count);
+                return cachedFile.Read(buffer, offset, count);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
         public override long Seek(long offset, SeekOrigin origin)

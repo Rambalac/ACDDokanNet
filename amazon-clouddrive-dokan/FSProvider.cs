@@ -103,22 +103,24 @@ namespace amazon_clouddrive_dokan
 
         private async Task<AmazonChild> FetchNode(string itemPath)
         {
-            if (itemPath == "\\" || itemPath == "") return null;
+            if (itemPath == "\\" || itemPath == "") return await amazon.Nodes.GetRoot();
             AmazonChild result;
             if (pathToNode.TryGetValue(itemPath, out result)) return result;
 
             var folders = new LinkedList<string>();
             var curpath = itemPath;
-            AmazonChild node = null;
+            AmazonChild node = await amazon.Nodes.GetRoot();
             do
             {
                 folders.AddFirst(Path.GetFileName(curpath));
                 curpath = Path.GetDirectoryName(curpath);
                 if (curpath == "\\" || string.IsNullOrEmpty(curpath)) break;
-            } while (pathToNode.TryGetValue(curpath, out node));
+            } while (!pathToNode.TryGetValue(curpath, out node));
             foreach (var name in folders)
             {
-                var newnode = await amazon.Nodes.GetChild(node?.id, name);
+                var newnode = await amazon.Nodes.GetChild(node.id, name);
+                if (newnode == null) return null;
+
                 curpath = curpath + "\\" + name;
                 pathToNode[curpath] = newnode;
                 node = newnode;
@@ -126,9 +128,32 @@ namespace amazon_clouddrive_dokan
             return node;
         }
 
-        public void MoveFile(string oldName, string newName, bool replace)
+        public void MoveFile(string oldPath, string newPath, bool replace)
         {
-            throw new NotImplementedException();
+            if (oldPath == newPath) return;
+
+            var oldDir = Path.GetDirectoryName(oldPath);
+            var oldName = Path.GetFileName(oldPath);
+            var newDir = Path.GetDirectoryName(newPath);
+            var newName = Path.GetFileName(newPath);
+
+            var oldNodeTask = FetchNode(oldPath);
+            Task<AmazonChild> newNodeTask = oldNodeTask;
+            if (oldName != newName)
+            {
+                newNodeTask = amazon.Nodes.Rename(oldNodeTask.Result.id, newName);
+            }
+
+            if (oldDir != newDir)
+            {
+                var oldDirNodeTask = FetchNode(oldDir);
+                var newDirNodeTask = FetchNode(newDir);
+                Task.WaitAll(oldDirNodeTask, newDirNodeTask, oldNodeTask);
+                amazon.Nodes.Move(oldNodeTask.Result.id, oldDirNodeTask.Result.id, newDirNodeTask.Result.id).Wait();
+            }
+
+            pathToNode.Remove(oldPath);
+            pathToNode.Add(newPath, newNodeTask.Result);
         }
     }
 }
