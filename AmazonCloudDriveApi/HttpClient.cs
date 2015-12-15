@@ -115,6 +115,11 @@ namespace Azi.Tools
 
         public async Task<R> Send<P, R>(HttpMethod method, string url, P obj)
         {
+            return await Send<P, R>(method, url, obj, (r) => r.Content.ReadAsAsync<R>());
+        }
+
+        public async Task<R> Send<P, R>(HttpMethod method, string url, P obj, Func<HttpResponseMessage, Task<R>> responseParser)
+        {
             R result = default(R);
             await Retry.Do(retryTimes, retryDelay, async () =>
             {
@@ -128,10 +133,7 @@ namespace Azi.Tools
                     var response = await client.SendAsync(request);
                     if (!response.IsSuccessStatusCode) return false;
 
-                    if (typeof(R) == typeof(string))
-                        result = (R)(object)await response.Content.ReadAsStringAsync();
-                    else
-                        result = await response.Content.ReadAsAsync<R>();
+                    result = await responseParser(response);
                     return true;
                 }
             });
