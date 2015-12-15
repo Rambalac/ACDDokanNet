@@ -1,6 +1,7 @@
 ﻿using Azi.Amazon.CloudDrive;
 using Azi.Amazon.CloudDrive.Json;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -12,7 +13,11 @@ namespace Azi.ACDDokanNet
 
     public class FSProvider
     {
+        static readonly string[] fsItemKinds = { "FILE", "FOLDER" };
+        const string folderKind = "FOLDER";
+
         readonly AmazonDrive amazon;
+        readonly ConcurrentDictionary<string, AmazonChild> pathToNode = new ConcurrentDictionary<string, AmazonChild>();
 
         public FSProvider(AmazonDrive amazon)
         {
@@ -59,10 +64,6 @@ namespace Azi.ACDDokanNet
             throw new NotImplementedException();
         }
 
-        readonly Dictionary<string, AmazonChild> pathToNode = new Dictionary<string, AmazonChild>();
-
-        string[] fsItemKinds = { "FILE", "FOLDER" };
-        string folderKind = "FOLDER";
         public async Task<IList<FSItem>> GetDirItems(string folderPath)
         {
             var folderNode = FetchNode(folderPath).Result;
@@ -152,8 +153,9 @@ namespace Azi.ACDDokanNet
                 amazon.Nodes.Move(oldNodeTask.Result.id, oldDirNodeTask.Result.id, newDirNodeTask.Result.id).Wait();
             }
 
-            pathToNode.Remove(oldPath);
-            pathToNode.Add(newPath, newNodeTask.Result);
+            AmazonChild removed;
+            pathToNode.TryRemove(oldPath, out removed);
+            pathToNode[newPath] = newNodeTask.Result;
         }
     }
 }
