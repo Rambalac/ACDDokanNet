@@ -24,11 +24,25 @@ namespace AmazonCloudDriveApi
             return false;
         }
 
-        internal static async Task<bool> Do(int times, Func<int, TimeSpan> retryDelay, Func<Task<bool>> act)
+        static bool DefaultExceptionProcessor(Exception ex) => true;
+
+        public static async Task<bool> Do(int times, Func<int, TimeSpan> retryDelay, Func<Task<bool>> act)
+        {
+            return await Do(times, retryDelay, act, DefaultExceptionProcessor);
+        }
+
+        public static async Task<bool> Do(int times, Func<int, TimeSpan> retryDelay, Func<Task<bool>> act, Func<Exception, bool> exceptionPocessor)
         {
             for (int time = 0; time < times - 1; time++)
             {
-                if (await act()) return true;
+                try
+                {
+                    if (await act()) return true;
+                }
+                catch (Exception ex)
+                {
+                    if (exceptionPocessor(ex)) return false;
+                }
                 await Task.Delay(retryDelay(time));
             }
             return await act();
