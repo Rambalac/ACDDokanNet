@@ -1,6 +1,6 @@
 ﻿using System.Windows;
 
-namespace amazon_clouddrive_dokan
+namespace Azi.ACDDokanNet
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml

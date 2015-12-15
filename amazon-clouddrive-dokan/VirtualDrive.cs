@@ -6,7 +6,7 @@ using System.IO;
 using System.Security.AccessControl;
 using FileAccess = DokanNet.FileAccess;
 
-namespace amazon_clouddrive_dokan
+namespace Azi.ACDDokanNet
 {
 
     public class VirtualDrive : IDokanOperations
@@ -181,18 +181,14 @@ namespace amazon_clouddrive_dokan
 
         public NtStatus GetFileInformation(string fileName, out FileInformation fileInfo, DokanFileInfo info)
         {
-            try {
-                var item = provider.GetItem(fileName);
+            var item = provider.GetItem(fileName);
 
-                if (item != null)
-                {
-                    fileInfo = GetFileInformation(item);
-                    return DokanResult.Success;
-                }
-            }catch(Exception e)
+            if (item != null)
             {
-
+                fileInfo = GetFileInformation(item);
+                return DokanResult.Success;
             }
+
             fileInfo = new FileInformation();
             return DokanResult.PathNotFound;
         }

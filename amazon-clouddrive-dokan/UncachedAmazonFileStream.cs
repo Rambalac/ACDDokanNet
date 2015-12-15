@@ -3,7 +3,7 @@ using Azi.Amazon.CloudDrive.Json;
 using System;
 using System.IO;
 
-namespace amazon_clouddrive_dokan
+namespace Azi.ACDDokanNet
 {
     public class UncachedAmazonFileStream : Stream
     {

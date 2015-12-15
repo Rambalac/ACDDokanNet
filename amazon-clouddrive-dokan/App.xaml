@@ -1,4 +1,4 @@
-﻿<Application x:Class="amazon_clouddrive_dokan.App"
+﻿<Application x:Class="Azi.ACDDokanNet.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:amazon_clouddrive_dokan"

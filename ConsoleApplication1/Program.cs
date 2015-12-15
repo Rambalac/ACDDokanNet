@@ -1,4 +1,4 @@
-﻿using amazon_clouddrive_dokan;
+﻿using Azi.ACDDokanNet;
 using Azi.Amazon.CloudDrive;
 using Azi.Amazon.CloudDrive.Tests;
 using System;
