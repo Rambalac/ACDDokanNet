@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace amazon_clouddrive_dokan
+namespace Azi.ACDDokanNet
 {
     public class FSItem
     {

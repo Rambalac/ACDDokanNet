@@ -7,12 +7,12 @@ using System.Linq;
 using System.Threading.Tasks;
 
 
-namespace amazon_clouddrive_dokan
+namespace Azi.ACDDokanNet
 {
 
     public class FSProvider
     {
-        AmazonDrive amazon;
+        readonly AmazonDrive amazon;
 
         public FSProvider(AmazonDrive amazon)
         {
@@ -59,7 +59,7 @@ namespace amazon_clouddrive_dokan
             throw new NotImplementedException();
         }
 
-        Dictionary<string, AmazonChild> pathToNode = new Dictionary<string, AmazonChild>();
+        readonly Dictionary<string, AmazonChild> pathToNode = new Dictionary<string, AmazonChild>();
 
         string[] fsItemKinds = { "FILE", "FOLDER" };
         string folderKind = "FOLDER";

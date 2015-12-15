@@ -1,12 +1,10 @@
-﻿using AmazonCloudDriveApi;
-using Azi.Amazon.CloudDrive;
+﻿using Azi.Amazon.CloudDrive;
 using Azi.Amazon.CloudDrive.Json;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
-using System.Threading;
 
-namespace amazon_clouddrive_dokan
+namespace Azi.ACDDokanNet
 {
     public class DiskCachedAmazonFileStream : Stream
     {
