@@ -1,7 +1,7 @@
-﻿using AmazonCloudDriveApi.Json;
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using Azi.Tools;
+using Azi.Amazon.CloudDrive.Json;
 
 namespace Azi.Amazon.CloudDrive
 {

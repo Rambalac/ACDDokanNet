@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Azi.Amazon.CloudDrive
+namespace Azi.Amazon.CloudDrive.Json
 {
 
     public class Image

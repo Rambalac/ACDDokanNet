@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Azi.Tools
 {
@@ -39,6 +35,16 @@ namespace Azi.Tools
             WriteEntry(message, EventLogEntryType.Warning, memberName, sourceFilePath, sourceLineNumber);
         }
 
+        [Conditional("TRACE")]
+        public static void Trace(
+            string message,
+            [CallerMemberName] string memberName = "",
+            [CallerFilePath] string sourceFilePath = "",
+            [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            WriteEntry(message, EventLogEntryType.Information, memberName, sourceFilePath, sourceLineNumber);
+        }
+
         public static void WriteEntry(
             string message,
             EventLogEntryType type,
@@ -46,7 +52,7 @@ namespace Azi.Tools
             [CallerFilePath] string sourceFilePath = "",
             [CallerLineNumber] int sourceLineNumber = 0)
         {
-            EventLog.WriteEntry(source, $"{memberName}: {message}", type);
+            EventLog.WriteEntry(source, $"{memberName}:{message}\r\n\r\n{sourceFilePath}:{sourceLineNumber}", type);
         }
 
 

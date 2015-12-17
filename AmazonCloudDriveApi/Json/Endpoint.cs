@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace AmazonCloudDriveApi.Json
+namespace Azi.Amazon.CloudDrive.Json
 {
     public class Endpoint
     {

@@ -36,16 +36,27 @@ namespace Azi.Amazon.CloudDrive
             return await http.PostFile<AmazonChild>(url, form, stream);
         }
 
-        public async Task Download(string id, Stream stream, long? fileOffset = null, long? length = null)
+        public async Task Download(string id, Stream stream, long? fileOffset = null, long? length = null, int bufferSize = 4096, Func<long, long> progress = null)
         {
             var url = string.Format("{0}/nodes/{1}/content", await amazon.GetContentUrl(), id);
-            await http.GetToStreamAsync(url, stream, fileOffset, length);
+            await http.GetToStreamAsync(url, stream, fileOffset, length, bufferSize, progress);
+        }
+
+        public async Task Download(string id, Func<Stream, Task> streammer, long? fileOffset = null, long? length = null)
+        {
+            var url = string.Format("{0}/nodes/{1}/content", await amazon.GetContentUrl(), id);
+            await http.GetToStreamAsync(url, streammer, fileOffset, length);
         }
 
         public async Task<int> Download(string id, byte[] buffer, int bufferIndex, long fileOffset, int length)
         {
             var url = string.Format("{0}/nodes/{1}/content", await amazon.GetContentUrl(), id);
             return await http.GetToBufferAsync(url, buffer, bufferIndex, fileOffset, length);
+        }
+
+        public Task Download(string id, FileStream writer, long length, Func<long, long> progress)
+        {
+            throw new NotImplementedException();
         }
     }
 }
