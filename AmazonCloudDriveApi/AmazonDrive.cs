@@ -1,5 +1,5 @@
-﻿using AmazonCloudDriveApi;
-using Azi.Amazon.CloudDrive.Json;
+﻿using Azi.Amazon.CloudDrive.Json;
+using Azi.Tools;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
@@ -187,7 +187,7 @@ namespace Azi.Amazon.CloudDrive
             await Account.GetEndpoint();
         }
 
-        readonly byte[] closeTabResponse = Encoding.UTF8.GetBytes("<SCRIPT>window.close();</SCRIPT>You can close this tab");
+        readonly byte[] closeTabResponse = Encoding.UTF8.GetBytes("<SCRIPT>window.open('', '_parent','');window.close();</SCRIPT>You can close this tab");
 
         private async Task SendRedirectResponse(HttpListenerResponse response)
         {

@@ -1,5 +1,4 @@
-﻿using AmazonCloudDriveApi;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -61,8 +60,9 @@ namespace Azi.Tools
             if (webresp == null) return true;
 
             if (retryCodes.Contains(webresp.StatusCode)) return false;
+            Log.Error($"Download failed: {ex}");
 
-            return true;
+            throw ex;
         }
 
         public async Task<T> GetJsonAsync<T>(string url)
@@ -81,8 +81,9 @@ namespace Azi.Tools
             return result;
         }
 
-        public async Task GetToStreamAsync(string url, Stream stream, long? fileOffset = null, long? length = null)
+        public async Task GetToStreamAsync(string url, Stream stream, long? fileOffset = null, long? length = null, int bufferSize = 4096, Func<long, long> progress = null)
         {
+            var start = DateTime.UtcNow;
             await Retry.Do(retryTimes, retryDelay, async () =>
             {
                 using (var client = await GetHttpClient())
@@ -95,13 +96,62 @@ namespace Azi.Tools
                         request.Headers.Range = new RangeHeaderValue(fileOffset, fileOffset + length - 1);
 
                     var response = await client.SendAsync(request);
-                    if (!response.IsSuccessStatusCode) return !retryCodes.Contains(response.StatusCode);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        Log.Warn("Response code: " + response.StatusCode);
+                        return !retryCodes.Contains(response.StatusCode);
+                    }
 
-                    await response.Content.CopyToAsync(stream);
+                    Stream input = await response.Content.ReadAsStreamAsync();
+
+                    byte[] buff = new byte[Math.Min(bufferSize, response.Content.Headers.ContentLength ?? long.MaxValue)];
+                    int red;
+                    long nextProgress = -1;
+                    bool first = true;
+                    while ((red = await input.ReadAsync(buff, 0, buff.Length)) > 0)
+                    {
+                        if (first) Log.Trace("File first response: " + (DateTime.UtcNow - start).TotalMilliseconds);
+                        first = false;
+                        await stream.WriteAsync(buff, 0, red);
+                        if (progress != null && input.Position >= nextProgress)
+                        {
+                            nextProgress = progress(input.Position);
+                        }
+                    }
+                    if (nextProgress == -1) progress(0);
                 }
                 return true;
             }, GeneralExceptionProcessor);
         }
+
+        public async Task GetToStreamAsync(string url, Func<Stream, Task> streammer, long? fileOffset = null, long? length = null)
+        {
+            var start = DateTime.UtcNow;
+            await Retry.Do(retryTimes, retryDelay, async () =>
+            {
+                using (var client = await GetHttpClient())
+                {
+                    var request = new HttpRequestMessage
+                    {
+                        RequestUri = new Uri(url)
+                    };
+                    if (fileOffset != null || length != null)
+                        request.Headers.Range = new RangeHeaderValue(fileOffset, fileOffset + length - 1);
+
+                    var response = await client.SendAsync(request);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        Log.Warn("Response code: " + response.StatusCode);
+                        return !retryCodes.Contains(response.StatusCode);
+                    }
+
+                    Stream input = await response.Content.ReadAsStreamAsync();
+                    await streammer(input);
+                }
+                return true;
+            }, GeneralExceptionProcessor);
+        }
+
 
         public async Task<int> GetToBufferAsync(string url, byte[] buffer, int bufferIndex, long fileOffset, int length)
         {
@@ -139,7 +189,11 @@ namespace Azi.Tools
                     request.Content = content;
 
                     var response = await client.SendAsync(request);
-                    if (!response.IsSuccessStatusCode) return !retryCodes.Contains(response.StatusCode);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        Log.Warn("Response code: " + response.StatusCode);
+                        return !retryCodes.Contains(response.StatusCode);
+                    }
 
                     result = await response.Content.ReadAsAsync<T>();
                     return true;
@@ -166,7 +220,11 @@ namespace Azi.Tools
                     request.Content = content;
 
                     var response = await client.SendAsync(request);
-                    if (!response.IsSuccessStatusCode) return !retryCodes.Contains(response.StatusCode);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        Log.Warn("Response code: " + response.StatusCode);
+                        return !retryCodes.Contains(response.StatusCode);
+                    }
 
                     result = await responseParser(response);
                     return true;
@@ -190,7 +248,11 @@ namespace Azi.Tools
                     content.Add(new StreamContent(stream));
 
                     var response = await client.PostAsync(url, content);
-                    if (!response.IsSuccessStatusCode) return !retryCodes.Contains(response.StatusCode);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        Log.Warn("Response code: " + response.StatusCode);
+                        return !retryCodes.Contains(response.StatusCode);
+                    }
 
                     result = await response.Content.ReadAsAsync<T>();
                     return true;

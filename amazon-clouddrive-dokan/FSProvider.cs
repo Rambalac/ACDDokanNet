@@ -1,5 +1,6 @@
 ﻿using Azi.Amazon.CloudDrive;
 using Azi.Amazon.CloudDrive.Json;
+using Azi.Tools;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -10,7 +11,15 @@ using System.Threading.Tasks;
 
 namespace Azi.ACDDokanNet
 {
-
+    class DirItem
+    {
+        public readonly DateTime FetchTime = DateTime.UtcNow;
+        public readonly IList<FSItem> Items;
+        public DirItem(IList<FSItem> items)
+        {
+            Items = items;
+        }
+    }
     public class FSProvider
     {
         static readonly string[] fsItemKinds = { "FILE", "FOLDER" };
@@ -18,10 +27,14 @@ namespace Azi.ACDDokanNet
 
         readonly AmazonDrive amazon;
         readonly ConcurrentDictionary<string, AmazonChild> pathToNode = new ConcurrentDictionary<string, AmazonChild>();
+        readonly ConcurrentDictionary<string, DirItem> pathToDirItems = new ConcurrentDictionary<string, DirItem>();
+        readonly TimeSpan DirItemsExpiration = TimeSpan.FromSeconds(60);
+        readonly SmallFileCache smallFileCache;
 
         public FSProvider(AmazonDrive amazon)
         {
             this.amazon = amazon;
+            smallFileCache = SmallFileCache.GetInstance(amazon);
         }
 
         public long AvailableFreeSpace => amazon.Account.GetQuota().Result.available;
@@ -45,15 +58,12 @@ namespace Azi.ACDDokanNet
             throw new NotImplementedException();
         }
 
-        const int fileMemoryBufferSize = 1 << 10;
-
-        public Stream OpenFile(string fileName, FileMode mode, FileAccess fileAccess, FileShare share, FileOptions options)
+        public IBlockReader OpenFile(string fileName, FileMode mode, FileAccess fileAccess, FileShare share, FileOptions options)
         {
             if (fileAccess != FileAccess.Read) return null; //TODO
-
             var node = FetchNode(fileName).Result;
             if (node == null) return null;
-            return new BufferedStream(new DiskCachedAmazonFileStream(node, amazon), fileMemoryBufferSize);
+            return smallFileCache.OpenRead(node);
         }
 
         public void CreateFile(string fileName)
@@ -68,18 +78,23 @@ namespace Azi.ACDDokanNet
 
         public async Task<IList<FSItem>> GetDirItems(string folderPath)
         {
+            DirItem result;
+            var found = pathToDirItems.TryGetValue(folderPath, out result);
+            if (found && (DateTime.UtcNow - result.FetchTime) < DirItemsExpiration) return result.Items;
+
             var folderNode = FetchNode(folderPath).Result;
             var nodes = await amazon.Nodes.GetChildren(folderNode?.id);
-            var result = new List<FSItem>(nodes.Count);
+            var items = new List<FSItem>(nodes.Count);
             if (folderPath == "\\") folderPath = "";
             foreach (var node in nodes.Where(n => fsItemKinds.Contains(n.kind)))
             {
                 var path = folderPath + "\\" + node.name;
                 pathToNode[path] = node;
-                result.Add(FromNode(path, node));
+                items.Add(FromNode(path, node));
             }
 
-            return result;
+            pathToDirItems[folderPath] = new DirItem(items);
+            return items;
         }
 
         public FSItem GetItem(string itemPath)
@@ -156,6 +171,9 @@ namespace Azi.ACDDokanNet
             }
 
             AmazonChild removed;
+            DirItem dir;
+            pathToDirItems.TryRemove(oldDir, out dir);
+            pathToDirItems.TryRemove(newDir, out dir);
             pathToNode.TryRemove(oldPath, out removed);
             pathToNode[newPath] = newNodeTask.Result;
         }

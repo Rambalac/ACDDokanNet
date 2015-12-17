@@ -6,6 +6,7 @@ namespace Azi.Amazon.CloudDrive.Json
 
     public class AmazonChild
     {
+        public readonly DateTime FetchTime = DateTime.UtcNow;
         public string eTagResponse { get; set; }
         public string id { get; set; }
         public string name { get; set; }

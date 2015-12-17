@@ -1,14 +1,15 @@
 ﻿using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Azi.Amazon.CloudDrive")]
+[assembly: AssemblyTitle("Tools")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("Azi.Amazon.CloudDrive")]
+[assembly: AssemblyProduct("Tools")]
 [assembly: AssemblyCopyright("Copyright ©  2015")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -19,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("6b9bd9ba-3b77-4f1a-b132-45e68d9951ee")]
+[assembly: Guid("199cdb28-7472-41bd-bb1f-bf345451a68d")]
 
 // Version information for an assembly consists of the following four values:
 //

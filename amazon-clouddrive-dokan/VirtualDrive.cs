@@ -5,8 +5,8 @@ using System.Linq;
 using System.IO;
 using System.Security.AccessControl;
 using FileAccess = DokanNet.FileAccess;
-using System.Diagnostics;
 using Azi.Tools;
+using System.Threading.Tasks;
 
 namespace Azi.ACDDokanNet
 {
@@ -23,24 +23,6 @@ namespace Azi.ACDDokanNet
         {
             try
             {
-                var disp = info.Context as IDisposable;
-                if (disp != null)
-                {
-                    disp.Dispose();
-                }
-                info.Context = null;
-
-                if (info.DeleteOnClose)
-                {
-                    if (info.IsDirectory)
-                    {
-                        provider.DeleteDir(fileName);
-                    }
-                    else
-                    {
-                        provider.DeleteFile(fileName);
-                    }
-                }
             }
             catch (Exception e)
             {
@@ -52,7 +34,7 @@ namespace Azi.ACDDokanNet
         {
             try
             {
-                this.Mount(path, DokanOptions.DebugMode | DokanOptions.StderrOutput | DokanOptions.NetworkDrive);
+                this.Mount(path, DokanOptions.DebugMode | DokanOptions.NetworkDrive);
             }
             catch (Exception e)
             {
@@ -64,17 +46,15 @@ namespace Azi.ACDDokanNet
         {
             try
             {
-                var str = info.Context as Stream;
-                if (str != null)
+                if (info.Context != null)
                 {
-                    str.Close();
-                    str.Dispose();
+                    var str = info.Context as IBlockReader;
+                    if (str != null) str.Close();
                 }
-                info.Context = null;
             }
             catch (Exception e)
             {
-                EventLog.WriteEntry("ACDDokanNet", "Cleanup: " + e.Message, EventLogEntryType.Error);
+                Log.Error(e);
             }
         }
 
@@ -301,6 +281,7 @@ namespace Azi.ACDDokanNet
         {
             volumeLabel = provider.VolumeName;
             features =
+                FileSystemFeatures.SupportsRemoteStorage |
                 FileSystemFeatures.ReadOnlyVolume |
                 FileSystemFeatures.CasePreservedNames |
                 FileSystemFeatures.SupportsRemoteStorage |
@@ -337,15 +318,23 @@ namespace Azi.ACDDokanNet
             }
         }
 
+        const int readTimeout = 15000;
         public NtStatus ReadFile(string fileName, byte[] buffer, out int bytesRead, long offset, DokanFileInfo info)
         {
+            var start = DateTime.UtcNow;
             try
             {
-                var stream = info.Context as Stream;
-                stream.Position = offset;
+                var stream = info.Context as IBlockReader;
+                info.TryResetTimeout(readTimeout + 100);
 
-                bytesRead = stream.Read(buffer, 0, buffer.Length);
+                bytesRead = stream.Read(offset, buffer, 0, buffer.Length, readTimeout);
                 return DokanResult.Success;
+            }
+            catch (TimeoutException)
+            {
+                Log.Warn("Timeout " + (DateTime.UtcNow - start).TotalMilliseconds);
+                bytesRead = 0;
+                return DokanResult.NotReady;
             }
             catch (Exception e)
             {
