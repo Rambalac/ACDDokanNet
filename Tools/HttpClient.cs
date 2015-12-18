@@ -11,7 +11,7 @@ namespace Azi.Tools
 {
     public class HttpClient
     {
-        Func<HttpRequestHeaders, Task> headersSetter;
+        Func<System.Net.Http.HttpClient, Task> settingsSetter;
         const int retryTimes = 100;
 
         TimeSpan retryDelay(int time)
@@ -19,9 +19,9 @@ namespace Azi.Tools
             return TimeSpan.FromSeconds(1 << time);
         }
 
-        public HttpClient(Func<HttpRequestHeaders, Task> headersSetter)
+        public HttpClient(Func<System.Net.Http.HttpClient, Task> settingsSetter)
         {
-            this.headersSetter = headersSetter;
+            this.settingsSetter = settingsSetter;
         }
         public async Task<System.Net.Http.HttpClient> GetHttpClient()
         {
@@ -31,7 +31,7 @@ namespace Azi.Tools
                 PreAuthenticate = true,
                 UseDefaultCredentials = true
             });
-            await headersSetter(result.DefaultRequestHeaders);
+            await settingsSetter(result);
             return result;
         }
 
@@ -204,7 +204,12 @@ namespace Azi.Tools
 
         public async Task<R> Send<P, R>(HttpMethod method, string url, P obj)
         {
-            return await Send<P, R>(method, url, obj, (r) => r.Content.ReadAsAsync<R>());
+            return await Send(method, url, obj, (r) => r.Content.ReadAsAsync<R>());
+        }
+
+        public async Task<R> Send<R>(HttpMethod method, string url)
+        {
+            return await Send(method, url, (r) => r.Content.ReadAsAsync<R>());
         }
 
         public async Task<R> Send<P, R>(HttpMethod method, string url, P obj, Func<HttpResponseMessage, Task<R>> responseParser)
@@ -214,9 +219,9 @@ namespace Azi.Tools
             {
                 using (var client = await GetHttpClient())
                 {
+                    var request = new HttpRequestMessage(method, url);
                     var data = JsonConvert.SerializeObject(obj);
                     var content = new StringContent(data);
-                    var request = new HttpRequestMessage(method, url);
                     request.Content = content;
 
                     var response = await client.SendAsync(request);
@@ -233,9 +238,33 @@ namespace Azi.Tools
             return result;
         }
 
-        public async Task<T> PostFile<T>(string url, Dictionary<string, string> pars, Stream stream)
+        public async Task<R> Send<R>(HttpMethod method, string url, Func<HttpResponseMessage, Task<R>> responseParser)
+        {
+            R result = default(R);
+            await Retry.Do(retryTimes, retryDelay, async () =>
+            {
+                using (var client = await GetHttpClient())
+                {
+                    var request = new HttpRequestMessage(method, url);
+
+                    var response = await client.SendAsync(request);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        Log.Warn("Response code: " + response.StatusCode);
+                        return !retryCodes.Contains(response.StatusCode);
+                    }
+
+                    result = await responseParser(response);
+                    return true;
+                }
+            }, GeneralExceptionProcessor);
+            return result;
+        }
+
+        public async Task<T> PostFile<T>(string url, Dictionary<string, string> pars, Stream stream, string name)
         {
             T result = default(T);
+            long pos = stream.Position;
             await Retry.Do(retryTimes, retryDelay, async () =>
             {
                 using (var client = await GetHttpClient())
@@ -245,7 +274,8 @@ namespace Azi.Tools
                     {
                         foreach (var pair in pars) content.Add(new StringContent(pair.Value), pair.Key);
                     }
-                    content.Add(new StreamContent(stream));
+                    stream.Position = pos;
+                    content.Add(new StreamContent(stream), name);
 
                     var response = await client.PostAsync(url, content);
                     if (!response.IsSuccessStatusCode)

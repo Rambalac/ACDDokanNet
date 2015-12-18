@@ -1,5 +1,5 @@
 ﻿using Azi.Amazon.CloudDrive;
-using Azi.Amazon.CloudDrive.Json;
+using Azi.Amazon.CloudDrive.JsonObjects;
 using Azi.Tools;
 using System;
 using System.Collections.Concurrent;
@@ -14,10 +14,10 @@ namespace Azi.ACDDokanNet
     class DirItem
     {
         public readonly DateTime FetchTime = DateTime.UtcNow;
-        public readonly IList<FSItem> Items;
+        public readonly ConcurrentBag<FSItem> Items;
         public DirItem(IList<FSItem> items)
         {
-            Items = items;
+            Items = new ConcurrentBag<FSItem>(items);
         }
     }
     public class FSProvider
@@ -45,42 +45,75 @@ namespace Azi.ACDDokanNet
 
         public void DeleteFile(string fileName)
         {
-            throw new NotImplementedException();
+            var node = FetchNode(fileName).Result;
+            var dir = Path.GetDirectoryName(fileName);
+            var dirNode = FetchNode(dir).Result;
+            if (node != null)
+            {
+                amazon.Nodes.Delete(node.id).Wait();
+                DirItem remove;
+                pathToDirItems.TryRemove(dir, out remove);
+            }
+
         }
 
         public bool Exists(string fileName)
         {
-            return FetchNode(fileName) != null;
+            return FetchNode(fileName).Result != null;
         }
 
         public void CreateDir(string fileName)
         {
-            throw new NotImplementedException();
+            var dir = Path.GetDirectoryName(fileName);
+            var dirNode = FetchNode(dir).Result;
+
+            var name = Path.GetFileName(fileName);
+            var node = amazon.Nodes.CreateFolder(dirNode.id, name).Result;
+
+            DirItem result;
+            if (pathToDirItems.TryGetValue(dir, out result))
+                result.Items.Add(FromNode(fileName, node));
+
         }
 
-        public IBlockReader OpenFile(string fileName, FileMode mode, FileAccess fileAccess, FileShare share, FileOptions options)
+        public IBlockStream OpenFile(string fileName, FileMode mode, FileAccess fileAccess, FileShare share, FileOptions options)
         {
-            if (fileAccess != FileAccess.Read) return null; //TODO
-            var node = FetchNode(fileName).Result;
-            if (node == null) return null;
-            return smallFileCache.OpenRead(node);
-        }
+            if (fileAccess == FileAccess.ReadWrite) return null;
+            if (fileAccess == FileAccess.Read)
+            {
+                var node = FetchNode(fileName).Result;
+                if (node == null) return null;
+                return smallFileCache.OpenRead(node);
+            }
 
-        public void CreateFile(string fileName)
-        {
-            throw new NotImplementedException();
+            if (mode == FileMode.CreateNew)
+            {
+                var dir = Path.GetDirectoryName(fileName);
+                var name = Path.GetFileName(fileName);
+                var dirNode = FetchNode(dir).Result;
+                var uploader = new NewBlockFileUploader(dirNode, name, amazon);
+                uploader.OnUpload = (parent, node) =>
+                  {
+                      DirItem result;
+                      File.Move(Path.Combine(SmallFileCache.CachePath, uploader.CachedName), Path.Combine(SmallFileCache.CachePath, node.id));
+                      if (pathToDirItems.TryGetValue(dir, out result)) result.Items.Add(FromNode(fileName, node));
+                  };
+                return uploader;
+            }
+
+            return null;
         }
 
         public void DeleteDir(string fileName)
         {
-            throw new NotImplementedException();
+            DeleteFile(fileName);
         }
 
         public async Task<IList<FSItem>> GetDirItems(string folderPath)
         {
             DirItem result;
             var found = pathToDirItems.TryGetValue(folderPath, out result);
-            if (found && (DateTime.UtcNow - result.FetchTime) < DirItemsExpiration) return result.Items;
+            if (found && (DateTime.UtcNow - result.FetchTime) < DirItemsExpiration) return result.Items.ToList();
 
             var folderNode = FetchNode(folderPath).Result;
             var nodes = await amazon.Nodes.GetChildren(folderNode?.id);
@@ -127,13 +160,14 @@ namespace Azi.ACDDokanNet
 
             var folders = new LinkedList<string>();
             var curpath = itemPath;
-            AmazonChild node = await amazon.Nodes.GetRoot();
+            AmazonChild node = null;
             do
             {
                 folders.AddFirst(Path.GetFileName(curpath));
                 curpath = Path.GetDirectoryName(curpath);
                 if (curpath == "\\" || string.IsNullOrEmpty(curpath)) break;
             } while (!pathToNode.TryGetValue(curpath, out node));
+            if (node == null) node = await amazon.Nodes.GetRoot();
             foreach (var name in folders)
             {
                 var newnode = await amazon.Nodes.GetChild(node.id, name);
@@ -171,9 +205,9 @@ namespace Azi.ACDDokanNet
             }
 
             AmazonChild removed;
-            DirItem dir;
-            pathToDirItems.TryRemove(oldDir, out dir);
-            pathToDirItems.TryRemove(newDir, out dir);
+            DirItem removedDir;
+            pathToDirItems.TryRemove(oldDir, out removedDir);
+            pathToDirItems.TryRemove(newDir, out removedDir);
             pathToNode.TryRemove(oldPath, out removed);
             pathToNode[newPath] = newNodeTask.Result;
         }

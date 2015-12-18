@@ -48,7 +48,7 @@ namespace Azi.ACDDokanNet
             {
                 if (info.Context != null)
                 {
-                    var str = info.Context as IBlockReader;
+                    var str = info.Context as IBlockStream;
                     if (str != null) str.Close();
                 }
             }
@@ -56,11 +56,6 @@ namespace Azi.ACDDokanNet
             {
                 Log.Error(e);
             }
-        }
-
-        private void DeleteFile(string fileName)
-        {
-            provider.DeleteFile(fileName);
         }
 
         NtStatus _CreateDirectory(string fileName, DokanFileInfo info)
@@ -77,60 +72,76 @@ namespace Azi.ACDDokanNet
         private const FileAccess DataWriteAccess = FileAccess.WriteData | FileAccess.AppendData |
                                                    FileAccess.Delete |
                                                    FileAccess.GenericWrite;
-
         public NtStatus CreateFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
         {
             try
             {
-                if (info.IsDirectory)
-                {
-                    if (mode == FileMode.CreateNew) return _CreateDirectory(fileName, info);
-                    return DokanResult.Success;
-                }
-
-                var item = provider.GetItem(fileName);
-
-                bool readWriteAttributes = (access & DataAccess) == 0;
-
-                switch (mode)
-                {
-                    case FileMode.Open:
-
-                        if (item == null) return DokanResult.FileNotFound;
-                        if (item.IsDir)
-                        // check if driver only wants to read attributes, security info, or open directory
-                        {
-                            info.IsDirectory = item.IsDir;
-                            info.Context = new object();
-                            // must set it to something if you return DokanError.Success
-
-                            return DokanResult.Success;
-                        }
-                        break;
-
-                    case FileMode.CreateNew:
-                        if (item != null) return DokanResult.FileExists;
-                        provider.CreateFile(fileName);
-                        break;
-
-                    case FileMode.Truncate:
-                        if (item == null) return DokanResult.FileNotFound;
-                        break;
-                }
-
-                return _OpenFile(fileName, access, share, mode, options, attributes, info);
+                var res = _CreateFile(fileName, access, share, mode, options, attributes, info);
+                Log.Trace($"{fileName}\r\n  Access:[{access}]\r\n  Share:[{share}]\r\n  Mode:[{mode}]\r\n  Options:[{options}]\r\n  Attr:[{attributes}]\r\nStatus:{res}");
+                return res;
             }
             catch (Exception e)
             {
-                Log.Error(e);
+                Log.Error($"{fileName}\r\n  Access:[{access}]\r\n  Share:[{share}]\r\n  Mode:[{mode}]\r\n  Options:[{options}]\r\n  Attr:[{attributes}]\r\n\r\n{e}");
                 return DokanResult.Error;
             }
         }
-
-        private NtStatus _OpenFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
+        public NtStatus _CreateFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
         {
-            if (access == (FileAccess.ReadAttributes | FileAccess.Delete | FileAccess.Synchronize)) return DokanResult.Success;
+            if (info.IsDirectory)
+            {
+                if (mode == FileMode.CreateNew) return _CreateDirectory(fileName, info);
+                if (mode == FileMode.Open && !provider.Exists(fileName)) return DokanResult.PathNotFound;
 
+                if (access == FileAccess.Synchronize)
+                {
+                    info.Context = new object();
+                    return DokanResult.Success;
+                }
+                info.Context = new object();
+                return DokanResult.Success;
+            }
+
+
+            var item = provider.GetItem(fileName);
+
+            bool readWriteAttributes = (access & DataAccess) == 0;
+            switch (mode)
+            {
+                case FileMode.Open:
+
+                    if (item == null) return DokanResult.FileNotFound;
+                    if (item.IsDir)
+                    // check if driver only wants to read attributes, security info, or open directory
+                    {
+                        info.IsDirectory = item.IsDir;
+                        info.Context = new object();
+                        // must set it to something if you return DokanError.Success
+
+                        return DokanResult.Success;
+                    }
+                    break;
+
+                case FileMode.CreateNew:
+                    if (item != null) return DokanResult.FileExists;
+                    break;
+
+                case FileMode.Truncate:
+                    if (item == null) return DokanResult.FileNotFound;
+                    break;
+            }
+
+            if ((access & (FileAccess.ReadAttributes | FileAccess.Delete | FileAccess.Synchronize)) != 0 && (access & DataAccess) == 0)
+            {
+                info.Context = new object();
+                return DokanResult.Success;
+            }
+
+            return _OpenReadFile(fileName, access, share, mode, options, attributes, info);
+        }
+
+        private NtStatus _OpenReadFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
+        {
             bool readAccess = (access & DataWriteAccess) == 0;
             var result = provider.OpenFile(fileName, mode, readAccess ? System.IO.FileAccess.Read : System.IO.FileAccess.ReadWrite, share, options);
 
@@ -143,33 +154,18 @@ namespace Azi.ACDDokanNet
 
         public NtStatus DeleteDirectory(string fileName, DokanFileInfo info)
         {
-            try
-            {
-                provider.DeleteDir(fileName);
+            if (!provider.Exists(fileName) || provider.GetDirItems(fileName).Result.Any()) return DokanResult.DirectoryNotEmpty;
 
-                return DokanResult.Success;
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-                return DokanResult.Error;
-            }
+            provider.DeleteDir(fileName);
+            return DokanResult.Success;
         }
 
         public NtStatus DeleteFile(string fileName, DokanFileInfo info)
         {
-            try
-            {
+            if (!provider.Exists(fileName)) return DokanResult.PathNotFound;
 
-                DeleteFile(fileName);
-
-                return DokanResult.Success;
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-                return DokanResult.Error;
-            }
+            provider.DeleteFile(fileName);
+            return DokanResult.Success;
         }
 
         public NtStatus FindFiles(string fileName, out IList<FileInformation> files, DokanFileInfo info)
@@ -202,7 +198,9 @@ namespace Azi.ACDDokanNet
             try
             {
                 if (info.Context != null)
-                    ((Stream)info.Context).Flush();
+                {
+                    (info.Context as IBlockStream)?.Flush();
+                }
                 return DokanResult.Success;
             }
             catch (Exception e)
@@ -240,7 +238,7 @@ namespace Azi.ACDDokanNet
 
                 if (item != null)
                 {
-                    fileInfo = GetFileInformation(item);
+                    fileInfo = MakeFileInformation(item);
                     return DokanResult.Success;
                 }
 
@@ -256,7 +254,7 @@ namespace Azi.ACDDokanNet
             }
         }
 
-        private FileInformation GetFileInformation(FSItem i)
+        private FileInformation MakeFileInformation(FSItem i)
         {
             return new FileInformation
             {
@@ -282,10 +280,11 @@ namespace Azi.ACDDokanNet
             volumeLabel = provider.VolumeName;
             features =
                 FileSystemFeatures.SupportsRemoteStorage |
-                FileSystemFeatures.ReadOnlyVolume |
                 FileSystemFeatures.CasePreservedNames |
+                FileSystemFeatures.CaseSensitiveSearch |
                 FileSystemFeatures.SupportsRemoteStorage |
-                FileSystemFeatures.UnicodeOnDisk;
+                FileSystemFeatures.UnicodeOnDisk |
+                FileSystemFeatures.SequentialWriteOnce;
             fileSystemName = "ACD";
             return DokanResult.Success;
         }
@@ -318,16 +317,16 @@ namespace Azi.ACDDokanNet
             }
         }
 
-        const int readTimeout = 15000;
+        const int readTimeout = 30000;
         public NtStatus ReadFile(string fileName, byte[] buffer, out int bytesRead, long offset, DokanFileInfo info)
         {
             var start = DateTime.UtcNow;
             try
             {
-                var stream = info.Context as IBlockReader;
+                var reader = info.Context as IBlockStream;
                 info.TryResetTimeout(readTimeout + 100);
 
-                bytesRead = stream.Read(offset, buffer, 0, buffer.Length, readTimeout);
+                bytesRead = reader.Read(offset, buffer, 0, buffer.Length, readTimeout);
                 return DokanResult.Success;
             }
             catch (TimeoutException)
@@ -389,12 +388,19 @@ namespace Azi.ACDDokanNet
         {
             try
             {
-                var stream = info.Context as Stream;
-                stream.Position = offset;
+                if (info.Context != null)
+                {
+                    var writer = info.Context as IBlockStream;
+                    if (writer != null)
+                    {
+                        writer.Write(offset, buffer, 0, buffer.Length);
+                        bytesWritten = buffer.Length;
+                        return DokanResult.Success;
+                    }
+                }
 
-                stream.Write(buffer, 0, buffer.Length);
-                bytesWritten = buffer.Length;
-                return DokanResult.Success;
+                bytesWritten = 0;
+                return DokanResult.AccessDenied;
             }
             catch (Exception e)
             {

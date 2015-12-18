@@ -1,5 +1,5 @@
 ﻿using Azi.Amazon.CloudDrive;
-using Azi.Amazon.CloudDrive.Json;
+using Azi.Amazon.CloudDrive.JsonObjects;
 using System;
 using System.IO;
 
@@ -74,12 +74,12 @@ namespace Azi.ACDDokanNet
 
         public override void SetLength(long value)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
     }
 }

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Azi.Amazon.CloudDrive.Json
+namespace Azi.Amazon.CloudDrive.JsonObjects
 {
 
     internal class Children

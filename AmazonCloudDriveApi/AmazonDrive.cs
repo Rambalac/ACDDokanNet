@@ -1,4 +1,4 @@
-﻿using Azi.Amazon.CloudDrive.Json;
+﻿using Azi.Amazon.CloudDrive.JsonObjects;
 using Azi.Tools;
 using Microsoft.Win32;
 using System;
@@ -43,7 +43,7 @@ namespace Azi.Amazon.CloudDrive
 
         public AmazonDrive()
         {
-            http = new Tools.HttpClient(HeadersSetter);
+            http = new Tools.HttpClient(SettingsSetter);
             Account = new AmazonAccount(this);
             Nodes = new AmazonNodes(this);
             Files = new AmazonFiles(this);
@@ -63,13 +63,15 @@ namespace Azi.Amazon.CloudDrive
 
         readonly CacheControlHeaderValue standartCache = new CacheControlHeaderValue { NoCache = true };
 
-        private async Task HeadersSetter(HttpRequestHeaders headers)
+        private async Task SettingsSetter(System.Net.Http.HttpClient client)
         {
             if (token != null)
-                headers.Add("Authorization", "Bearer " + await GetToken());
-            headers.CacheControl = standartCache;
-            headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("gzip"));
-            headers.UserAgent.Add(new ProductInfoHeaderValue("AZIACDDokanNet", this.GetType().Assembly.ImageRuntimeVersion));
+                client.DefaultRequestHeaders.Add("Authorization", "Bearer " + await GetToken());
+            client.DefaultRequestHeaders.CacheControl = standartCache;
+            client.DefaultRequestHeaders.AcceptEncoding.Add(new StringWithQualityHeaderValue("gzip"));
+            client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("AZIACDDokanNet", this.GetType().Assembly.ImageRuntimeVersion));
+
+            client.Timeout = TimeSpan.FromMilliseconds(15000);
         }
 
         private async Task<string> GetToken()

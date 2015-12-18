@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Azi.Amazon.CloudDrive.Json
+namespace Azi.Amazon.CloudDrive.JsonObjects
 {
 
     public class ContentProperties
