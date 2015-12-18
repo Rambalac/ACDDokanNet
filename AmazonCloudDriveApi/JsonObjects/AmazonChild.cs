@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Azi.Amazon.CloudDrive.Json
+namespace Azi.Amazon.CloudDrive.JsonObjects
 {
 
     public class AmazonChild
     {
+        public long Length => contentProperties?.size ?? 0;
+
         public readonly DateTime FetchTime = DateTime.UtcNow;
         public string eTagResponse { get; set; }
         public string id { get; set; }

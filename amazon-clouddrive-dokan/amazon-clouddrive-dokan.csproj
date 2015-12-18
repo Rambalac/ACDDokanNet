@@ -59,9 +59,12 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="DiskCachedAmazonFileStream.cs" />
+    <Compile Include="FileBlockReader.cs" />
     <Compile Include="FSItem.cs" />
     <Compile Include="FSProvider.cs" />
+    <Compile Include="IBlockReader.cs" />
+    <Compile Include="NewBlockFileUploader.cs" />
+    <Compile Include="SmallFileCache.cs" />
     <Compile Include="UncachedAmazonFileStream.cs" />
     <Compile Include="VirtualDrive.cs" />
     <Page Include="MainWindow.xaml">

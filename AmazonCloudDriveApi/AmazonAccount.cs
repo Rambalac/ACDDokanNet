@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Azi.Tools;
-using Azi.Amazon.CloudDrive.Json;
+using Azi.Amazon.CloudDrive.JsonObjects;
 
 namespace Azi.Amazon.CloudDrive
 {
@@ -34,7 +34,7 @@ namespace Azi.Amazon.CloudDrive
         {
             if (_quota == null || DateTime.UtcNow - _quota.lastCalculated > generalExpiration)
             {
-                _quota = await json.GetJsonAsync<Quota>(string.Format("{0}/account/quota", await amazon.GetMetadataUrl()));
+                _quota = await json.GetJsonAsync<Quota>(string.Format("{0}account/quota", await amazon.GetMetadataUrl()));
             }
             return _quota;
         }
@@ -43,7 +43,7 @@ namespace Azi.Amazon.CloudDrive
         {
             if (_usage == null || DateTime.UtcNow - _usage.lastCalculated > generalExpiration)
             {
-                _usage = await json.GetJsonAsync<Usage>(string.Format("{0}/account/usage", await amazon.GetMetadataUrl()));
+                _usage = await json.GetJsonAsync<Usage>(string.Format("{0}account/usage", await amazon.GetMetadataUrl()));
             }
             return _usage;
         }
