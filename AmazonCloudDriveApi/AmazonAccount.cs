@@ -13,8 +13,8 @@ namespace Azi.Amazon.CloudDrive
 
         static readonly TimeSpan endpointExpiration = TimeSpan.FromDays(3);
         private readonly AmazonDrive amazon;
-        HttpClient json => amazon.http;
-        static TimeSpan generalExpiration => AmazonDrive.generalExpiration;
+        private HttpClient http => amazon.http;
+        private static TimeSpan generalExpiration => AmazonDrive.generalExpiration;
 
         internal AmazonAccount(AmazonDrive amazonDrive)
         {
@@ -25,7 +25,7 @@ namespace Azi.Amazon.CloudDrive
         {
             if (_endpoint == null || DateTime.UtcNow - _endpoint.lastCalculated > endpointExpiration)
             {
-                _endpoint = await json.GetJsonAsync<Endpoint>("https://drive.amazonaws.com/drive/v1/account/endpoint");
+                _endpoint = await http.GetJsonAsync<Endpoint>("https://drive.amazonaws.com/drive/v1/account/endpoint");
             }
             return _endpoint;
         }
@@ -34,7 +34,7 @@ namespace Azi.Amazon.CloudDrive
         {
             if (_quota == null || DateTime.UtcNow - _quota.lastCalculated > generalExpiration)
             {
-                _quota = await json.GetJsonAsync<Quota>(string.Format("{0}account/quota", await amazon.GetMetadataUrl()));
+                _quota = await http.GetJsonAsync<Quota>(string.Format("{0}account/quota", await amazon.GetMetadataUrl()));
             }
             return _quota;
         }
@@ -43,7 +43,7 @@ namespace Azi.Amazon.CloudDrive
         {
             if (_usage == null || DateTime.UtcNow - _usage.lastCalculated > generalExpiration)
             {
-                _usage = await json.GetJsonAsync<Usage>(string.Format("{0}account/usage", await amazon.GetMetadataUrl()));
+                _usage = await http.GetJsonAsync<Usage>(string.Format("{0}account/usage", await amazon.GetMetadataUrl()));
             }
             return _usage;
         }

@@ -7,27 +7,18 @@ using Azi.Tools;
 
 namespace Azi.ACDDokanNet
 {
-    public class Interval
-    {
-        public readonly long Start; //included
-        public readonly long End; //included
-        public Interval(long a, long b)
-        {
-            Start = a;
-            End = b;
-        }
-    }
-    internal class NewBlockFileUploader : IBlockStream
+    public class NewBlockFileUploader : IBlockStream
     {
         private AmazonDrive amazon;
-        private AmazonChild dirNode;
+        private FSItem dirNode;
         private string name;
-        readonly FileStream writer;
+        private readonly FileStream writer;
+        private object fileLock=new object();
         public readonly string CachedName;
-        Task uploader;
-        public Action<AmazonChild, AmazonChild> OnUpload;
+        private Task uploader;
+        public Action<FSItem, AmazonChild> OnUpload;
 
-        public NewBlockFileUploader(AmazonChild dirNode, string name, AmazonDrive amazon)
+        public NewBlockFileUploader(FSItem dirNode, string name, AmazonDrive amazon)
         {
             this.dirNode = dirNode;
             this.name = name;
@@ -40,7 +31,7 @@ namespace Azi.ACDDokanNet
 
         public void Close()
         {
-            lock (writer)
+            lock (fileLock)
             {
                 writer.Close();
             }
@@ -55,7 +46,7 @@ namespace Azi.ACDDokanNet
                 Log.Trace("Started upload: " + name);
                 using (var reader = new FileStream(Path.Combine(SmallFileCache.CachePath, CachedName), FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true))
                 {
-                    var node = await amazon.Files.UploadNew(dirNode.id, name, reader);
+                    var node = await amazon.Files.UploadNew(dirNode.Id, name, reader);
                     reader.Close();
                     OnUpload(dirNode, node);
                     Log.Trace("Finished upload: " + name + " id:" + node.id);
@@ -74,7 +65,7 @@ namespace Azi.ACDDokanNet
 
         public void Write(long position, byte[] buffer, int offset, int count, int timeout = 1000)
         {
-            lock (writer)
+            lock (fileLock)
             {
                 writer.Position = position;
                 writer.Write(buffer, offset, count);
@@ -85,5 +76,29 @@ namespace Azi.ACDDokanNet
         {
             writer.Flush();
         }
+
+        #region IDisposable Support
+        private bool disposedValue = false; // To detect redundant calls
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    writer.Dispose();
+                }
+
+                disposedValue = true;
+            }
+        }
+
+        // This code added to correctly implement the disposable pattern.
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(true);
+        }
+        #endregion
     }
 }

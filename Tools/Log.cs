@@ -1,12 +1,25 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Security;
 
 namespace Azi.Tools
 {
     public static class Log
     {
-        const string source = "ACDDokanNet";
+        const string source = "ACDDokan.Net";
+
+        static Log()
+        {
+            //try
+            //{
+            //    EventLog.CreateEventSource(source, "Application");
+            //}
+            //catch (SecurityException)
+            //{
+            //    //Just ignore
+            //}
+        }
 
         public static void Error(
             string message,
@@ -52,7 +65,15 @@ namespace Azi.Tools
             [CallerFilePath] string sourceFilePath = "",
             [CallerLineNumber] int sourceLineNumber = 0)
         {
-            EventLog.WriteEntry(source, $"{memberName}:{message}\r\n\r\n{sourceFilePath}:{sourceLineNumber}", type);
+            try
+            {
+                EventLog.WriteEntry(source, $"{memberName}: {message}\r\n\r\n{sourceFilePath}: {sourceLineNumber}", type);
+            }
+            catch (SecurityException)
+            {
+                //Just ignore
+            }
+
         }
 
 

@@ -13,8 +13,7 @@ namespace Azi.Amazon.CloudDrive
     public class AmazonNodes
     {
         private readonly AmazonDrive amazon;
-        HttpClient http => amazon.http;
-        static TimeSpan generalExpiration => AmazonDrive.generalExpiration;
+        private HttpClient http => amazon.http;
 
         public AmazonNodes(AmazonDrive amazonDrive)
         {

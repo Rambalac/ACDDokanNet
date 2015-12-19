@@ -4,15 +4,16 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Http;
 using System.Threading.Tasks;
+using HttpClient = Azi.Tools.HttpClient;
 
 namespace Azi.Amazon.CloudDrive
 {
     public class AmazonFiles
     {
         private readonly AmazonDrive amazon;
-        HttpClient http => amazon.http;
-        static TimeSpan generalExpiration => AmazonDrive.generalExpiration;
+        private HttpClient http => amazon.http;
 
         public AmazonFiles(AmazonDrive amazonDrive)
         {
@@ -22,7 +23,13 @@ namespace Azi.Amazon.CloudDrive
         public async Task<AmazonChild> Overwrite(string id, Stream stream)
         {
             var url = string.Format("{0}nodes/{1}/content", await amazon.GetContentUrl(), id);
-            return await http.PostFile<AmazonChild>(url, null, stream, "content");
+            var file = new FileUpload
+            {
+                Stream = stream,
+                FileName = id,
+                FormName = "content"
+            };
+            return await http.SendFile<AmazonChild>(HttpMethod.Put, url, file);
         }
 
         public async Task<AmazonChild> UploadNew(string parentId, string fileName, Stream stream)
@@ -31,11 +38,17 @@ namespace Azi.Amazon.CloudDrive
 
             string meta = JsonConvert.SerializeObject(new NewChild { name = fileName, parents = new string[] { parentId }, kind = "FILE" });
 
-            var form = new Dictionary<string, string>
+            var file = new FileUpload
             {
-                {"metadata", meta}
+                Stream = stream,
+                FileName = fileName,
+                FormName = "content",
+                Parameters = new Dictionary<string, string>
+                    {
+                        {"metadata", meta}
+                    }
             };
-            return await http.PostFile<AmazonChild>(url, form, stream, "content");
+            return await http.SendFile<AmazonChild>(HttpMethod.Post, url, file);
         }
 
         public async Task Download(string id, Stream stream, long? fileOffset = null, long? length = null, int bufferSize = 4096, Func<long, long> progress = null)

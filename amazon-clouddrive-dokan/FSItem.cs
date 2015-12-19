@@ -5,6 +5,7 @@ namespace Azi.ACDDokanNet
     public class FSItem
     {
         public string Path { get; internal set; }
+        public string Id { get; internal set; }
         public bool IsDir { get; internal set; }
         public long Length { get; internal set; }
 
