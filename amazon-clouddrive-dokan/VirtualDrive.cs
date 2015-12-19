@@ -72,6 +72,8 @@ namespace Azi.ACDDokanNet
         private const FileAccess DataWriteAccess = FileAccess.WriteData | FileAccess.AppendData |
                                                    FileAccess.Delete |
                                                    FileAccess.GenericWrite;
+        private const FileAccess DataReadAccess = FileAccess.ReadData | FileAccess.GenericExecute |
+                                                   FileAccess.Execute;
         public NtStatus CreateFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
         {
             try
@@ -136,14 +138,14 @@ namespace Azi.ACDDokanNet
                 info.Context = new object();
                 return DokanResult.Success;
             }
-
-            return _OpenReadFile(fileName, access, share, mode, options, attributes, info);
+            return _OpenFile(fileName, access, share, mode, options, attributes, info);
         }
 
-        private NtStatus _OpenReadFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
+        private NtStatus _OpenFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
         {
             bool readAccess = (access & DataWriteAccess) == 0;
-            var result = provider.OpenFile(fileName, mode, readAccess ? System.IO.FileAccess.Read : System.IO.FileAccess.ReadWrite, share, options);
+
+            var result = provider.OpenFile(fileName, mode, readAccess ? System.IO.FileAccess.Read : System.IO.FileAccess.Write, share, options);
 
             if (result == null) return DokanResult.AccessDenied;
 
@@ -329,11 +331,17 @@ namespace Azi.ACDDokanNet
                 bytesRead = reader.Read(offset, buffer, 0, buffer.Length, readTimeout);
                 return DokanResult.Success;
             }
+            catch (NotSupportedException)
+            {
+                Log.Warn("ReadWrite: " + fileName);
+                bytesRead = 0;
+                return DokanResult.AccessDenied;
+            }
             catch (TimeoutException)
             {
                 Log.Warn("Timeout " + (DateTime.UtcNow - start).TotalMilliseconds);
                 bytesRead = 0;
-                return DokanResult.NotReady;
+                return NtStatus.Timeout;
             }
             catch (Exception e)
             {
@@ -399,6 +407,12 @@ namespace Azi.ACDDokanNet
                     }
                 }
 
+                bytesWritten = 0;
+                return DokanResult.AccessDenied;
+            }
+            catch (NotSupportedException)
+            {
+                Log.Warn("ReadWrite: " + fileName);
                 bytesWritten = 0;
                 return DokanResult.AccessDenied;
             }

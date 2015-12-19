@@ -14,27 +14,17 @@ using System.Threading.Tasks;
 
 namespace Azi.Amazon.CloudDrive
 {
-    [Flags]
-    public enum CloudDriveScope
-    {
-        ReadImage = 1,
-        ReadVideo = 2,
-        ReadDocument = 4,
-        ReadOther = 8,
-        ReadAll = 16,
-        Write = 32
-    }
-
+    
     public class AmazonDrive
     {
         internal static readonly TimeSpan generalExpiration = TimeSpan.FromMinutes(5);
         const string loginUrlBase = "https://www.amazon.com/ap/oa";
 
-        string clientId;
-        string clientSecret;
+        private string clientId;
+        private string clientSecret;
 
-        CloudDriveScope scope;
-        AuthToken token;
+        private CloudDriveScope scope;
+        private AuthToken token;
 
         internal readonly Tools.HttpClient http;
         public readonly AmazonAccount Account;

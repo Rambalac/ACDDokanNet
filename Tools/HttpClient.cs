@@ -9,6 +9,13 @@ using System.Threading.Tasks;
 
 namespace Azi.Tools
 {
+    public class FileUpload
+    {
+        public Stream Stream;
+        public Dictionary<string, string> Parameters;
+        public string FormName;
+        public string FileName;
+    }
     public class HttpClient
     {
         Func<System.Net.Http.HttpClient, Task> settingsSetter;
@@ -73,7 +80,11 @@ namespace Azi.Tools
                 using (var client = await GetHttpClient())
                 {
                     var response = await client.GetAsync(url);
-                    if (!response.IsSuccessStatusCode) return !retryCodes.Contains(response.StatusCode);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        await LogBadResponse(response);
+                        return !retryCodes.Contains(response.StatusCode);
+                    }
                     result = await response.Content.ReadAsAsync<T>();
                     return true;
                 }
@@ -98,7 +109,7 @@ namespace Azi.Tools
                     var response = await client.SendAsync(request);
                     if (!response.IsSuccessStatusCode)
                     {
-                        Log.Warn("Response code: " + response.StatusCode);
+                        await LogBadResponse(response);
                         return !retryCodes.Contains(response.StatusCode);
                     }
 
@@ -141,7 +152,7 @@ namespace Azi.Tools
                     var response = await client.SendAsync(request);
                     if (!response.IsSuccessStatusCode)
                     {
-                        Log.Warn("Response code: " + response.StatusCode);
+                        await LogBadResponse(response);
                         return !retryCodes.Contains(response.StatusCode);
                     }
 
@@ -191,7 +202,7 @@ namespace Azi.Tools
                     var response = await client.SendAsync(request);
                     if (!response.IsSuccessStatusCode)
                     {
-                        Log.Warn("Response code: " + response.StatusCode);
+                        await LogBadResponse(response);
                         return !retryCodes.Contains(response.StatusCode);
                     }
 
@@ -227,7 +238,7 @@ namespace Azi.Tools
                     var response = await client.SendAsync(request);
                     if (!response.IsSuccessStatusCode)
                     {
-                        Log.Warn("Response code: " + response.StatusCode);
+                        await LogBadResponse(response);
                         return !retryCodes.Contains(response.StatusCode);
                     }
 
@@ -250,7 +261,7 @@ namespace Azi.Tools
                     var response = await client.SendAsync(request);
                     if (!response.IsSuccessStatusCode)
                     {
-                        Log.Warn("Response code: " + response.StatusCode);
+                        await LogBadResponse(response);
                         return !retryCodes.Contains(response.StatusCode);
                     }
 
@@ -261,26 +272,30 @@ namespace Azi.Tools
             return result;
         }
 
-        public async Task<T> PostFile<T>(string url, Dictionary<string, string> pars, Stream stream, string name)
+        public async Task<T> SendFile<T>(HttpMethod method, string url, FileUpload file)
         {
             T result = default(T);
-            long pos = stream.Position;
+            long pos = file.Stream.Position;
             await Retry.Do(retryTimes, retryDelay, async () =>
             {
                 using (var client = await GetHttpClient())
                 {
+                    HttpRequestMessage message = new HttpRequestMessage(method, url);
                     var content = new MultipartFormDataContent();
-                    if (pars != null)
+                    if (file.Parameters != null)
                     {
-                        foreach (var pair in pars) content.Add(new StringContent(pair.Value), pair.Key);
+                        foreach (var pair in file.Parameters) content.Add(new StringContent(pair.Value), pair.Key);
                     }
-                    stream.Position = pos;
-                    content.Add(new StreamContent(stream), name);
+                    file.Stream.Position = pos;
+                    var str = new StreamContent(file.Stream);
+                    str.Headers.ContentType = new MediaTypeHeaderValue("text/plain");
+                    content.Add(str, file.FormName, file.FileName);
 
-                    var response = await client.PostAsync(url, content);
+                    message.Content = content;
+                    var response = await client.SendAsync(message);
                     if (!response.IsSuccessStatusCode)
                     {
-                        Log.Warn("Response code: " + response.StatusCode);
+                        await LogBadResponse(response);
                         return !retryCodes.Contains(response.StatusCode);
                     }
 
@@ -291,7 +306,18 @@ namespace Azi.Tools
             return result;
         }
 
+        private async Task LogBadResponse(HttpResponseMessage response)
+        {
+            try
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                Log.Warn("Response code: " + response.StatusCode + "\r\n" + message);
 
-
+            }
+            catch (Exception)
+            {
+                Log.Warn("Response code: " + response.StatusCode);
+            }
+        }
     }
 }

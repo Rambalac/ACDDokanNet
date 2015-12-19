@@ -22,7 +22,7 @@ namespace Azi.ACDDokanNet
         readonly AmazonDrive amazon;
         public readonly static string CachePath = Path.Combine(Path.GetTempPath(), "CloudDriveTestCache");
 
-        public static void StartDownload(AmazonDrive amazon, AmazonChild node, string path)
+        public void StartDownload(FSItem node, string path)
         {
             try
             {
@@ -32,17 +32,17 @@ namespace Azi.ACDDokanNet
                     writer.Close();
                     return;
                 }
-                Task.Run(async () => await Download(amazon, node, writer));
+                Task.Run(async () => await Download(node, writer));
             }
             catch (IOException e)
             {
-                Log.Warn("File is already downloading: " + node.id + "\r\n" + e);
+                Log.Warn("File is already downloading: " + node.Id + "\r\n" + e);
             }
         }
 
-        private static async Task Download(AmazonDrive amazon, AmazonChild node, Stream writer)
+        private async Task Download(FSItem node, Stream writer)
         {
-            Log.Trace("Started download: " + node.id);
+            Log.Trace("Started download: " + node.Id);
             var start = Stopwatch.StartNew();
             var buf = new byte[4096];
             using (writer)
@@ -50,24 +50,24 @@ namespace Azi.ACDDokanNet
                 {
                     while (writer.Length < node.Length)
                     {
-                        await amazon.Files.Download(node.id, fileOffset: writer.Length, streammer: async (stream) =>
+                        await amazon.Files.Download(node.Id, fileOffset: writer.Length, streammer: async (stream) =>
                         {
                             int red = 0;
                             do
                             {
                                 red = await stream.ReadAsync(buf, 0, buf.Length);
-                                if (writer.Length == 0) Log.Trace("Got first part: " + node.id + " in " + start.ElapsedMilliseconds);
+                                if (writer.Length == 0) Log.Trace("Got first part: " + node.Id + " in " + start.ElapsedMilliseconds);
                                 writer.Write(buf, 0, red);
                             } while (red > 0);
                         });
                         if (writer.Length < node.Length) await Task.Delay(500);
                     }
-                    Log.Trace("Finished download: " + node.id);
+                    Log.Trace("Finished download: " + node.Id);
                     writer.Close();
                 }
                 catch (Exception ex)
                 {
-                    Log.Error($"Download failed: {node.id}\r\n{ex}");
+                    Log.Error($"Download failed: {node.Id}\r\n{ex}");
                 }
         }
 
@@ -77,12 +77,12 @@ namespace Azi.ACDDokanNet
             Directory.CreateDirectory(CachePath);
         }
 
-        public IBlockStream OpenRead(AmazonChild node)
+        public IBlockStream OpenRead(FSItem node)
         {
-            var path = Path.Combine(CachePath, node.id);
-            StartDownload(amazon, node, path);
+            var path = Path.Combine(CachePath, node.Id);
+            StartDownload(node, path);
 
-            Log.Trace("Opened cached: " + node.id);
+            Log.Trace("Opened cached: " + node.Id);
             return new FileBlockReader(path);
         }
     }

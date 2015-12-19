@@ -54,6 +54,7 @@
     <Compile Include="AmazonAccount.cs" />
     <Compile Include="AmazonFiles.cs" />
     <Compile Include="AmazonNodes.cs" />
+    <Compile Include="CloudDriveScope.cs" />
     <Compile Include="JsonObjects\AmazonChild.cs" />
     <Compile Include="AmazonDrive.cs" />
     <Compile Include="JsonObjects\AuthToken.cs" />

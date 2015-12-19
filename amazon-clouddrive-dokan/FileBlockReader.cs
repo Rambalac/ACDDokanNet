@@ -15,7 +15,9 @@ namespace Azi.ACDDokanNet
 
     public class FileBlockReader : IBlockStream
     {
-        readonly FileStream file;
+        private readonly FileStream file;
+        private object fileLock=new object();
+
         public FileBlockReader(string path)
         {
             file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
@@ -30,7 +32,7 @@ namespace Azi.ACDDokanNet
         {
             Log.Trace(Path.GetFileName(file.Name));
 
-            lock (file)
+            lock (fileLock)
             {
                 file.Close();
             }
@@ -44,7 +46,7 @@ namespace Azi.ACDDokanNet
             int red;
             do
             {
-                lock (file)
+                lock (fileLock)
                 {
                     file.Position = position;
                     red = file.Read(buffer, offset, count);
@@ -63,5 +65,29 @@ namespace Azi.ACDDokanNet
         public void Flush()
         {
         }
+
+        #region IDisposable Support
+        private bool disposedValue = false; // To detect redundant calls
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    file.Dispose();
+                }
+
+                disposedValue = true;
+            }
+        }
+
+        // This code added to correctly implement the disposable pattern.
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(true);
+        }
+        #endregion
     }
 }

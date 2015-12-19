@@ -12,7 +12,7 @@ using System.Diagnostics;
 
 namespace Azi.ACDDokanNet
 {
-    public interface IBlockStream
+    public interface IBlockStream: IDisposable
     {
         int Read(long position, byte[] buffer, int offset, int count, int timeout = 1000);
         void Write(long position, byte[] buffer, int offset, int count, int timeout = 1000);
