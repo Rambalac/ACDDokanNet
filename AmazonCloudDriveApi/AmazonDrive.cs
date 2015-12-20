@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace Azi.Amazon.CloudDrive
 {
-    
+
     public class AmazonDrive
     {
         internal static readonly TimeSpan generalExpiration = TimeSpan.FromMinutes(5);
@@ -55,7 +55,7 @@ namespace Azi.Amazon.CloudDrive
 
         private async Task SettingsSetter(System.Net.Http.HttpClient client)
         {
-            if (token != null)
+            if (token != null && !updatingToken)
                 client.DefaultRequestHeaders.Add("Authorization", "Bearer " + await GetToken());
             client.DefaultRequestHeaders.CacheControl = standartCache;
             client.DefaultRequestHeaders.AcceptEncoding.Add(new StringWithQualityHeaderValue("gzip"));
@@ -71,8 +71,10 @@ namespace Azi.Amazon.CloudDrive
             return token?.access_token;
         }
 
+        bool updatingToken = false;
         private async Task UpdateToken()
         {
+            updatingToken = true;
             var form = new Dictionary<string, string>
                     {
                         {"grant_type","refresh_token" },
@@ -81,7 +83,7 @@ namespace Azi.Amazon.CloudDrive
                         {"client_secret",""}
                     };
             token = await http.PostForm<AuthToken>("https://api.amazon.com/auth/o2/token", form);
-
+            updatingToken = false;
         }
 
         static readonly Regex browserPathPattern = new Regex("^(?<path>[^\" ]+)|\"(?<path>[^\"]+)\" (?<args>.*)$");
