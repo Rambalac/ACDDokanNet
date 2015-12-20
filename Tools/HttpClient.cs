@@ -61,14 +61,17 @@ namespace Azi.Tools
         static bool GeneralExceptionProcessor(Exception ex)
         {
             var webex = SearchForException<WebException>(ex);
-            if (webex == null) return true;
+            if (webex != null)
+            {
 
-            var webresp = webex.Response as HttpWebResponse;
-            if (webresp == null) return true;
+                var webresp = webex.Response as HttpWebResponse;
+                if (webresp != null)
+                {
 
-            if (retryCodes.Contains(webresp.StatusCode)) return false;
-            Log.Error($"Download failed: {ex}");
-
+                    if (retryCodes.Contains(webresp.StatusCode)) return false;
+                }
+            }
+            Log.Error($"HttpClient failed: {ex}");
             throw ex;
         }
 

@@ -34,7 +34,11 @@ namespace Azi.ACDDokanNet
         {
             try
             {
+#if DEBUG
                 this.Mount(path, DokanOptions.DebugMode | DokanOptions.NetworkDrive);
+#else
+                this.Mount(path, DokanOptions.NetworkDrive);
+#endif
             }
             catch (Exception e)
             {

@@ -48,6 +48,7 @@ namespace Azi.ACDDokanNet
                 {
                     var node = await amazon.Files.UploadNew(dirNode.Id, name, reader);
                     reader.Close();
+                    if (node == null) throw new NullReferenceException("File node is null: " + name);
                     OnUpload(dirNode, node);
                     Log.Trace("Finished upload: " + name + " id:" + node.id);
                 }
