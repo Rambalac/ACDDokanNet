@@ -62,7 +62,6 @@ namespace Azi.ACDDokanNet
                 using (var reader = new FileStream(Path.Combine(SmallFileCache.CachePath, Node.Id), FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true))
                 {
                     var node = await amazon.Files.UploadNew(dirNode.Id, Path.GetFileName(filePath), reader);
-                    reader.Close();
                     if (node != null)
                     {
                         OnUpload(dirNode, node);

@@ -56,6 +56,7 @@ namespace Azi.ACDDokanNet
                 pathToDirItems.TryRemove(dir, out remove);
                 FSItem rem;
                 pathToNode.TryRemove(filePath, out rem);
+                if (node.IsDir) pathToDirItems.TryRemove(filePath, out remove);
             }
 
         }
