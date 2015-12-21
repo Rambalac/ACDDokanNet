@@ -20,7 +20,7 @@ namespace Azi.Amazon.CloudDrive
             amazon = amazonDrive;
         }
 
-        public async Task<AmazonChild> Overwrite(string id, Stream stream)
+        public async Task<AmazonNode> Overwrite(string id, Stream stream)
         {
             var url = string.Format("{0}nodes/{1}/content", await amazon.GetContentUrl(), id);
             var file = new FileUpload
@@ -29,10 +29,10 @@ namespace Azi.Amazon.CloudDrive
                 FileName = id,
                 FormName = "content"
             };
-            return await http.SendFile<AmazonChild>(HttpMethod.Put, url, file);
+            return await http.SendFile<AmazonNode>(HttpMethod.Put, url, file);
         }
 
-        public async Task<AmazonChild> UploadNew(string parentId, string fileName, Stream stream)
+        public async Task<AmazonNode> UploadNew(string parentId, string fileName, Stream stream)
         {
             var url = string.Format("{0}nodes", await amazon.GetContentUrl());
 
@@ -48,7 +48,7 @@ namespace Azi.Amazon.CloudDrive
                         {"metadata", meta}
                     }
             };
-            return await http.SendFile<AmazonChild>(HttpMethod.Post, url, file);
+            return await http.SendFile<AmazonNode>(HttpMethod.Post, url, file);
         }
 
         public async Task Download(string id, Stream stream, long? fileOffset = null, long? length = null, int bufferSize = 4096, Func<long, long> progress = null)

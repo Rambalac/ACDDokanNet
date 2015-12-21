@@ -15,42 +15,37 @@ namespace Azi.ACDDokanNet
 
     public class FileBlockReader : IBlockStream
     {
-        private readonly FileStream file;
-        private object fileLock=new object();
+        private readonly ThreadLocal<FileStream> files;
+        private long expectedLength;
+        private string filePath;
 
-        public FileBlockReader(string path)
+        public FileBlockReader(string path, long length)
         {
-            file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-        }
-
-        public FileBlockReader(FileStream str)
-        {
-            file = str;
+            filePath = path;
+            expectedLength = length;
+            files = new ThreadLocal<FileStream>(() => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite), true);
         }
 
         public void Close()
         {
-            Log.Trace(Path.GetFileName(file.Name));
+            Log.Trace(Path.GetFileName(filePath));
 
-            lock (fileLock)
-            {
+            foreach (var file in files.Values)
                 file.Close();
-            }
         }
 
         const int waitForFile = 50;
 
         public int Read(long position, byte[] buffer, int offset, int count, int timeout)
         {
+            if (expectedLength == 0) return 0;
             var timeouttime = DateTime.UtcNow.AddMilliseconds(timeout);
             int red;
             do
             {
-                lock (fileLock)
-                {
-                    file.Position = position;
-                    red = file.Read(buffer, offset, count);
-                }
+                var file = files.Value;
+                file.Position = position;
+                red = file.Read(buffer, offset, count);
                 if (red != 0) return red;
                 Thread.Sleep(waitForFile);
                 if (DateTime.UtcNow > timeouttime) throw new TimeoutException();
@@ -75,7 +70,7 @@ namespace Azi.ACDDokanNet
             {
                 if (disposing)
                 {
-                    file.Dispose();
+                    files.Dispose();
                 }
 
                 disposedValue = true;

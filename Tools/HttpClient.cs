@@ -58,8 +58,15 @@ namespace Azi.Tools
 
         static readonly HashSet<HttpStatusCode> retryCodes = new HashSet<HttpStatusCode> { HttpStatusCode.ProxyAuthenticationRequired };
 
+        /// <summary>
+        /// Return false to continue
+        /// </summary>
+        /// <param name="ex"></param>
+        /// <returns></returns>
         static bool GeneralExceptionProcessor(Exception ex)
         {
+            if (ex is TaskCanceledException) return false;
+
             var webex = SearchForException<WebException>(ex);
             if (webex != null)
             {
@@ -283,7 +290,7 @@ namespace Azi.Tools
             {
                 using (var client = await GetHttpClient())
                 {
-                    HttpRequestMessage message = new HttpRequestMessage(method, url);
+                    var message = new HttpRequestMessage(method, url);
                     var content = new MultipartFormDataContent();
                     if (file.Parameters != null)
                     {
@@ -291,7 +298,7 @@ namespace Azi.Tools
                     }
                     file.Stream.Position = pos;
                     var str = new StreamContent(file.Stream);
-                    str.Headers.ContentType = new MediaTypeHeaderValue("text/plain");
+                    str.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
                     content.Add(str, file.FormName, file.FileName);
 
                     message.Content = content;

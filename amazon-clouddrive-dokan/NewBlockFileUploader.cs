@@ -9,53 +9,75 @@ namespace Azi.ACDDokanNet
 {
     public class NewBlockFileUploader : IBlockStream
     {
+        public delegate void OnUploadDelegate(FSItem node, AmazonNode amazonNode);
+        public delegate void OnUploadFailedDelegate(FSItem node, string filePath, string localId);
+
         private AmazonDrive amazon;
         private FSItem dirNode;
-        private string name;
+        public readonly FSItem Node;
+        private string filePath;
         private readonly FileStream writer;
-        private object fileLock=new object();
-        public readonly string CachedName;
+        private object fileLock = new object();
         private Task uploader;
-        public Action<FSItem, AmazonChild> OnUpload;
+        public OnUploadDelegate OnUpload;
+        public OnUploadFailedDelegate OnUploadFailed;
 
-        public NewBlockFileUploader(FSItem dirNode, string name, AmazonDrive amazon)
+        public NewBlockFileUploader(FSItem dirNode, FSItem node, string filePath, AmazonDrive amazon)
         {
             this.dirNode = dirNode;
-            this.name = name;
+            this.Node = node;
+            this.filePath = filePath;
             this.amazon = amazon;
-            CachedName = Guid.NewGuid().ToString();
-            var path = Path.Combine(SmallFileCache.CachePath, CachedName);
-            Log.Trace("Created file: " + name);
+
+            if (node == null)
+            {
+                Node = FSItem.FromFake(filePath, Guid.NewGuid().ToString());
+            }
+
+            var path = Path.Combine(SmallFileCache.CachePath, Node.Id);
+            Log.Trace("Created file: " + filePath);
             writer = File.OpenWrite(path);
         }
 
         public void Close()
         {
+            long len = writer.Length;
             lock (fileLock)
             {
                 writer.Close();
             }
-            Log.Trace("Closed file: " + name);
-            uploader = Task.Run(Upload);
+            Node.Length = len;
+            Log.Trace("Closed file: " + filePath);
+            if (len == 0)
+                Log.Warn("Zero Length file: " + filePath);
+            else
+                uploader = Task.Run(Upload);
         }
 
         private async Task Upload()
         {
             try
             {
-                Log.Trace("Started upload: " + name);
-                using (var reader = new FileStream(Path.Combine(SmallFileCache.CachePath, CachedName), FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true))
+                Log.Trace("Started upload: " + filePath);
+                using (var reader = new FileStream(Path.Combine(SmallFileCache.CachePath, Node.Id), FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true))
                 {
-                    var node = await amazon.Files.UploadNew(dirNode.Id, name, reader);
+                    var node = await amazon.Files.UploadNew(dirNode.Id, Path.GetFileName(filePath), reader);
                     reader.Close();
-                    if (node == null) throw new NullReferenceException("File node is null: " + name);
-                    OnUpload(dirNode, node);
-                    Log.Trace("Finished upload: " + name + " id:" + node.id);
+                    if (node != null)
+                    {
+                        OnUpload(dirNode, node);
+                        Log.Trace("Finished upload: " + filePath + " id:" + node.id);
+                    }
+                    else
+                    {
+                        OnUploadFailed(dirNode, filePath, Node.Id);
+                        throw new NullReferenceException("File node is null: " + filePath);
+                    }
                 }
             }
             catch (Exception ex)
             {
-                Log.Error($"Upload failed: {name}\r\n{ex}");
+                Log.Error($"Upload failed: {filePath}\r\n{ex}");
             }
         }
 
@@ -71,6 +93,7 @@ namespace Azi.ACDDokanNet
                 writer.Position = position;
                 writer.Write(buffer, offset, count);
             }
+            Node.Length = writer.Length;
         }
 
         public void Flush()

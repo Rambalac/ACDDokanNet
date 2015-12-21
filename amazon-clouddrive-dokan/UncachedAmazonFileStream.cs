@@ -8,10 +8,10 @@ namespace Azi.ACDDokanNet
     public class UncachedAmazonFileStream : Stream
     {
         AmazonDrive amazon;
-        private AmazonChild node;
+        private AmazonNode node;
         long position = 0;
 
-        public UncachedAmazonFileStream(AmazonChild node, AmazonDrive amazon)
+        public UncachedAmazonFileStream(AmazonNode node, AmazonDrive amazon)
         {
             this.node = node;
             this.amazon = amazon;
