@@ -225,9 +225,9 @@ namespace Azi.ACDDokanNet
         {
             try
             {
-                freeBytesAvailable = provider.AvailableFreeSpace;
+                freeBytesAvailable = provider.TotalSize-provider.TotalUsedSpace;
                 totalNumberOfBytes = provider.TotalSize;
-                totalNumberOfFreeBytes = provider.TotalFreeSpace;
+                totalNumberOfFreeBytes = provider.TotalSize - provider.TotalUsedSpace;
 
                 return DokanResult.Success;
             }
@@ -283,7 +283,7 @@ namespace Azi.ACDDokanNet
         {
             Log.Warn(fileName);
             security = null;
-            return DokanResult.Error;
+            return DokanResult.NotImplemented;
         }
 
         public NtStatus GetVolumeInformation(out string volumeLabel, out FileSystemFeatures features, out string fileSystemName, DokanFileInfo info)
@@ -339,6 +339,11 @@ namespace Azi.ACDDokanNet
 
                 bytesRead = reader.Read(offset, buffer, 0, buffer.Length, readTimeout);
                 return DokanResult.Success;
+            }
+            catch (ObjectDisposedException)
+            {
+                bytesRead = 0;
+                return NtStatus.FileClosed;
             }
             catch (NotSupportedException)
             {
