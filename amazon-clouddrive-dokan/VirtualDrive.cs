@@ -7,6 +7,7 @@ using System.Security.AccessControl;
 using FileAccess = DokanNet.FileAccess;
 using Azi.Tools;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
 namespace Azi.ACDDokanNet
 {
@@ -92,6 +93,9 @@ namespace Azi.ACDDokanNet
                 return DokanResult.Error;
             }
         }
+
+        static readonly Regex ignoreFilesPattern = new Regex("folder.(gif|jpg)$");
+
         public NtStatus _CreateFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
         {
             if (info.IsDirectory)
@@ -108,6 +112,7 @@ namespace Azi.ACDDokanNet
                 return DokanResult.Success;
             }
 
+            if (access == FileAccess.ReadAttributes && ignoreFilesPattern.IsMatch(fileName)) return DokanResult.FileNotFound;
 
             var item = provider.GetItem(fileName);
 

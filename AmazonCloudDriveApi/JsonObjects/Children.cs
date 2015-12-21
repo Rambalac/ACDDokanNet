@@ -7,6 +7,6 @@ namespace Azi.Amazon.CloudDrive.JsonObjects
     {
         public int count { get; set; }
         public string nextToken { get; set; }
-        public IList<AmazonChild> data { get; set; }
+        public IList<AmazonNode> data { get; set; }
     }
 }

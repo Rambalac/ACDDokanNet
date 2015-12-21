@@ -20,14 +20,14 @@ namespace Azi.Amazon.CloudDrive
             this.amazon = amazonDrive;
         }
 
-        public async Task<AmazonChild> GetNode(string id)
+        public async Task<AmazonNode> GetNode(string id)
         {
             var url = "{0}nodes/{1}";
-            var result = await http.GetJsonAsync<AmazonChild>(string.Format(url, await amazon.GetMetadataUrl(), id));
+            var result = await http.GetJsonAsync<AmazonNode>(string.Format(url, await amazon.GetMetadataUrl(), id));
             return result;
         }
 
-        public async Task<IList<AmazonChild>> GetChildren(string id = null)
+        public async Task<IList<AmazonNode>> GetChildren(string id = null)
         {
             if (id == null) id = (await GetRoot()).id;
             var url = string.Format("{0}nodes/{1}/children", await amazon.GetMetadataUrl(), id);
@@ -46,7 +46,7 @@ namespace Azi.Amazon.CloudDrive
             return "parents:" + id;
         }
 
-        public async Task<AmazonChild> GetChild(string parentid, string name)
+        public async Task<AmazonNode> GetChild(string parentid, string name)
         {
             if (parentid == null) parentid = (await GetRoot()).id;
             var url = string.Format("{0}nodes?filters={1} AND {2}", await amazon.GetMetadataUrl(), MakeParentFilter(parentid), MakeNameFilter(name));
@@ -62,15 +62,15 @@ namespace Azi.Amazon.CloudDrive
             await http.Send<object>(HttpMethod.Put, url);
         }
 
-        public async Task<AmazonChild> CreateFolder(string parentId, string name)
+        public async Task<AmazonNode> CreateFolder(string parentId, string name)
         {
             var url = string.Format("{0}nodes", await amazon.GetMetadataUrl());
             var folder = new NewChild { name = name, parents = new string[] { parentId }, kind = "FOLDER" };
-            return await http.Post<NewChild, AmazonChild>(url, folder);
+            return await http.Post<NewChild, AmazonNode>(url, folder);
         }
 
-        AmazonChild root;
-        public async Task<AmazonChild> GetRoot()
+        AmazonNode root;
+        public async Task<AmazonNode> GetRoot()
         {
             if (root != null) return root;
 
@@ -82,17 +82,17 @@ namespace Azi.Amazon.CloudDrive
             return root;
         }
 
-        public async Task<AmazonChild> Rename(string id, string newName)
+        public async Task<AmazonNode> Rename(string id, string newName)
         {
             var url = "{0}nodes/{1}";
             var data = new
             {
                 name = newName
             };
-            return await http.Patch<object, AmazonChild>(string.Format(url, await amazon.GetMetadataUrl(), id), data);
+            return await http.Patch<object, AmazonNode>(string.Format(url, await amazon.GetMetadataUrl(), id), data);
         }
 
-        public async Task<AmazonChild> Move(string id, string oldDirId, string newDirId)
+        public async Task<AmazonNode> Move(string id, string oldDirId, string newDirId)
         {
             var url = "{0}nodes/{1}/children";
             var data = new
@@ -100,7 +100,7 @@ namespace Azi.Amazon.CloudDrive
                 fromParent = oldDirId,
                 childId = id
             };
-            return await http.Post<object, AmazonChild>(string.Format(url, await amazon.GetMetadataUrl(), newDirId), data);
+            return await http.Post<object, AmazonNode>(string.Format(url, await amazon.GetMetadataUrl(), newDirId), data);
         }
     }
 }

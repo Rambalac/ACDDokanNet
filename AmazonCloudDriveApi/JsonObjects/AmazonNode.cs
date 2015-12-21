@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Azi.Amazon.CloudDrive.JsonObjects
 {
 
-    public class AmazonChild
+    public class AmazonNode
     {
         public long Length => contentProperties?.size ?? 0;
 

@@ -83,7 +83,7 @@ namespace Azi.ACDDokanNet
             StartDownload(node, path);
 
             Log.Trace("Opened cached: " + node.Id);
-            return new FileBlockReader(path);
+            return new FileBlockReader(path, node.Length);
         }
     }
 }
