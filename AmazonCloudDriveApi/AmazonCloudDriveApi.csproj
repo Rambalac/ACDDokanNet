@@ -63,6 +63,8 @@
     <Compile Include="JsonObjects\Image.cs" />
     <Compile Include="JsonObjects\Endpoint.cs" />
     <Compile Include="JsonObjects\NewFile.cs" />
+    <Compile Include="JsonObjects\Quota.cs" />
+    <Compile Include="JsonObjects\Usage.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
