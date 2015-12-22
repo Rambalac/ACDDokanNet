@@ -5,6 +5,7 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Azi.Tools
@@ -15,6 +16,8 @@ namespace Azi.Tools
         public Dictionary<string, string> Parameters;
         public string FormName;
         public string FileName;
+
+        public int Timeout = 30000;
     }
     public class HttpClient
     {
@@ -289,15 +292,15 @@ namespace Azi.Tools
             {
                 using (var client = await GetHttpClient())
                 {
+                    //client.Timeout
                     var message = new HttpRequestMessage(method, url);
                     var content = new MultipartFormDataContent();
                     if (file.Parameters != null)
                     {
                         foreach (var pair in file.Parameters) content.Add(new StringContent(pair.Value), pair.Key);
                     }
-                    var str = new StreamContent(file.StreamOpener());
-                    str.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-                    content.Add(str, file.FormName, file.FileName);
+                    var strcont = new PushStreamContent(async (str, cont, trans) => await PushFile(file, str), "application/octet-stream");
+                    content.Add(strcont, file.FormName, file.FileName);
 
                     message.Content = content;
                     var response = await client.SendAsync(message);
@@ -312,6 +315,24 @@ namespace Azi.Tools
                 }
             }, GeneralExceptionProcessor);
             return result;
+        }
+
+        private async Task PushFile(FileUpload file, Stream output)
+        {
+            using (var input = file.StreamOpener())
+            using (output)
+            {
+                var buf = new byte[81920];
+                int red;
+                do
+                {
+                    red = await input.ReadAsync(buf, 0, buf.Length);
+                    if (red == 0) break;
+                    var cancellationSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(file.Timeout));
+                    await output.WriteAsync(buf, 0, red, cancellationSource.Token);
+                    Log.Trace("Pushed byted: " + red);
+                } while (red != 0);
+            }
         }
 
         private async Task LogBadResponse(HttpResponseMessage response)
