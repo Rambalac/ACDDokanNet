@@ -28,11 +28,28 @@ namespace Azi.Amazon.CloudDrive
 
         internal readonly Tools.HttpClient http;
         public readonly AmazonAccount Account;
+
+        public async Task<bool> Authentication(string authToken, string authRenewToken, DateTime authTokenExpiration)
+        {
+            token = new AuthToken
+            {
+                expires_in = 0,
+                createdTime = authTokenExpiration,
+                access_token = authToken,
+                refresh_token = authRenewToken,
+                token_type = "bearer"
+            };
+            await UpdateToken();
+            return token != null;
+        }
+
         public readonly AmazonNodes Nodes;
         public readonly AmazonFiles Files;
 
-        public AmazonDrive()
+        public AmazonDrive(string clientId, string clientSecret)
         {
+            this.clientSecret = clientSecret;
+            this.clientId = clientId;
             http = new Tools.HttpClient(SettingsSetter);
             Account = new AmazonAccount(this);
             Nodes = new AmazonNodes(this);
@@ -80,9 +97,11 @@ namespace Azi.Amazon.CloudDrive
                         {"grant_type","refresh_token" },
                         {"refresh_token",token.refresh_token},
                         {"client_id",clientId},
-                        {"client_secret",""}
+                        {"client_secret",clientSecret}
                     };
             token = await http.PostForm<AuthToken>("https://api.amazon.com/auth/o2/token", form);
+            if (token != null)
+                OnTokenUpdate?.Invoke(token.access_token, token.refresh_token, DateTime.UtcNow.AddSeconds(token.expires_in));
             updatingToken = false;
         }
 
@@ -104,7 +123,7 @@ namespace Azi.Amazon.CloudDrive
             }
         }
 
-        public async Task SafeAuthenticationAsync(string clientId, string secret, CloudDriveScope scope, TimeSpan timeout)
+        public async Task<bool> SafeAuthenticationAsync(CloudDriveScope scope, TimeSpan timeout)
         {
             using (var listener = new HttpListener())
             {
@@ -133,10 +152,8 @@ namespace Azi.Amazon.CloudDrive
                         var task = listener.GetContextAsync();
                         if (await Task.WhenAny(task, Task.Delay(timeout)) == task)
                         {
-                            await ProcessRedirect(await task, clientId, secret, redirectUrl);
+                            await ProcessRedirect(await task, clientId, clientSecret, redirectUrl);
 
-                            this.clientId = clientId;
-                            this.clientSecret = secret;
                             this.scope = scope;
                         }
                         else
@@ -152,6 +169,7 @@ namespace Azi.Amazon.CloudDrive
                 }
 
             }
+            return token != null;
         }
 
         private async Task ProcessRedirect(HttpListenerContext context, string clientId, string secret, string redirectUrl)
@@ -176,7 +194,8 @@ namespace Azi.Amazon.CloudDrive
                                     {"redirect_uri",redirectUrl}
                                 };
             token = await http.PostForm<AuthToken>("https://api.amazon.com/auth/o2/token", form);
-
+            if (token != null)
+                OnTokenUpdate?.Invoke(token.access_token, token.refresh_token, DateTime.UtcNow.AddSeconds(token.expires_in));
 
             await Account.GetEndpoint();
         }
@@ -200,6 +219,9 @@ namespace Azi.Amazon.CloudDrive
             {CloudDriveScope.ReadAll,"clouddrive:read_all" },
             {CloudDriveScope.Write,"clouddrive:write" }
         };
+
+        public Action<string, string, DateTime> OnTokenUpdate { get; set; }
+
         private static string ScopeToString(CloudDriveScope scope)
         {
             var result = new List<string>();

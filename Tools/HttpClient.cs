@@ -11,7 +11,7 @@ namespace Azi.Tools
 {
     public class FileUpload
     {
-        public Stream Stream;
+        public Func<Stream> StreamOpener;
         public Dictionary<string, string> Parameters;
         public string FormName;
         public string FileName;
@@ -285,7 +285,6 @@ namespace Azi.Tools
         public async Task<T> SendFile<T>(HttpMethod method, string url, FileUpload file)
         {
             T result = default(T);
-            long pos = file.Stream.Position;
             await Retry.Do(retryTimes, retryDelay, async () =>
             {
                 using (var client = await GetHttpClient())
@@ -296,8 +295,7 @@ namespace Azi.Tools
                     {
                         foreach (var pair in file.Parameters) content.Add(new StringContent(pair.Value), pair.Key);
                     }
-                    file.Stream.Position = pos;
-                    var str = new StreamContent(file.Stream);
+                    var str = new StreamContent(file.StreamOpener());
                     str.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
                     content.Add(str, file.FormName, file.FileName);
 
