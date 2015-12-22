@@ -21,6 +21,7 @@ namespace Azi.ACDDokanNet
         private Task uploader;
         public OnUploadDelegate OnUpload;
         public OnUploadFailedDelegate OnUploadFailed;
+        private bool closed = false;
 
         public NewBlockFileUploader(FSItem dirNode, FSItem node, string filePath, AmazonDrive amazon)
         {
@@ -41,10 +42,13 @@ namespace Azi.ACDDokanNet
 
         public void Close()
         {
+            if (closed) return;
+
             long len = writer.Length;
             lock (fileLock)
             {
                 writer.Close();
+                closed = true;
             }
             Node.Length = len;
             Log.Trace("Closed file: " + filePath);
@@ -91,6 +95,7 @@ namespace Azi.ACDDokanNet
                 writer.Write(buffer, offset, count);
             }
             Node.Length = writer.Length;
+            Log.Trace("Write byte: " + count);
         }
 
         public void Flush()

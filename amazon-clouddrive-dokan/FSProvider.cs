@@ -77,12 +77,8 @@ namespace Azi.ACDDokanNet
                 var name = Path.GetFileName(filePath);
                 var dirNode = GetItem(dir);
                 var uploader = new NewBlockFileUploader(dirNode, node, filePath, amazon);
-                if (node == null)
-                {
-                    node = uploader.Node;
-
-                    nodeTreeCache.Add(node);
-                }
+                node = uploader.Node;
+                nodeTreeCache.Add(node);
 
                 uploader.OnUpload = (parent, newnode) =>
                   {

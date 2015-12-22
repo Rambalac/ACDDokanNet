@@ -384,7 +384,7 @@ namespace Azi.ACDDokanNet
 
         public NtStatus SetFileAttributes(string fileName, FileAttributes attributes, DokanFileInfo info)
         {
-            Log.Warn(fileName);
+            Log.Trace(fileName);
             return DokanResult.Error;
         }
 
@@ -396,7 +396,7 @@ namespace Azi.ACDDokanNet
 
         public NtStatus SetFileTime(string fileName, DateTime? creationTime, DateTime? lastAccessTime, DateTime? lastWriteTime, DokanFileInfo info)
         {
-            Log.Warn(fileName);
+            Log.Trace(fileName);
             return DokanResult.Error;
         }
 
