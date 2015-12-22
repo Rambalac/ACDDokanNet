@@ -6,28 +6,18 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
-
+using Tools;
 
 namespace Azi.ACDDokanNet
 {
-    class DirItem
-    {
-        public readonly DateTime FetchTime = DateTime.UtcNow;
-        public readonly ConcurrentBag<FSItem> Items;
-        public DirItem(IList<FSItem> items)
-        {
-            Items = new ConcurrentBag<FSItem>(items);
-        }
-    }
     public class FSProvider
     {
         static readonly string[] fsItemKinds = { "FILE", "FOLDER" };
 
         readonly AmazonDrive amazon;
-        readonly ConcurrentDictionary<string, FSItem> pathToNode = new ConcurrentDictionary<string, FSItem>();
-        readonly ConcurrentDictionary<string, DirItem> pathToDirItems = new ConcurrentDictionary<string, DirItem>();
-        readonly TimeSpan DirItemsExpiration = TimeSpan.FromSeconds(60);
+        readonly NodeTreeCache nodeTreeCache = new NodeTreeCache();
         readonly SmallFileCache smallFileCache;
 
         public FSProvider(AmazonDrive amazon)
@@ -47,18 +37,12 @@ namespace Azi.ACDDokanNet
         public void DeleteFile(string filePath)
         {
             var node = GetItem(filePath);
-            var dir = Path.GetDirectoryName(filePath);
-            var dirNode = GetItem(dir);
             if (node != null)
             {
+                if (node.IsDir) throw new InvalidOperationException("Not file");
                 amazon.Nodes.Delete(node.Id).Wait();
-                DirItem remove;
-                pathToDirItems.TryRemove(dir, out remove);
-                FSItem rem;
-                pathToNode.TryRemove(filePath, out rem);
-                if (node.IsDir) pathToDirItems.TryRemove(filePath, out remove);
+                nodeTreeCache.DeleteFile(filePath);
             }
-
         }
 
         public bool Exists(string filePath)
@@ -74,10 +58,7 @@ namespace Azi.ACDDokanNet
             var name = Path.GetFileName(filePath);
             var node = amazon.Nodes.CreateFolder(dirNode.Id, name).Result;
 
-            DirItem result;
-            if (pathToDirItems.TryGetValue(dir, out result))
-                result.Items.Add(FSItem.FromNode(filePath, node));
-
+            nodeTreeCache.Add(FSItem.FromNode(filePath, node));
         }
 
         public IBlockStream OpenFile(string filePath, FileMode mode, FileAccess fileAccess, FileShare share, FileOptions options)
@@ -100,10 +81,7 @@ namespace Azi.ACDDokanNet
                 {
                     node = uploader.Node;
 
-                    pathToNode[filePath] = node;
-                    DirItem result;
-
-                    if (pathToDirItems.TryGetValue(dir, out result)) result.Items.Add(node);
+                    nodeTreeCache.Add(node);
                 }
 
                 uploader.OnUpload = (parent, newnode) =>
@@ -115,10 +93,7 @@ namespace Azi.ACDDokanNet
                   };
                 uploader.OnUploadFailed = (parent, path, id) =>
                   {
-                      FSItem removeitem;
-                      DirItem removedir;
-                      pathToNode.TryRemove(path, out removeitem);
-                      pathToDirItems.TryRemove(parent.Path, out removedir);
+                      nodeTreeCache.DeleteFile(path);
                   };
 
                 return uploader;
@@ -129,14 +104,19 @@ namespace Azi.ACDDokanNet
 
         public void DeleteDir(string filePath)
         {
-            DeleteFile(filePath);
+            var node = GetItem(filePath);
+            if (node != null)
+            {
+                if (!node.IsDir) throw new InvalidOperationException("Not dir");
+                amazon.Nodes.Delete(node.Id).Wait();
+                nodeTreeCache.DeleteDir(filePath);
+            }
         }
 
         public async Task<IList<FSItem>> GetDirItems(string folderPath)
         {
-            DirItem result;
-            var found = pathToDirItems.TryGetValue(folderPath, out result);
-            if (found && (DateTime.UtcNow - result.FetchTime) < DirItemsExpiration) return result.Items.ToList();
+            var cached = nodeTreeCache.GetDir(folderPath);
+            if (cached != null) return cached.ToList();
 
             var folderNode = GetItem(folderPath);
             var nodes = await amazon.Nodes.GetChildren(folderNode?.Id);
@@ -145,12 +125,11 @@ namespace Azi.ACDDokanNet
             if (curdir == "\\") curdir = "";
             foreach (var node in nodes.Where(n => fsItemKinds.Contains(n.kind)))
             {
-                var path = folderPath + "\\" + node.name;
-                pathToNode[path] = FSItem.FromNode(path, node);
+                var path = curdir + "\\" + node.name;
                 items.Add(FSItem.FromNode(path, node));
             }
 
-            pathToDirItems[folderPath] = new DirItem(items);
+            nodeTreeCache.AddDirItems(folderPath, items);
             return items;
         }
 
@@ -161,31 +140,32 @@ namespace Azi.ACDDokanNet
 
         private async Task<FSItem> FetchNode(string itemPath)
         {
-            if (itemPath == "\\" || itemPath == "") return FSItem.FromNode(itemPath, await amazon.Nodes.GetRoot());
-            FSItem result;
-            if (pathToNode.TryGetValue(itemPath, out result)) return result;
+            if (itemPath == "\\" || itemPath == "") return FSItem.FromRoot(await amazon.Nodes.GetRoot());
+            var cached = nodeTreeCache.GetNode(itemPath);
+            if (cached != null) return cached;
 
             var folders = new LinkedList<string>();
             var curpath = itemPath;
-            FSItem node = null;
+            FSItem item = null;
             do
             {
                 folders.AddFirst(Path.GetFileName(curpath));
                 curpath = Path.GetDirectoryName(curpath);
                 if (curpath == "\\" || string.IsNullOrEmpty(curpath)) break;
-            } while (!pathToNode.TryGetValue(curpath, out node));
-            if (node == null) node = FSItem.FromNode("\\", await amazon.Nodes.GetRoot());
+                item = nodeTreeCache.GetNode(curpath);
+            } while (item == null);
+            if (item == null) item = FSItem.FromRoot(await amazon.Nodes.GetRoot());
             foreach (var name in folders)
             {
-                var newnode = await amazon.Nodes.GetChild(node.Id, name);
+                var newnode = await amazon.Nodes.GetChild(item.Id, name);
                 if (newnode == null) return null;
 
                 if (curpath == "\\") curpath = "";
                 curpath = curpath + "\\" + name;
-                node = FSItem.FromNode(curpath, newnode);
-                pathToNode[curpath] = node;
+                item = FSItem.FromNode(curpath, newnode);
+                nodeTreeCache.Add(item);
             }
-            return node;
+            return item;
         }
 
         public void MoveFile(string oldPath, string newPath, bool replace)
@@ -200,7 +180,8 @@ namespace Azi.ACDDokanNet
             var node = GetItem(oldPath);
             if (oldName != newName)
             {
-                node = FSItem.FromNode(newPath, amazon.Nodes.Rename(node.Id, newName).Result);
+                node = FSItem.FromNode(Path.Combine(oldDir, newName), amazon.Nodes.Rename(node.Id, newName).Result);
+                if (node == null) throw new InvalidOperationException("Can not rename");
             }
 
             if (oldDir != newDir)
@@ -209,15 +190,13 @@ namespace Azi.ACDDokanNet
                 var newDirNodeTask = FetchNode(newDir);
                 Task.WaitAll(oldDirNodeTask, newDirNodeTask);
                 node = FSItem.FromNode(newPath, amazon.Nodes.Move(node.Id, oldDirNodeTask.Result.Id, newDirNodeTask.Result.Id).Result);
+                if (node == null) throw new InvalidOperationException("Can not move");
             }
 
-            FSItem removed;
-            DirItem dir;
-            if (pathToDirItems.TryGetValue(newDir, out dir)) dir.Items.Add(node);
-            pathToDirItems.TryRemove(oldDir, out dir);
-            pathToNode.TryRemove(oldPath, out removed);
-            node.Path = newPath;
-            pathToNode[newPath] = node;
+            if (node.IsDir)
+                nodeTreeCache.MoveDir(oldPath, node);
+            else
+                nodeTreeCache.MoveFile(oldPath, node);
         }
     }
 }

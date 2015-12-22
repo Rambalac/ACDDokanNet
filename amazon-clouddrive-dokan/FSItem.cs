@@ -5,6 +5,8 @@ namespace Azi.ACDDokanNet
 {
     public class FSItem
     {
+        public readonly DateTime FetchTime = DateTime.UtcNow;
+
         const string folderKind = "FOLDER";
 
         public bool IsFake { get; internal set; } = false;
@@ -13,6 +15,7 @@ namespace Azi.ACDDokanNet
         public bool IsDir { get; internal set; }
         public long Length { get; internal set; }
 
+        public string Dir => System.IO.Path.GetDirectoryName(Path);
         public string Name => System.IO.Path.GetFileName(Path);
 
         public DateTime LastAccessTime { get; internal set; }
@@ -23,6 +26,8 @@ namespace Azi.ACDDokanNet
         {
             IsFake = false;
         }
+
+        public bool IsExpired(int expirationSeconds) => DateTime.UtcNow > FetchTime.AddSeconds(expirationSeconds);
 
         public static FSItem FromNode(string itemPath, AmazonNode node)
         {
@@ -54,6 +59,9 @@ namespace Azi.ACDDokanNet
             };
         }
 
-
+        internal static FSItem FromRoot(AmazonNode amazonNode)
+        {
+            return FromNode("\\", amazonNode);
+        }
     }
 }

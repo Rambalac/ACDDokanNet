@@ -20,19 +20,19 @@ namespace Azi.Amazon.CloudDrive
             amazon = amazonDrive;
         }
 
-        public async Task<AmazonNode> Overwrite(string id, Stream stream)
+        public async Task<AmazonNode> Overwrite(string id, Func<Stream> streamCreator)
         {
             var url = string.Format("{0}nodes/{1}/content", await amazon.GetContentUrl(), id);
             var file = new FileUpload
             {
-                Stream = stream,
+                StreamOpener = streamCreator,
                 FileName = id,
                 FormName = "content"
             };
             return await http.SendFile<AmazonNode>(HttpMethod.Put, url, file);
         }
 
-        public async Task<AmazonNode> UploadNew(string parentId, string fileName, Stream stream)
+        public async Task<AmazonNode> UploadNew(string parentId, string fileName, Func<Stream> streamCreator)
         {
             var url = string.Format("{0}nodes", await amazon.GetContentUrl());
 
@@ -40,7 +40,7 @@ namespace Azi.Amazon.CloudDrive
 
             var file = new FileUpload
             {
-                Stream = stream,
+                StreamOpener = streamCreator,
                 FileName = fileName,
                 FormName = "content",
                 Parameters = new Dictionary<string, string>

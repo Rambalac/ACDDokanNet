@@ -59,19 +59,17 @@ namespace Azi.ACDDokanNet
             try
             {
                 Log.Trace("Started upload: " + filePath);
-                using (var reader = new FileStream(Path.Combine(SmallFileCache.CachePath, Node.Id), FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true))
+                var node = await amazon.Files.UploadNew(dirNode.Id, Path.GetFileName(filePath),
+                    () => new FileStream(Path.Combine(SmallFileCache.CachePath, Node.Id), FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true));
+                if (node != null)
                 {
-                    var node = await amazon.Files.UploadNew(dirNode.Id, Path.GetFileName(filePath), reader);
-                    if (node != null)
-                    {
-                        OnUpload(dirNode, node);
-                        Log.Trace("Finished upload: " + filePath + " id:" + node.id);
-                    }
-                    else
-                    {
-                        OnUploadFailed(dirNode, filePath, Node.Id);
-                        throw new NullReferenceException("File node is null: " + filePath);
-                    }
+                    OnUpload(dirNode, node);
+                    Log.Trace("Finished upload: " + filePath + " id:" + node.id);
+                }
+                else
+                {
+                    OnUploadFailed(dirNode, filePath, Node.Id);
+                    throw new NullReferenceException("File node is null: " + filePath);
                 }
             }
             catch (Exception ex)

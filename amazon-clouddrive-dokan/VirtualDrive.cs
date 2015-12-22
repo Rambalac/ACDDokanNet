@@ -24,6 +24,11 @@ namespace Azi.ACDDokanNet
         {
             try
             {
+                if (info.Context != null)
+                {
+                    var str = info.Context as IBlockStream;
+                    if (str != null) str.Close();
+                }
             }
             catch (Exception e)
             {
@@ -225,7 +230,7 @@ namespace Azi.ACDDokanNet
         {
             try
             {
-                freeBytesAvailable = provider.TotalSize-provider.TotalUsedSpace;
+                freeBytesAvailable = provider.TotalSize - provider.TotalUsedSpace;
                 totalNumberOfBytes = provider.TotalSize;
                 totalNumberOfFreeBytes = provider.TotalSize - provider.TotalUsedSpace;
 
@@ -281,7 +286,7 @@ namespace Azi.ACDDokanNet
         public NtStatus GetFileSecurity(string fileName, out FileSystemSecurity security, AccessControlSections sections, DokanFileInfo info)
 
         {
-            Log.Warn(fileName);
+            Log.Trace(fileName);
             security = null;
             return DokanResult.NotImplemented;
         }
@@ -367,14 +372,14 @@ namespace Azi.ACDDokanNet
 
         public NtStatus SetAllocationSize(string fileName, long length, DokanFileInfo info)
         {
-            Log.Warn(fileName);
-            return DokanResult.Error;
+            Log.Trace(fileName);
+            return DokanResult.NotImplemented;
         }
 
         public NtStatus SetEndOfFile(string fileName, long length, DokanFileInfo info)
         {
-            Log.Warn(fileName);
-            return DokanResult.Error;
+            Log.Trace(fileName);
+            return DokanResult.NotImplemented;
         }
 
         public NtStatus SetFileAttributes(string fileName, FileAttributes attributes, DokanFileInfo info)
@@ -385,8 +390,8 @@ namespace Azi.ACDDokanNet
 
         public NtStatus SetFileSecurity(string fileName, FileSystemSecurity security, AccessControlSections sections, DokanFileInfo info)
         {
-            Log.Warn(fileName);
-            return DokanResult.Error;
+            Log.Trace(fileName);
+            return DokanResult.NotImplemented;
         }
 
         public NtStatus SetFileTime(string fileName, DateTime? creationTime, DateTime? lastAccessTime, DateTime? lastWriteTime, DokanFileInfo info)
