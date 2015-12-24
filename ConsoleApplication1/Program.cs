@@ -40,8 +40,11 @@ namespace ConsoleApplication1
                 return;
             }
 
+            var provider = new FSProvider(amazon);
 
-            var cloudDrive = new VirtualDrive(new FSProvider(amazon));
+            provider.CachePath = @"D:\Temp";
+
+            var cloudDrive = new VirtualDrive(provider);
             cloudDrive.Mount("r:\\");
         }
     }

@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
 using System.Diagnostics;
+using System.Net.Http.Headers;
 
 namespace Azi.ACDDokanNet
 {
@@ -17,10 +18,26 @@ namespace Azi.ACDDokanNet
     public class SmallFileCache
     {
         static ConcurrentDictionary<AmazonDrive, SmallFileCache> Instances = new ConcurrentDictionary<AmazonDrive, SmallFileCache>(10, 3);
-        public static SmallFileCache GetInstance(AmazonDrive amazon) => Instances.GetOrAdd(amazon, (a) => new SmallFileCache(a));
 
-        readonly AmazonDrive amazon;
-        public readonly static string CachePath = Path.Combine(Path.GetTempPath(), "CloudDriveTestCache");
+        readonly AmazonDrive Amazon;
+        private static string cachePath = Path.Combine(Path.GetTempPath(), "CloudDriveTestCache\\SmallFiles");
+        public string CachePath
+        {
+            get { return cachePath; }
+            set
+            {
+                try
+                {
+                    Directory.Delete(cachePath, true);
+                }
+                catch (Exception)
+                {
+                    Log.Warn("Can not delete old cache: " + cachePath);
+                }
+                cachePath = Path.Combine(value, "SmallFiles");
+                Directory.CreateDirectory(cachePath);
+            }
+        }
 
         public void StartDownload(FSItem node, string path)
         {
@@ -50,15 +67,25 @@ namespace Azi.ACDDokanNet
                 {
                     while (writer.Length < node.Length)
                     {
-                        await amazon.Files.Download(node.Id, fileOffset: writer.Length, streammer: async (stream) =>
+                        await Amazon.Files.Download(node.Id, fileOffset: writer.Length, streammer: async (response) =>
                         {
-                            int red = 0;
-                            do
+                            var partial = response.StatusCode == System.Net.HttpStatusCode.PartialContent;
+                            ContentRangeHeaderValue contentRange = null;
+                            if (partial)
                             {
-                                red = await stream.ReadAsync(buf, 0, buf.Length);
-                                if (writer.Length == 0) Log.Trace("Got first part: " + node.Id + " in " + start.ElapsedMilliseconds);
-                                writer.Write(buf, 0, red);
-                            } while (red > 0);
+                                contentRange = response.Headers.GetContentRange();
+                                if (contentRange.From != writer.Length) throw new InvalidOperationException("Content range does not match request");
+                            }
+                            using (var stream = response.GetResponseStream())
+                            {
+                                int red = 0;
+                                do
+                                {
+                                    red = await stream.ReadAsync(buf, 0, buf.Length);
+                                    if (writer.Length == 0) Log.Trace("Got first part: " + node.Id + " in " + start.ElapsedMilliseconds);
+                                    writer.Write(buf, 0, red);
+                                } while (red > 0);
+                            }
                         });
                         if (writer.Length < node.Length) await Task.Delay(500);
                     }
@@ -71,15 +98,15 @@ namespace Azi.ACDDokanNet
                 }
         }
 
-        private SmallFileCache(AmazonDrive a)
+        public SmallFileCache(AmazonDrive a)
         {
-            amazon = a;
-            Directory.CreateDirectory(CachePath);
+            Amazon = a;
+            Directory.CreateDirectory(cachePath);
         }
 
         public IBlockStream OpenRead(FSItem node)
         {
-            var path = Path.Combine(CachePath, node.Id);
+            var path = Path.Combine(cachePath, node.Id);
             StartDownload(node, path);
 
             Log.Trace("Opened cached: " + node.Id);
