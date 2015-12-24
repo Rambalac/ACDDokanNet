@@ -16,21 +16,35 @@ namespace Azi.ACDDokanNet
     {
         static readonly string[] fsItemKinds = { "FILE", "FOLDER" };
 
-        readonly AmazonDrive amazon;
+        internal readonly AmazonDrive Amazon;
         readonly NodeTreeCache nodeTreeCache = new NodeTreeCache();
-        readonly SmallFileCache smallFileCache;
+        internal SmallFileCache SmallFileCache { get; private set; }
+        string cachePath;
+        public string CachePath
+        {
+            get
+            {
+                SmallFileCache.CachePath = cachePath;
+                return cachePath;
+            }
+            set
+            {
+                cachePath = value;
+                SmallFileCache.CachePath = value;
+            }
+        }
 
         public FSProvider(AmazonDrive amazon)
         {
-            this.amazon = amazon;
-            smallFileCache = SmallFileCache.GetInstance(amazon);
+            this.Amazon = amazon;
+            SmallFileCache = new SmallFileCache(amazon);
         }
 
-        public long AvailableFreeSpace => amazon.Account.GetQuota().Result.available;
-        public long TotalSize => amazon.Account.GetQuota().Result.quota;
-        public long TotalFreeSpace => amazon.Account.GetQuota().Result.available;
+        public long AvailableFreeSpace => Amazon.Account.GetQuota().Result.available;
+        public long TotalSize => Amazon.Account.GetQuota().Result.quota;
+        public long TotalFreeSpace => Amazon.Account.GetQuota().Result.available;
 
-        public long TotalUsedSpace => amazon.Account.GetUsage().Result.total.total.bytes;
+        public long TotalUsedSpace => Amazon.Account.GetUsage().Result.total.total.bytes;
 
         public string VolumeName => "Cloud Drive";
 
@@ -40,7 +54,7 @@ namespace Azi.ACDDokanNet
             if (node != null)
             {
                 if (node.IsDir) throw new InvalidOperationException("Not file");
-                amazon.Nodes.Delete(node.Id).Wait();
+                Amazon.Nodes.Delete(node.Id).Wait();
                 nodeTreeCache.DeleteFile(filePath);
             }
         }
@@ -56,7 +70,7 @@ namespace Azi.ACDDokanNet
             var dirNode = GetItem(dir);
 
             var name = Path.GetFileName(filePath);
-            var node = amazon.Nodes.CreateFolder(dirNode.Id, name).Result;
+            var node = Amazon.Nodes.CreateFolder(dirNode.Id, name).Result;
 
             nodeTreeCache.Add(FSItem.FromNode(filePath, node));
         }
@@ -68,7 +82,7 @@ namespace Azi.ACDDokanNet
             if (fileAccess == FileAccess.Read)
             {
                 if (node == null) return null;
-                return smallFileCache.OpenRead(node);
+                return SmallFileCache.OpenRead(node);
             }
 
             if (mode == FileMode.CreateNew || (mode == FileMode.Create && (node == null || node.Length == 0)))
@@ -76,7 +90,7 @@ namespace Azi.ACDDokanNet
                 var dir = Path.GetDirectoryName(filePath);
                 var name = Path.GetFileName(filePath);
                 var dirNode = GetItem(dir);
-                var uploader = new NewBlockFileUploader(dirNode, node, filePath, amazon);
+                var uploader = new NewBlockFileUploader(dirNode, node, filePath, this);
                 node = uploader.Node;
                 nodeTreeCache.Add(node);
 
@@ -104,7 +118,7 @@ namespace Azi.ACDDokanNet
             if (node != null)
             {
                 if (!node.IsDir) throw new InvalidOperationException("Not dir");
-                amazon.Nodes.Delete(node.Id).Wait();
+                Amazon.Nodes.Delete(node.Id).Wait();
                 nodeTreeCache.DeleteDir(filePath);
             }
         }
@@ -115,7 +129,7 @@ namespace Azi.ACDDokanNet
             if (cached != null) return cached.ToList();
 
             var folderNode = GetItem(folderPath);
-            var nodes = await amazon.Nodes.GetChildren(folderNode?.Id);
+            var nodes = await Amazon.Nodes.GetChildren(folderNode?.Id);
             var items = new List<FSItem>(nodes.Count);
             var curdir = folderPath;
             if (curdir == "\\") curdir = "";
@@ -136,7 +150,7 @@ namespace Azi.ACDDokanNet
 
         private async Task<FSItem> FetchNode(string itemPath)
         {
-            if (itemPath == "\\" || itemPath == "") return FSItem.FromRoot(await amazon.Nodes.GetRoot());
+            if (itemPath == "\\" || itemPath == "") return FSItem.FromRoot(await Amazon.Nodes.GetRoot());
             var cached = nodeTreeCache.GetNode(itemPath);
             if (cached != null) return cached;
 
@@ -150,10 +164,10 @@ namespace Azi.ACDDokanNet
                 if (curpath == "\\" || string.IsNullOrEmpty(curpath)) break;
                 item = nodeTreeCache.GetNode(curpath);
             } while (item == null);
-            if (item == null) item = FSItem.FromRoot(await amazon.Nodes.GetRoot());
+            if (item == null) item = FSItem.FromRoot(await Amazon.Nodes.GetRoot());
             foreach (var name in folders)
             {
-                var newnode = await amazon.Nodes.GetChild(item.Id, name);
+                var newnode = await Amazon.Nodes.GetChild(item.Id, name);
                 if (newnode == null) return null;
 
                 if (curpath == "\\") curpath = "";
@@ -176,7 +190,7 @@ namespace Azi.ACDDokanNet
             var node = GetItem(oldPath);
             if (oldName != newName)
             {
-                node = FSItem.FromNode(Path.Combine(oldDir, newName), amazon.Nodes.Rename(node.Id, newName).Result);
+                node = FSItem.FromNode(Path.Combine(oldDir, newName), Amazon.Nodes.Rename(node.Id, newName).Result);
                 if (node == null) throw new InvalidOperationException("Can not rename");
             }
 
@@ -185,7 +199,7 @@ namespace Azi.ACDDokanNet
                 var oldDirNodeTask = FetchNode(oldDir);
                 var newDirNodeTask = FetchNode(newDir);
                 Task.WaitAll(oldDirNodeTask, newDirNodeTask);
-                node = FSItem.FromNode(newPath, amazon.Nodes.Move(node.Id, oldDirNodeTask.Result.Id, newDirNodeTask.Result.Id).Result);
+                node = FSItem.FromNode(newPath, Amazon.Nodes.Move(node.Id, oldDirNodeTask.Result.Id, newDirNodeTask.Result.Id).Result);
                 if (node == null) throw new InvalidOperationException("Can not move");
             }
 
