@@ -11,8 +11,36 @@ using System.Text.RegularExpressions;
 
 namespace Azi.ACDDokanNet
 {
+    public class VirtualDriveWrapper
+    {
+        readonly VirtualDrive virtualDrive;
+        public VirtualDriveWrapper(FSProvider provider)
+        {
+            virtualDrive = new VirtualDrive(provider);
 
-    public class VirtualDrive : IDokanOperations
+        }
+
+        public static void Unmount(char letter)
+        {
+            Dokan.Unmount(letter);
+        }
+        public void Mount(string path)
+        {
+            try
+            {
+#if DEBUG
+                virtualDrive.Mount(path, DokanOptions.DebugMode | DokanOptions.NetworkDrive);
+#else
+                this.Mount(path, DokanOptions.NetworkDrive);
+#endif
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+        }
+    }
+    internal class VirtualDrive : IDokanOperations
     {
         FSProvider provider;
         public VirtualDrive(FSProvider provider)
@@ -29,22 +57,6 @@ namespace Azi.ACDDokanNet
                     var str = info.Context as IBlockStream;
                     if (str != null) str.Close();
                 }
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-            }
-        }
-
-        public void Mount(string path)
-        {
-            try
-            {
-#if DEBUG
-                this.Mount(path, DokanOptions.DebugMode | DokanOptions.NetworkDrive);
-#else
-                this.Mount(path, DokanOptions.NetworkDrive);
-#endif
             }
             catch (Exception e)
             {

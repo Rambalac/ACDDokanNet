@@ -1,8 +1,8 @@
-﻿<Application x:Class="Azi.ACDDokanNet.App"
+﻿<Application x:Class="Azi.ACDDokanNet.Gui.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:Azi.ACDDokanNet"
-             Startup="Application_Startup">
+             Startup="Application_Startup" Exit="Application_Exit">
     <Application.Resources>
 
     </Application.Resources>

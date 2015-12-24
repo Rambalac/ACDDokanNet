@@ -41,7 +41,7 @@ namespace ConsoleApplication1
             }
 
 
-            var cloudDrive = new VirtualDrive(new FSProvider(amazon));
+            var cloudDrive = new VirtualDriveWrapper(new FSProvider(amazon));
             cloudDrive.Mount("r:\\");
         }
     }
