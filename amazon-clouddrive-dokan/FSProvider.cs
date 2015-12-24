@@ -33,6 +33,10 @@ namespace Azi.ACDDokanNet
         public long TotalUsedSpace => amazon.Account.GetUsage().Result.total.total.bytes;
 
         public string VolumeName => "Cloud Drive";
+        public static IList<char> GetFreeDriveLettes()
+        {
+            return Enumerable.Range('C', 'Z' - 'C' + 1).Select(c => (char)c).Except(Environment.GetLogicalDrives().Select(s => s[0])).ToList();
+        }
 
         public void DeleteFile(string filePath)
         {
