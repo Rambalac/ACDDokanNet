@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Net;
+using System.Net.Cache;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -68,17 +69,22 @@ namespace Azi.Amazon.CloudDrive
         internal async Task<string> GetContentUrl() => (await Account.GetEndpoint()).contentUrl;
         internal async Task<string> GetMetadataUrl() => (await Account.GetEndpoint()).metadataUrl;
 
-        readonly CacheControlHeaderValue standartCache = new CacheControlHeaderValue { NoCache = true };
+        readonly RequestCachePolicy standartCache = new RequestCachePolicy(RequestCacheLevel.NoCacheNoStore);
 
-        private async Task SettingsSetter(System.Net.Http.HttpClient client)
+        private async Task SettingsSetter(HttpWebRequest client)
         {
             if (token != null && !updatingToken)
-                client.DefaultRequestHeaders.Add("Authorization", "Bearer " + await GetToken());
-            client.DefaultRequestHeaders.CacheControl = standartCache;
-            client.DefaultRequestHeaders.AcceptEncoding.Add(new StringWithQualityHeaderValue("gzip"));
-            client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("AZIACDDokanNet", this.GetType().Assembly.ImageRuntimeVersion));
+                client.Headers.Add("Authorization", "Bearer " + await GetToken());
+            client.CachePolicy = standartCache;
+            client.UserAgent = "AZIACDDokanNet/" + this.GetType().Assembly.ImageRuntimeVersion;
 
-            client.Timeout = TimeSpan.FromMilliseconds(15000);
+            client.Timeout = 15000;
+
+            client.AllowReadStreamBuffering = false;
+            client.AllowWriteStreamBuffering = true;
+            client.AutomaticDecompression = DecompressionMethods.GZip;
+            client.PreAuthenticate = true;
+            client.UseDefaultCredentials = true;
         }
 
         private async Task<string> GetToken()
