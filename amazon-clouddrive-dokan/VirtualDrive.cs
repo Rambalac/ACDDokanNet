@@ -25,16 +25,16 @@ namespace Azi.ACDDokanNet
             try
             {
                 if (info.Context != null)
-                {
+            {
                     var str = info.Context as IBlockStream;
                     if (str != null) str.Close();
                 }
             }
             catch (Exception e)
-            {
+                {
                 Log.Error(e);
+                }
             }
-        }
 
         public void CloseFile(string fileName, DokanFileInfo info)
         {
@@ -44,12 +44,12 @@ namespace Azi.ACDDokanNet
                 {
                     var str = info.Context as IBlockStream;
                     if (str != null) str.Close();
-                }
             }
+        }
             catch (Exception e)
-            {
+        {
                 Log.Error(e);
-            }
+        }
         }
 
         NtStatus _CreateDirectory(string fileName, DokanFileInfo info)
@@ -172,19 +172,19 @@ namespace Azi.ACDDokanNet
         {
             try
             {
-                var items = provider.GetDirItems(fileName).Result;
+            var items = provider.GetDirItems(fileName).Result;
 
-                files = items.Select(i => new FileInformation
-                {
-                    Length = i.Length,
-                    FileName = i.Name,
-                    Attributes = i.IsDir ? FileAttributes.Directory : FileAttributes.Normal,
-                    LastAccessTime = DateTime.Now,
-                    LastWriteTime = DateTime.Now,
-                    CreationTime = DateTime.Now
-                }).ToList();
-                return DokanResult.Success;
-            }
+            files = items.Select(i => new FileInformation
+            {
+                Length = i.Length,
+                FileName = i.Name,
+                Attributes = i.IsDir ? FileAttributes.Directory : FileAttributes.Normal,
+                LastAccessTime = DateTime.Now,
+                LastWriteTime = DateTime.Now,
+                CreationTime = DateTime.Now
+            }).ToList();
+            return DokanResult.Success;
+        }
             catch (Exception e)
             {
                 Log.Error(e);
@@ -197,12 +197,12 @@ namespace Azi.ACDDokanNet
         {
             try
             {
-                if (info.Context != null)
+            if (info.Context != null)
                 {
                     (info.Context as IBlockStream)?.Flush();
                 }
-                return DokanResult.Success;
-            }
+            return DokanResult.Success;
+        }
             catch (Exception e)
             {
                 Log.Error(e);
@@ -215,11 +215,11 @@ namespace Azi.ACDDokanNet
             try
             {
                 freeBytesAvailable = provider.TotalSize - provider.TotalUsedSpace;
-                totalNumberOfBytes = provider.TotalSize;
+            totalNumberOfBytes = provider.TotalSize;
                 totalNumberOfFreeBytes = provider.TotalSize - provider.TotalUsedSpace;
 
-                return DokanResult.Success;
-            }
+            return DokanResult.Success;
+        }
             catch (Exception e)
             {
                 freeBytesAvailable = 0;
@@ -234,18 +234,18 @@ namespace Azi.ACDDokanNet
         {
             try
             {
-                var item = provider.GetItem(fileName);
+            var item = provider.GetItem(fileName);
 
-                if (item != null)
-                {
+            if (item != null)
+            {
                     fileInfo = MakeFileInformation(item);
-                    return DokanResult.Success;
-                }
-
-                fileInfo = new FileInformation();
-                Log.Warn(fileName);
-                return DokanResult.PathNotFound;
+                return DokanResult.Success;
             }
+
+            fileInfo = new FileInformation();
+                Log.Warn(fileName);
+            return DokanResult.PathNotFound;
+        }
             catch (Exception e)
             {
                 Log.Error(e);
@@ -294,8 +294,8 @@ namespace Azi.ACDDokanNet
             try
             {
 
-                return DokanResult.Success;
-            }
+            return DokanResult.Success;
+        }
             catch (Exception e)
             {
                 Log.Error(e);
@@ -307,9 +307,9 @@ namespace Azi.ACDDokanNet
         {
             try
             {
-                provider.MoveFile(oldName, newName, replace);
-                return DokanResult.Success;
-            }
+            provider.MoveFile(oldName, newName, replace);
+            return DokanResult.Success;
+        }
             catch (Exception e)
             {
                 Log.Error(e);
@@ -327,8 +327,8 @@ namespace Azi.ACDDokanNet
                 info.TryResetTimeout(readTimeout + 100);
 
                 bytesRead = reader.Read(offset, buffer, 0, buffer.Length, readTimeout);
-                return DokanResult.Success;
-            }
+            return DokanResult.Success;
+        }
             catch (ObjectDisposedException)
             {
                 bytesRead = 0;
@@ -405,9 +405,9 @@ namespace Azi.ACDDokanNet
                     if (writer != null)
                     {
                         writer.Write(offset, buffer, 0, buffer.Length);
-                        bytesWritten = buffer.Length;
-                        return DokanResult.Success;
-                    }
+                bytesWritten = buffer.Length;
+                return DokanResult.Success;
+            }
                 }
 
                 bytesWritten = 0;

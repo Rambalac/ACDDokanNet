@@ -2,9 +2,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -19,9 +21,34 @@ namespace Azi.Tools
 
         public int Timeout = 30000;
     }
+
+    public static class HttpWebRequestExtensions
+    {
+        static readonly HttpStatusCode[] successStatusCodes = { HttpStatusCode.OK, HttpStatusCode.Created, HttpStatusCode.PartialContent };
+        public static bool IsSuccessStatusCode(this HttpWebResponse response) => successStatusCodes.Contains(response.StatusCode);
+        public static async Task<string> ReadAsStringAsync(this HttpWebResponse response)
+        {
+            using (var reader = new StreamReader(response.GetResponseStream()))
+            {
+                return await reader.ReadToEndAsync();
+            }
+        }
+
+        public static async Task<T> ReadAsAsync<T>(this HttpWebResponse response)
+        {
+            var text = await response.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<T>(text);
+        }
+
+        public static ContentRangeHeaderValue GetContentRange(this WebHeaderCollection headers)
+        {
+            return ContentRangeHeaderValue.Parse(headers["Content-Range"]);
+        }
+    }
+
     public class HttpClient
     {
-        Func<System.Net.Http.HttpClient, Task> settingsSetter;
+        Func<HttpWebRequest, Task> settingsSetter;
         const int retryTimes = 100;
 
         TimeSpan retryDelay(int time)
@@ -29,18 +56,14 @@ namespace Azi.Tools
             return TimeSpan.FromSeconds(1 << time);
         }
 
-        public HttpClient(Func<System.Net.Http.HttpClient, Task> settingsSetter)
+        public HttpClient(Func<HttpWebRequest, Task> settingsSetter)
         {
             this.settingsSetter = settingsSetter;
         }
-        public async Task<System.Net.Http.HttpClient> GetHttpClient()
+        private async Task<HttpWebRequest> GetHttpClient(string url)
         {
-            var result = new System.Net.Http.HttpClient(new HttpClientHandler
-            {
-                AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip,
-                PreAuthenticate = true,
-                UseDefaultCredentials = true
-            });
+            var result = (HttpWebRequest)WebRequest.Create(url);
+
             await settingsSetter(result);
             return result;
         }
@@ -87,48 +110,17 @@ namespace Azi.Tools
 
         public async Task<T> GetJsonAsync<T>(string url)
         {
-            T result = default(T);
-            await Retry.Do(retryTimes, retryDelay, async () =>
-            {
-                using (var client = await GetHttpClient())
-                {
-                    var response = await client.GetAsync(url);
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        await LogBadResponse(response);
-                        return !retryCodes.Contains(response.StatusCode);
-                    }
-                    result = await response.Content.ReadAsAsync<T>();
-                    return true;
-                }
-            }, GeneralExceptionProcessor);
-            return result;
+            return await Send<T>(HttpMethod.Get, url);
         }
 
         public async Task GetToStreamAsync(string url, Stream stream, long? fileOffset = null, long? length = null, int bufferSize = 4096, Func<long, long> progress = null)
         {
             var start = DateTime.UtcNow;
-            await Retry.Do(retryTimes, retryDelay, async () =>
+            await GetToStreamAsync(url, async (response) =>
             {
-                using (var client = await GetHttpClient())
+                using (Stream input = response.GetResponseStream())
                 {
-                    var request = new HttpRequestMessage
-                    {
-                        RequestUri = new Uri(url)
-                    };
-                    if (fileOffset != null || length != null)
-                        request.Headers.Range = new RangeHeaderValue(fileOffset, fileOffset + length - 1);
-
-                    var response = await client.SendAsync(request);
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        await LogBadResponse(response);
-                        return !retryCodes.Contains(response.StatusCode);
-                    }
-
-                    Stream input = await response.Content.ReadAsStreamAsync();
-
-                    byte[] buff = new byte[Math.Min(bufferSize, response.Content.Headers.ContentLength ?? long.MaxValue)];
+                    byte[] buff = new byte[Math.Min(bufferSize, (response.ContentLength != -1) ? response.ContentLength : long.MaxValue)];
                     int red;
                     long nextProgress = -1;
                     bool first = true;
@@ -144,33 +136,30 @@ namespace Azi.Tools
                     }
                     if (nextProgress == -1) progress(0);
                 }
-                return true;
-            }, GeneralExceptionProcessor);
+            }, fileOffset, length);
         }
 
-        public async Task GetToStreamAsync(string url, Func<Stream, Task> streammer, long? fileOffset = null, long? length = null)
+        public async Task GetToStreamAsync(string url, Func<HttpWebResponse, Task> streammer, long? fileOffset = null, long? length = null)
         {
-            var start = DateTime.UtcNow;
             await Retry.Do(retryTimes, retryDelay, async () =>
             {
-                using (var client = await GetHttpClient())
-                {
-                    var request = new HttpRequestMessage
-                    {
-                        RequestUri = new Uri(url)
-                    };
-                    if (fileOffset != null || length != null)
-                        request.Headers.Range = new RangeHeaderValue(fileOffset, fileOffset + length - 1);
+                var client = await GetHttpClient(url);
+                if (fileOffset != null && length != null)
+                    client.AddRange((long)fileOffset, (long)(fileOffset + length - 1));
+                else
+                    if (fileOffset != null && length == null)
+                    client.AddRange((long)fileOffset);
+                client.Method = "GET";
 
-                    var response = await client.SendAsync(request);
-                    if (!response.IsSuccessStatusCode)
+                using (var response = (HttpWebResponse)await client.GetResponseAsync())
+                {
+                    if (!response.IsSuccessStatusCode())
                     {
                         await LogBadResponse(response);
                         return !retryCodes.Contains(response.StatusCode);
                     }
 
-                    Stream input = await response.Content.ReadAsStreamAsync();
-                    await streammer(input);
+                    await streammer(response);
                 }
                 return true;
             }, GeneralExceptionProcessor);
@@ -206,83 +195,129 @@ namespace Azi.Tools
             T result = default(T);
             await Retry.Do(retryTimes, retryDelay, async () =>
             {
-                using (var client = await GetHttpClient())
-                {
-                    var content = new FormUrlEncodedContent(pars);
-                    var request = new HttpRequestMessage(method, url);
-                    request.Content = content;
+                var client = await GetHttpClient(url);
+                client.Method = method.ToString();
+                var content = new FormUrlEncodedContent(pars);
+                client.ContentType = content.Headers.ContentType.ToString();
 
-                    var response = await client.SendAsync(request);
-                    if (!response.IsSuccessStatusCode)
+                using (var output = await client.GetRequestStreamAsync())
+                {
+                    await content.CopyToAsync(output);
+                }
+
+                using (var response = (HttpWebResponse)await client.GetResponseAsync())
+                {
+                    if (!response.IsSuccessStatusCode())
                     {
                         await LogBadResponse(response);
                         return !retryCodes.Contains(response.StatusCode);
                     }
 
-                    result = await response.Content.ReadAsAsync<T>();
-                    return true;
+                    result = await response.ReadAsAsync<T>();
                 }
+                return true;
             }, GeneralExceptionProcessor);
             return result;
         }
 
         public async Task<R> Send<P, R>(HttpMethod method, string url, P obj)
         {
-            return await Send(method, url, obj, (r) => r.Content.ReadAsAsync<R>());
+            return await Send(method, url, obj, (r) => r.ReadAsAsync<R>());
         }
 
         public async Task<R> Send<R>(HttpMethod method, string url)
         {
-            return await Send(method, url, (r) => r.Content.ReadAsAsync<R>());
+            return await Send(method, url, (r) => r.ReadAsAsync<R>());
         }
 
-        public async Task<R> Send<P, R>(HttpMethod method, string url, P obj, Func<HttpResponseMessage, Task<R>> responseParser)
+        public async Task<R> Send<P, R>(HttpMethod method, string url, P obj, Func<HttpWebResponse, Task<R>> responseParser)
         {
             R result = default(R);
             await Retry.Do(retryTimes, retryDelay, async () =>
             {
-                using (var client = await GetHttpClient())
-                {
-                    var request = new HttpRequestMessage(method, url);
-                    var data = JsonConvert.SerializeObject(obj);
-                    var content = new StringContent(data);
-                    request.Content = content;
+                var client = await GetHttpClient(url);
+                client.Method = method.ToString();
+                var data = JsonConvert.SerializeObject(obj);
+                var content = new StringContent(data);
+                client.ContentType = content.Headers.ContentType.ToString();
 
-                    var response = await client.SendAsync(request);
-                    if (!response.IsSuccessStatusCode)
+                using (var output = await client.GetRequestStreamAsync())
+                {
+                    await content.CopyToAsync(output);
+                }
+
+                using (var response = (HttpWebResponse)await client.GetResponseAsync())
+                {
+                    if (!response.IsSuccessStatusCode())
                     {
                         await LogBadResponse(response);
                         return !retryCodes.Contains(response.StatusCode);
                     }
 
                     result = await responseParser(response);
-                    return true;
                 }
+                return true;
             }, GeneralExceptionProcessor);
             return result;
         }
 
-        public async Task<R> Send<R>(HttpMethod method, string url, Func<HttpResponseMessage, Task<R>> responseParser)
+        public async Task<R> Send<R>(HttpMethod method, string url, Func<HttpWebResponse, Task<R>> responseParser)
         {
             R result = default(R);
             await Retry.Do(retryTimes, retryDelay, async () =>
             {
-                using (var client = await GetHttpClient())
-                {
-                    var request = new HttpRequestMessage(method, url);
+                var client = await GetHttpClient(url);
+                client.Method = method.ToString();
 
-                    var response = await client.SendAsync(request);
-                    if (!response.IsSuccessStatusCode)
+                using (var response = (HttpWebResponse)await client.GetResponseAsync())
+                {
+                    if (!response.IsSuccessStatusCode())
                     {
                         await LogBadResponse(response);
                         return !retryCodes.Contains(response.StatusCode);
                     }
 
                     result = await responseParser(response);
-                    return true;
                 }
+                return true;
             }, GeneralExceptionProcessor);
             return result;
+        }
+
+        private MultipartFormDataContent GetMultipartFormDataContent(HttpWebRequest client, FileUpload file, Stream input)
+        {
+            var content = new MultipartFormDataContent();
+            client.ContentType = content.Headers.ContentType.ToString();
+
+            if (file.Parameters != null)
+            {
+                foreach (var pair in file.Parameters) content.Add(new StringContent(pair.Value), pair.Key);
+            }
+            var strcont = new PushStreamContent(async (str, cont, trans) => await PushFile(input, str, file.Timeout), "application/octet-stream");
+            strcont.Headers.ContentLength = input.Length;
+            content.Add(strcont, file.FormName, file.FileName);
+
+            return content;
+        }
+
+        private long GetMultipartFormDataLength(HttpWebRequest client, FileUpload file, long length)
+        {
+            var content = new MultipartFormDataContent();
+            client.ContentType = content.Headers.ContentType.ToString();
+
+            if (file.Parameters != null)
+            {
+                foreach (var pair in file.Parameters) content.Add(new StringContent(pair.Value), pair.Key);
+            }
+            var buf = new byte[1];
+            var strcont = new PushStreamContent((str, cont, trans) => str.Write(buf, 0, 1), "application/octet-stream");
+            strcont.Headers.ContentLength = length;
+            content.Add(strcont, file.FormName, file.FileName);
+
+            using (var stream = content.ReadAsStreamAsync().Result)
+            {
+                return stream.Length - 1 + length;
+            }
         }
 
         public async Task<T> SendFile<T>(HttpMethod method, string url, FileUpload file)
@@ -290,36 +325,39 @@ namespace Azi.Tools
             T result = default(T);
             await Retry.Do(retryTimes, retryDelay, async () =>
             {
-                using (var client = await GetHttpClient())
-                {
-                    //client.Timeout
-                    var message = new HttpRequestMessage(method, url);
-                    var content = new MultipartFormDataContent();
-                    if (file.Parameters != null)
-                    {
-                        foreach (var pair in file.Parameters) content.Add(new StringContent(pair.Value), pair.Key);
-                    }
-                    var strcont = new PushStreamContent(async (str, cont, trans) => await PushFile(file, str), "application/octet-stream");
-                    content.Add(strcont, file.FormName, file.FileName);
+                var client = await GetHttpClient(url);
+                client.Method = method.ToString();
+                client.AllowWriteStreamBuffering = false;
 
-                    message.Content = content;
-                    var response = await client.SendAsync(message);
-                    if (!response.IsSuccessStatusCode)
+                var input = file.StreamOpener();
+                var content = GetMultipartFormDataContent(client, file, input);
+                client.ContentType = content.Headers.ContentType.ToString();
+
+                client.SendChunked = true;
+                //client.ContentLength = GetMultipartFormDataLength(client, file, input.Length);
+
+                using (var output = await client.GetRequestStreamAsync())
+                {
+                    await content.CopyToAsync(output);
+                }
+                using (var response = (HttpWebResponse)await client.GetResponseAsync())
+                {
+                    if (!response.IsSuccessStatusCode())
                     {
                         await LogBadResponse(response);
                         return !retryCodes.Contains(response.StatusCode);
                     }
 
-                    result = await response.Content.ReadAsAsync<T>();
-                    return true;
+                    result = await response.ReadAsAsync<T>();
                 }
+                return true;
             }, GeneralExceptionProcessor);
             return result;
         }
 
-        private async Task PushFile(FileUpload file, Stream output)
+        private async Task PushFile(Stream input, Stream output, int timeout)
         {
-            using (var input = file.StreamOpener())
+            using (input)
             using (output)
             {
                 var buf = new byte[81920];
@@ -328,18 +366,18 @@ namespace Azi.Tools
                 {
                     red = await input.ReadAsync(buf, 0, buf.Length);
                     if (red == 0) break;
-                    var cancellationSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(file.Timeout));
+                    var cancellationSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(timeout));
                     await output.WriteAsync(buf, 0, red, cancellationSource.Token);
-                    Log.Trace("Pushed bytes: " + red);
+                    Log.Trace("Pushed byted: " + red);
                 } while (red != 0);
             }
         }
 
-        private async Task LogBadResponse(HttpResponseMessage response)
+        private async Task LogBadResponse(HttpWebResponse response)
         {
             try
             {
-                var message = await response.Content.ReadAsStringAsync();
+                var message = await response.ReadAsStringAsync();
                 Log.Warn("Response code: " + response.StatusCode + "\r\n" + message);
 
             }

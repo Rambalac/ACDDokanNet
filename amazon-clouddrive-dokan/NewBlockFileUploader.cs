@@ -12,7 +12,7 @@ namespace Azi.ACDDokanNet
         public delegate void OnUploadDelegate(FSItem node, AmazonNode amazonNode);
         public delegate void OnUploadFailedDelegate(FSItem node, string filePath, string localId);
 
-        private AmazonDrive amazon;
+        private FSProvider provider;
         private FSItem dirNode;
         public readonly FSItem Node;
         private string filePath;
@@ -23,19 +23,19 @@ namespace Azi.ACDDokanNet
         public OnUploadFailedDelegate OnUploadFailed;
         private bool closed = false;
 
-        public NewBlockFileUploader(FSItem dirNode, FSItem node, string filePath, AmazonDrive amazon)
+        public NewBlockFileUploader(FSItem dirNode, FSItem node, string filePath, FSProvider provider)
         {
             this.dirNode = dirNode;
             this.Node = node;
             this.filePath = filePath;
-            this.amazon = amazon;
+            this.provider = provider;
 
             if (node == null)
             {
                 Node = FSItem.FromFake(filePath, Guid.NewGuid().ToString());
             }
 
-            var path = Path.Combine(SmallFileCache.CachePath, Node.Id);
+            var path = Path.Combine(provider.SmallFileCache.CachePath, Node.Id);
             Log.Trace("Created file: " + filePath);
             writer = File.OpenWrite(path);
         }
@@ -63,8 +63,8 @@ namespace Azi.ACDDokanNet
             try
             {
                 Log.Trace("Started upload: " + filePath);
-                var node = await amazon.Files.UploadNew(dirNode.Id, Path.GetFileName(filePath),
-                    () => new FileStream(Path.Combine(SmallFileCache.CachePath, Node.Id), FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true));
+                var node = await provider.Amazon.Files.UploadNew(dirNode.Id, Path.GetFileName(filePath),
+                    () => new FileStream(Path.Combine(provider.SmallFileCache.CachePath, Node.Id), FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true));
                 if (node != null)
                 {
                     OnUpload(dirNode, node);

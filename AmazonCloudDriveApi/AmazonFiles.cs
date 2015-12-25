@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using HttpClient = Azi.Tools.HttpClient;
@@ -39,12 +40,12 @@ namespace Azi.Amazon.CloudDrive
             string meta = JsonConvert.SerializeObject(new NewChild { name = fileName, parents = new string[] { parentId }, kind = "FILE" });
 
             var file = new FileUpload
-            {
+        {
                 StreamOpener = streamCreator,
                 FileName = fileName,
                 FormName = "content",
                 Parameters = new Dictionary<string, string>
-                    {
+            {
                         {"metadata", meta}
                     }
             };
@@ -57,7 +58,7 @@ namespace Azi.Amazon.CloudDrive
             await http.GetToStreamAsync(url, stream, fileOffset, length, bufferSize, progress);
         }
 
-        public async Task Download(string id, Func<Stream, Task> streammer, long? fileOffset = null, long? length = null)
+        public async Task Download(string id, Func<HttpWebResponse, Task> streammer, long? fileOffset = null, long? length = null)
         {
             var url = string.Format("{0}nodes/{1}/content", await amazon.GetContentUrl(), id);
             await http.GetToStreamAsync(url, streammer, fileOffset, length);
