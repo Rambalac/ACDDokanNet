@@ -50,11 +50,6 @@ namespace Azi.ACDDokanNet
 
         public string FileSystemName => "Amazon Cloud Drive";
 
-        public static IList<char> GetFreeDriveLettes()
-        {
-            return Enumerable.Range('C', 'Z' - 'C' + 1).Select(c => (char)c).Except(Environment.GetLogicalDrives().Select(s => s[0])).ToList();
-        }
-
         public void DeleteFile(string filePath)
         {
             var node = GetItem(filePath);

@@ -14,16 +14,32 @@ namespace Azi.ACDDokanNet
     public class VirtualDriveWrapper
     {
         readonly VirtualDrive virtualDrive;
+
+        public static IList<char> GetFreeDriveLettes()
+        {
+            return Enumerable.Range('C', 'Z' - 'C' + 1).Select(c => (char)c).Except(Environment.GetLogicalDrives().Select(s => s[0])).ToList();
+        }
+
         public VirtualDriveWrapper(FSProvider provider)
         {
             virtualDrive = new VirtualDrive(provider);
-
+            virtualDrive.OnMount = () =>
+            {
+                Mounted?.Invoke();
+            };
+            virtualDrive.OnUnmount = () =>
+            {
+                Unmounted?.Invoke();
+            };
         }
 
         public static void Unmount(char letter)
         {
             Dokan.Unmount(letter);
         }
+
+        public Action Mounted;
+        public Action Unmounted;
         public void Mount(string path)
         {
             try
@@ -33,6 +49,11 @@ namespace Azi.ACDDokanNet
 #else
                 this.Mount(path, DokanOptions.NetworkDrive);
 #endif
+            }
+            catch (DokanException e)
+            {
+                Log.Error(e);
+                throw new InvalidOperationException(e.Message, e);
             }
             catch (Exception e)
             {

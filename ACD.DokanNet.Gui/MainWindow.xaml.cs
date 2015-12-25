@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.WindowsAPICodePack.Dialogs;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -19,30 +20,45 @@ namespace Azi.ACDDokanNet.Gui
     /// </summary>
     public partial class MainWindow : Window
     {
+        ViewModel Model => (ViewModel)DataContext;
         public MainWindow()
         {
             InitializeComponent();
         }
 
-        private void mountButton_Click(object sender, RoutedEventArgs e)
+        private async void mountButton_Click(object sender, RoutedEventArgs e)
         {
-            unmountButton.IsEnabled = true;
-            mountButton.IsEnabled = false;
-            automountCheckBox.IsEnabled = true;
-            App.Current.Mount((char)comboBox.SelectedItem);
+            await Model.Mount();
         }
 
-        private void unmountButton_Click(object sender, RoutedEventArgs e)
+        private async void unmountButton_Click(object sender, RoutedEventArgs e)
         {
-            unmountButton.IsEnabled = false;
-            mountButton.IsEnabled = true;
-            automountCheckBox.IsEnabled = true;
-            App.Current.Unmount();
+            await Model.Unmount();
         }
 
-        private void Window_Closed(object sender, EventArgs e)
+        private void Browse_MouseLeftButtonDown(object sender, RoutedEventArgs e)
         {
+            var path = Environment.ExpandEnvironmentVariables(Model.CacheFolder);
+            var dlg = new CommonOpenFileDialog();
+            dlg.Title = "Select Cache Folder";
+            dlg.IsFolderPicker = true;
+            dlg.InitialDirectory = path;
 
+            dlg.AddToMostRecentlyUsedList = false;
+            dlg.AllowNonFileSystemItems = false;
+            dlg.DefaultDirectory = path;
+            dlg.EnsureFileExists = true;
+            dlg.EnsurePathExists = true;
+            dlg.EnsureReadOnly = false;
+            dlg.EnsureValidNames = true;
+            dlg.Multiselect = false;
+            dlg.ShowPlacesList = true;
+
+            if (dlg.ShowDialog() == CommonFileDialogResult.Ok)
+            {
+                Model.CacheFolder = dlg.FileName;
+                // Do something with selected folder string
+            }
         }
     }
 }

@@ -1,14 +1,93 @@
 ﻿using Azi.ACDDokanNet;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ACD.DokanNet.Gui
+namespace Azi.ACDDokanNet.Gui
 {
-    public class ViewModel
+    public class ViewModel : INotifyPropertyChanged
     {
-        public IList<char> DriveLetters => FSProvider.GetFreeDriveLettes();
+        readonly private App App = App.Current;
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        public IList<char> DriveLetters => VirtualDriveWrapper.GetFreeDriveLettes();
+
+        public char SelectedDriveLetter
+        {
+            get { return Properties.Settings.Default.LastDriveLetter; }
+            set
+            {
+                Properties.Settings.Default.LastDriveLetter = value;
+                Properties.Settings.Default.Save();
+                NotifyMount();
+            }
+        }
+
+        public string CacheFolder
+        {
+            get { return Properties.Settings.Default.CacheFolder; }
+            set
+            {
+                Properties.Settings.Default.CacheFolder = value;
+                Properties.Settings.Default.Save();
+            }
+        }
+
+        void OnPropertyChanged(string name)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        }
+
+        bool mounting = false;
+        internal async Task Mount()
+        {
+            if (App == null) throw new NullReferenceException();
+            mounting = true;
+            NotifyMount();
+            try
+            {
+                var letter = await App.Mount(SelectedDriveLetter);
+                if (letter != null) SelectedDriveLetter = (char)letter;
+            }
+            finally
+            {
+                mounting = false;
+                NotifyMount();
+            }
+        }
+
+        bool unmounting = false;
+        internal async Task Unmount()
+        {
+            if (App == null) throw new NullReferenceException();
+            unmounting = true;
+            NotifyMount(); try
+            {
+                await App.Unmount();
+            }
+            finally
+            {
+                unmounting = false;
+                NotifyMount();
+            }
+        }
+
+        private void NotifyMount()
+        {
+            OnPropertyChanged(nameof(CanMount));
+            OnPropertyChanged(nameof(CanUnmount));
+            OnPropertyChanged(nameof(IsMounted));
+            OnPropertyChanged(nameof(IsUnmounted));
+        }
+
+        public bool CanMount => (!mounting) && !(App?.IsMounted ?? false) && DriveLetters.Contains(SelectedDriveLetter);
+        public bool CanUnmount => (!unmounting) && (App?.IsMounted ?? false);
+
+        public bool IsMounted => !mounting && !unmounting && (App?.IsMounted ?? false);
+        public bool IsUnmounted => !unmounting && !mounting && !(App?.IsMounted ?? false);
     }
 }

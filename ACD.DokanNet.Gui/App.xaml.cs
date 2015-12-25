@@ -1,5 +1,6 @@
 ﻿using Azi.Amazon.CloudDrive;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 
@@ -10,7 +11,10 @@ namespace Azi.ACDDokanNet.Gui
     /// </summary>
     public partial class App : Application
     {
-        public new static App Current => (App)Application.Current;
+        public new static App Current => Application.Current as App;
+
+        public bool IsMounted => mountedLetter != null;
+
         void ProcessArgs(string[] args)
         {
 
@@ -30,10 +34,11 @@ namespace Azi.ACDDokanNet.Gui
 
         static char? mountedLetter = null;
         object mountLock = new object();
+        VirtualDriveWrapper cloudDrive;
 
         async Task<AmazonDrive> Authenticate()
         {
-            var settings = ACD.DokanNet.Gui.Properties.Settings.Default;
+            var settings = Gui.Properties.Settings.Default;
             var amazon = new AmazonDrive(AmazonSecret.clientId, AmazonSecret.clientSecret);
             amazon.OnTokenUpdate = (token, renew, expire) =>
             {
@@ -54,43 +59,77 @@ namespace Azi.ACDDokanNet.Gui
             return null;
         }
 
-        internal void Unmount()
+        internal async Task Unmount()
         {
-            lock (mountLock)
-            {
-                if (mountedLetter == null) return;
-
-                VirtualDriveWrapper.Unmount((char)mountedLetter);
-
-                mountedLetter = null;
-            }
+            if (mounted == 0) return;
+            VirtualDriveWrapper.Unmount((char)mountedLetter);
+            await mountTask;
         }
 
-        internal void Mount(char driveLetter)
+        Task mountTask;
+        int mounted = 0;
+        internal async Task<char?> Mount(char driveLetter)
         {
-            Task.Run(async () =>
-            {
-                lock (mountLock)
-                {
-                    if (mountedLetter != null) return;
-                    mountedLetter = driveLetter;
-                }
-                var amazon = await Authenticate();
-                if (amazon == null)
-                {
-                    throw new InvalidOperationException("Authentication failed");
-                }
+            if (Interlocked.CompareExchange(ref mounted, 1, 0) != 0) return null;
+
+            var mountedEvent = new TaskCompletionSource<char>();
+
+            mountTask = Task.Factory.StartNew(async () =>
+              {
+                  lock (mountLock)
+                  {
+                      if (mountedLetter != null) return;
+                      mountedLetter = driveLetter;
+                  }
+                  var amazon = await Authenticate();
+                  if (amazon == null)
+                  {
+                      throw new InvalidOperationException("Authentication failed");
+                  }
 
 
-                var cloudDrive = new VirtualDriveWrapper(new FSProvider(amazon));
-                cloudDrive.Mount(mountedLetter + ":\\");
-                mountedLetter = null;
-            });
+                  cloudDrive = new VirtualDriveWrapper(new FSProvider(amazon));
+                  cloudDrive.Mounted = () =>
+                  {
+                      mountedEvent.SetResult((char)mountedLetter);
+                  };
+
+                  try
+                  {
+                      cloudDrive.Mount(mountedLetter + ":\\");
+                      mountedLetter = null;
+                  }
+                  catch (InvalidOperationException)
+                  {
+                      foreach (char letter in VirtualDriveWrapper.GetFreeDriveLettes())
+                      {
+                          try
+                          {
+                              mountedLetter = letter;
+                              cloudDrive.Mount(mountedLetter + ":\\");
+                              mountedLetter = null;
+                              break;
+                          }
+                          catch (InvalidOperationException)
+                          {
+
+                          }
+                      }
+                      if (mountedLetter != null)
+                      {
+                          mountedLetter = null;
+                          mountedEvent.SetException(new InvalidOperationException("Could not find free letter"));
+                      }
+                  }
+                  mounted = 0;
+              }, TaskCreationOptions.LongRunning).Unwrap();
+            return await mountedEvent.Task;
         }
 
-        private void Application_Exit(object sender, ExitEventArgs e)
+
+        private async void Application_Exit(object sender, ExitEventArgs e)
         {
-            Unmount();
+            await Unmount();
         }
     }
 }

@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace ACD.DokanNet.Gui.Properties {
+namespace Azi.ACDDokanNet.Gui.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
@@ -55,6 +55,29 @@ namespace ACD.DokanNet.Gui.Properties {
             }
             set {
                 this["AuthTokenExpiration"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        public char LastDriveLetter {
+            get {
+                return ((char)(this["LastDriveLetter"]));
+            }
+            set {
+                this["LastDriveLetter"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("%TEMP%\\ACDDokanNetCache")]
+        public string CacheFolder {
+            get {
+                return ((string)(this["CacheFolder"]));
+            }
+            set {
+                this["CacheFolder"] = value;
             }
         }
     }

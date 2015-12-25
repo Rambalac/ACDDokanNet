@@ -4,28 +4,58 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Azi.ACDDokanNet.Gui"
-        xmlns:ACDDokanNet="clr-namespace:Azi.ACDDokanNet;assembly=amazon-clouddrive-dokan" xmlns:Gui="clr-namespace:ACD.DokanNet.Gui" x:Class="Azi.ACDDokanNet.Gui.MainWindow"
+        xmlns:p="clr-namespace:Azi.ACDDokanNet.Gui.Properties"
+        x:Class="Azi.ACDDokanNet.Gui.MainWindow"
         mc:Ignorable="d"
-        Title="MainWindow" Height="300" Width="300" ResizeMode="NoResize" Closed="Window_Closed">
+        Title="MainWindow" ResizeMode="NoResize" SizeToContent="WidthAndHeight" Height="297.898">
     <Window.DataContext>
-        <Gui:ViewModel/>
+        <local:ViewModel/>
     </Window.DataContext>
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto"/>
-        </Grid.ColumnDefinitions>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="77*"/>
-            <RowDefinition Height="195*"/>
-        </Grid.RowDefinitions>
-        <GroupBox x:Name="groupBox" Header="Mounting" Padding="5" >
-            <Grid >
-                <ComboBox x:Name="comboBox" HorizontalAlignment="Left" VerticalAlignment="Top" Width="44" SelectedIndex="0" ItemsSource="{Binding DriveLetters}"/>
-                <Button x:Name="mountButton" Content="Mount" HorizontalAlignment="Left" Margin="49,0,0,0" VerticalAlignment="Top" Padding="5,1" Click="mountButton_Click" />
-                <Button x:Name="unmountButton" Content="Unmount" HorizontalAlignment="Left" Margin="103,0,0,0" VerticalAlignment="Top" Padding="5,1" IsEnabled="False" Click="unmountButton_Click" />
-                <CheckBox x:Name="automountCheckBox"  Content="Mount on login" IsEnabled="False" Margin="0,27,0,0" />
-            </Grid>
-        </GroupBox>
+    <Border Padding="5" >
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <GroupBox Header="Mounting" Padding="5" >
+                <Grid >
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+                    <ComboBox x:Name="comboBox" ItemsSource="{Binding DriveLetters}" IsEnabled="{Binding IsUnmounted}" SelectedItem="{Binding SelectedDriveLetter}"/>
+                    <Button x:Name="mountButton" IsEnabled="{Binding CanMount}" Content="Mount" Margin="3,0,0,0" Padding="5,1" Click="mountButton_Click" Grid.Column="1" />
+                    <Button x:Name="unmountButton" Content="Unmount" Margin="3,0,0,0" Padding="5,1" IsEnabled="{Binding CanUnmount}" Click="unmountButton_Click" Grid.Column="2" />
+                    <CheckBox x:Name="automountCheckBox"  Content="Mount on login" IsEnabled="{Binding IsMounted}" Margin="0,5,0,0" Grid.Row="1" Grid.ColumnSpan="3"/>
+                </Grid>
+            </GroupBox>
+            <Expander Header="Settings" Grid.Row="1" Padding="5,0,5,5">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Label Content="Cache path" Padding="0" />
+                    <Button x:Name="button" Content="Browse" Grid.Column="1" Click="Browse_MouseLeftButtonDown"/>
+                    <TextBox IsReadOnly="True" Text="{Binding CacheFolder}" Grid.Row="1" MaxLines="1" Width="160" Margin="0,5,0,0" Grid.ColumnSpan="2" />
+                    <Label Content="Small files size" Grid.Row="2" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
+                    <TextBox IsReadOnly="True" Text="{Binding SmallFilesSize}" Grid.Row="2" Grid.Column="1" MaxLines="1" Margin="0,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
+                </Grid>
+            </Expander>
 
-    </Grid>
+        </Grid>
+    </Border>
 </Window>
