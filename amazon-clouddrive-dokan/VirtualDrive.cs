@@ -11,35 +11,7 @@ using System.Text.RegularExpressions;
 
 namespace Azi.ACDDokanNet
 {
-    public class VirtualDriveWrapper
-    {
-        readonly VirtualDrive virtualDrive;
-        public VirtualDriveWrapper(FSProvider provider)
-        {
-            virtualDrive = new VirtualDrive(provider);
 
-        }
-
-        public static void Unmount(char letter)
-        {
-            Dokan.Unmount(letter);
-        }
-        public void Mount(string path)
-        {
-            try
-            {
-#if DEBUG
-                virtualDrive.Mount(path, DokanOptions.DebugMode | DokanOptions.NetworkDrive);
-#else
-                this.Mount(path, DokanOptions.NetworkDrive);
-#endif
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-            }
-        }
-    }
     internal class VirtualDrive : IDokanOperations
     {
         FSProvider provider;
@@ -313,7 +285,7 @@ namespace Azi.ACDDokanNet
                 FileSystemFeatures.SupportsRemoteStorage |
                 FileSystemFeatures.UnicodeOnDisk |
                 FileSystemFeatures.SequentialWriteOnce;
-            fileSystemName = "ACD";
+            fileSystemName = provider.FileSystemName;
             return DokanResult.Success;
         }
 

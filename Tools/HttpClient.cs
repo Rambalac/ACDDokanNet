@@ -330,7 +330,7 @@ namespace Azi.Tools
                     if (red == 0) break;
                     var cancellationSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(file.Timeout));
                     await output.WriteAsync(buf, 0, red, cancellationSource.Token);
-                    Log.Trace("Pushed byted: " + red);
+                    Log.Trace("Pushed bytes: " + red);
                 } while (red != 0);
             }
         }
