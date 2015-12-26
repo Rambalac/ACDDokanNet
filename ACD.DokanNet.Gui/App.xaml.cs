@@ -15,9 +15,16 @@ namespace Azi.ACDDokanNet.Gui
 
         public bool IsMounted => mountedLetter != null;
 
+        public FSProvider.StatisticsUpdated OnProviderStatisticsUpdated { get; set; }
+
         void ProcessArgs(string[] args)
         {
 
+        }
+
+        public void ProviderStatisticsUpdated(int downloading, int uploading)
+        {
+            OnProviderStatisticsUpdated?.Invoke(downloading, uploading);
         }
 
         private void Application_Startup(object sender, StartupEventArgs e)
@@ -35,6 +42,7 @@ namespace Azi.ACDDokanNet.Gui
         static char? mountedLetter = null;
         object mountLock = new object();
         VirtualDriveWrapper cloudDrive;
+        FSProvider provider;
 
         async Task<AmazonDrive> Authenticate()
         {
@@ -87,8 +95,10 @@ namespace Azi.ACDDokanNet.Gui
                       throw new InvalidOperationException("Authentication failed");
                   }
 
-
-                  cloudDrive = new VirtualDriveWrapper(new FSProvider(amazon));
+                  provider = new FSProvider(amazon);
+                  provider.CachePath = Environment.ExpandEnvironmentVariables(Gui.Properties.Settings.Default.CacheFolder);
+                  provider.OnStatisticsUpdated = ProviderStatisticsUpdated;
+                  cloudDrive = new VirtualDriveWrapper(provider);
                   cloudDrive.Mounted = () =>
                   {
                       mountedEvent.SetResult((char)mountedLetter);

@@ -13,7 +13,7 @@ using System.Diagnostics;
 namespace Azi.ACDDokanNet
 {
 
-    public class FileBlockReader : IBlockStream
+    public class FileBlockReader : AbstractBlockStream
     {
         private readonly ThreadLocal<FileStream> files;
         private long expectedLength;
@@ -26,17 +26,21 @@ namespace Azi.ACDDokanNet
             files = new ThreadLocal<FileStream>(() => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite), true);
         }
 
-        public void Close()
+        int closed = 0;
+        public override void Close()
         {
+            if (Interlocked.CompareExchange(ref closed, 1, 0) == 1) return;
+
             Log.Trace(Path.GetFileName(filePath));
 
             foreach (var file in files.Values)
                 file.Close();
+            base.Close();
         }
 
         const int waitForFile = 50;
 
-        public int Read(long position, byte[] buffer, int offset, int count, int timeout)
+        public override int Read(long position, byte[] buffer, int offset, int count, int timeout)
         {
             if (expectedLength == 0) return 0;
             var timeouttime = DateTime.UtcNow.AddMilliseconds(timeout);
@@ -52,19 +56,19 @@ namespace Azi.ACDDokanNet
             } while (true);
         }
 
-        public void Write(long position, byte[] buffer, int offset, int count, int timeout = 1000)
+        public override void Write(long position, byte[] buffer, int offset, int count, int timeout = 1000)
         {
             throw new NotSupportedException();
         }
 
-        public void Flush()
+        public override void Flush()
         {
         }
 
         #region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls
 
-        protected virtual void Dispose(bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (!disposedValue)
             {
@@ -75,13 +79,6 @@ namespace Azi.ACDDokanNet
 
                 disposedValue = true;
             }
-        }
-
-        // This code added to correctly implement the disposable pattern.
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-            Dispose(true);
         }
         #endregion
     }

@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Tools;
@@ -24,13 +25,13 @@ namespace Azi.ACDDokanNet
         {
             get
             {
-                SmallFileCache.CachePath = cachePath;
                 return cachePath;
             }
             set
             {
                 cachePath = value;
                 SmallFileCache.CachePath = value;
+                Directory.CreateDirectory(Path.Combine(CachePath, NewFileBlockWriter.UploadFolder));
             }
         }
 
@@ -38,8 +39,29 @@ namespace Azi.ACDDokanNet
         {
             this.Amazon = amazon;
             SmallFileCache = new SmallFileCache(amazon);
+            SmallFileCache.OnDownloadStarted = (id) =>
+            {
+                Interlocked.Increment(ref downloadingCount);
+                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+            };
+            SmallFileCache.OnDownloaded = (id) =>
+            {
+                Interlocked.Decrement(ref downloadingCount);
+                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+            };
+            SmallFileCache.OnDownloadFailed = (id) =>
+            {
+                Interlocked.Decrement(ref downloadingCount);
+                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+            };
+
         }
 
+        public delegate void StatisticsUpdated(int downloading, int uploading);
+        public StatisticsUpdated OnStatisticsUpdated { get; set; }
+
+        public int downloadingCount = 0;
+        public int uploadingCount = 0;
         public long AvailableFreeSpace => Amazon.Account.GetQuota().Result.available;
         public long TotalSize => Amazon.Account.GetQuota().Result.quota;
         public long TotalFreeSpace => Amazon.Account.GetQuota().Result.available;
@@ -56,9 +78,15 @@ namespace Azi.ACDDokanNet
             if (node != null)
             {
                 if (node.IsDir) throw new InvalidOperationException("Not file");
-                Amazon.Nodes.Delete(node.Id).Wait();
+                try { Amazon.Nodes.Delete(node.Id).Wait(); }
+                catch (AggregateException ex)
+                {
+                    var webex = ex.InnerException as HttpWebException;
+                    if (webex == null || (webex.StatusCode != HttpStatusCode.NotFound && webex.StatusCode != HttpStatusCode.Conflict)) throw ex.InnerException;
+                }
+
                 nodeTreeCache.DeleteFile(filePath);
-        }
+            }
         }
 
         public bool Exists(string filePath)
@@ -80,36 +108,48 @@ namespace Azi.ACDDokanNet
         public IBlockStream OpenFile(string filePath, FileMode mode, FileAccess fileAccess, FileShare share, FileOptions options)
         {
             if (fileAccess == FileAccess.ReadWrite) return null;
-            var node = GetItem(filePath);
+            var item = GetItem(filePath);
             if (fileAccess == FileAccess.Read)
             {
-            if (node == null) return null;
-                return SmallFileCache.OpenRead(node);
-        }
+                if (item == null) return null;
 
-            if (mode == FileMode.CreateNew || (mode == FileMode.Create && (node == null || node.Length == 0)))
-        {
+                if (!item.IsFake)
+                    return SmallFileCache.OpenRead(item);
+
+                return new FileBlockReader(Path.Combine(CachePath, NewFileBlockWriter.UploadFolder, item.Id), item.Length);
+            }
+
+            if (mode == FileMode.CreateNew || ((mode == FileMode.Create && mode == FileMode.OpenOrCreate) && (item == null || item.Length == 0)))
+            {
                 var dir = Path.GetDirectoryName(filePath);
                 var name = Path.GetFileName(filePath);
                 var dirNode = GetItem(dir);
-                var uploader = new NewBlockFileUploader(dirNode, node, filePath, this);
-                node = uploader.Node;
-                nodeTreeCache.Add(node);
+                var uploader = new NewFileBlockWriter(dirNode, item, filePath, this);
+                item = uploader.Node;
+                nodeTreeCache.Add(item);
+                Interlocked.Increment(ref uploadingCount);
 
                 uploader.OnUpload = (parent, newnode) =>
                   {
-                      File.Move(Path.Combine(SmallFileCache.CachePath, node.Id), Path.Combine(SmallFileCache.CachePath, newnode.id));
-                      node.Id = newnode.id;
-                      node.Length = newnode.Length;
-                      node.NotFake();
+                      Interlocked.Decrement(ref uploadingCount);
+                      var newitemPath = Path.Combine(SmallFileCache.CachePath, newnode.id);
+                      if (!File.Exists(newitemPath))
+                          File.Move(uploader.CachedPath, newitemPath);
+
+                      var newitem = new FSItem(item);
+                      newitem.Id = newnode.id;
+                      newitem.Length = newnode.Length;
+                      newitem.NotFake();
+                      nodeTreeCache.Update(newitem);
                   };
                 uploader.OnUploadFailed = (parent, path, id) =>
                   {
+                      Interlocked.Decrement(ref uploadingCount);
                       nodeTreeCache.DeleteFile(path);
                   };
 
                 return uploader;
-        }
+            }
 
             return null;
         }
@@ -118,7 +158,7 @@ namespace Azi.ACDDokanNet
         {
             var node = GetItem(filePath);
             if (node != null)
-        {
+            {
                 if (!node.IsDir) throw new InvalidOperationException("Not dir");
                 Amazon.Nodes.Delete(node.Id).Wait();
                 nodeTreeCache.DeleteDir(filePath);
@@ -128,7 +168,7 @@ namespace Azi.ACDDokanNet
         public async Task<IList<FSItem>> GetDirItems(string folderPath)
         {
             var cached = nodeTreeCache.GetDir(folderPath);
-            if (cached != null) return cached.ToList();
+            if (cached != null) return await Task.WhenAll(cached.Select(i => FetchNode(i)));
 
             var folderNode = GetItem(folderPath);
             var nodes = await Amazon.Nodes.GetChildren(folderNode?.Id);
@@ -170,7 +210,7 @@ namespace Azi.ACDDokanNet
             foreach (var name in folders)
             {
                 var newnode = await Amazon.Nodes.GetChild(item.Id, name);
-                if (newnode == null) return null;
+                if (newnode == null||newnode.status!=AmazonNodeStatus.AVAILABLE) return null;
 
                 if (curpath == "\\") curpath = "";
                 curpath = curpath + "\\" + name;
@@ -178,7 +218,7 @@ namespace Azi.ACDDokanNet
                 nodeTreeCache.Add(item);
             }
             return item;
-            }
+        }
 
         public void MoveFile(string oldPath, string newPath, bool replace)
         {
@@ -194,10 +234,10 @@ namespace Azi.ACDDokanNet
             {
                 node = FSItem.FromNode(Path.Combine(oldDir, newName), Amazon.Nodes.Rename(node.Id, newName).Result);
                 if (node == null) throw new InvalidOperationException("Can not rename");
-        }
+            }
 
             if (oldDir != newDir)
-        {
+            {
                 var oldDirNodeTask = FetchNode(oldDir);
                 var newDirNodeTask = FetchNode(newDir);
                 Task.WaitAll(oldDirNodeTask, newDirNodeTask);

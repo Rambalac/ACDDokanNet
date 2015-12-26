@@ -3,6 +3,11 @@ using System.Collections.Generic;
 
 namespace Azi.Amazon.CloudDrive.JsonObjects
 {
+    public enum AmazonNodeStatus
+    {
+        AVAILABLE,
+        TRASH
+    }
 
     public class AmazonNode
     {
@@ -19,7 +24,7 @@ namespace Azi.Amazon.CloudDrive.JsonObjects
         public IList<string> labels { get; set; }
         public string createdBy { get; set; }
         public IList<string> parents { get; set; }
-        public string status { get; set; }
+        public AmazonNodeStatus status { get; set; }
         public bool restricted { get; set; }
 
         public ContentProperties contentProperties { get; set; }

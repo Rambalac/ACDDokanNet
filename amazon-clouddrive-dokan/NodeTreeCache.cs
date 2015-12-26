@@ -17,12 +17,11 @@ namespace Azi.ACDDokanNet
     {
         class DirItem
         {
-            private static readonly FuncEqualityComparer<FSItem> dirItemComparer = new FuncEqualityComparer<FSItem>((a) => a.Name);
             public readonly DateTime ExpirationTime;
-            public readonly HashSet<FSItem> Items;
-            public DirItem(IList<FSItem> items, int expirationSeconds)
+            public readonly HashSet<string> Items;
+            public DirItem(IList<string> items, int expirationSeconds)
             {
-                Items = new HashSet<FSItem>(items, dirItemComparer);
+                Items = new HashSet<string>(items);
                 ExpirationTime = DateTime.UtcNow.AddSeconds(expirationSeconds);
             }
 
@@ -45,7 +44,7 @@ namespace Azi.ACDDokanNet
                 DirItem dirItem;
                 if (pathToDirItem.TryGetValue(dirPath, out dirItem))
                 {
-                    dirItem.Items.RemoveWhere(i => i.Path == filePath);
+                    dirItem.Items.RemoveWhere(i => i == filePath);
                 }
 
                 foreach (var key in pathToNode.Keys.Where(v => v.StartsWith(filePath, StringComparison.InvariantCulture)).ToList())
@@ -91,14 +90,14 @@ namespace Azi.ACDDokanNet
                 lok.ExitUpgradeableReadLock();
             }
         }
-        public IEnumerable<FSItem> GetDir(string filePath)
+        public IEnumerable<string> GetDir(string filePath)
         {
             DirItem item;
             lok.EnterUpgradeableReadLock();
             try
             {
                 if (!pathToDirItem.TryGetValue(filePath, out item)) return null;
-                if (!item.IsExpired) return item.Items.ToList();
+                if (!item.IsExpired) return item.Items;
                 lok.EnterWriteLock();
                 try
                 {
@@ -124,7 +123,7 @@ namespace Azi.ACDDokanNet
             {
                 pathToNode[item.Path] = item;
                 DirItem dirItem;
-                if (pathToDirItem.TryGetValue(item.Dir, out dirItem)) dirItem.Items.Add(item);
+                if (pathToDirItem.TryGetValue(item.Dir, out dirItem)) dirItem.Items.Add(item.Path);
             }
             finally
             {
@@ -137,7 +136,7 @@ namespace Azi.ACDDokanNet
             lok.EnterWriteLock();
             try
             {
-                pathToDirItem[folderPath] = new DirItem(items, DirItemsExpirationSeconds);
+                pathToDirItem[folderPath] = new DirItem(items.Select(i => i.Path).ToList(), DirItemsExpirationSeconds);
                 foreach (var item in items)
                     pathToNode[item.Path] = item;
             }
@@ -157,8 +156,21 @@ namespace Azi.ACDDokanNet
                 DirItem dir;
                 if (pathToDirItem.TryGetValue(newNode.Dir, out dir))
                 {
-                    dir.Items.Add(newNode);
+                    dir.Items.Add(newNode.Path);
                 }
+            }
+            finally
+            {
+                lok.ExitWriteLock();
+            }
+        }
+
+        internal void Update(FSItem newitem)
+        {
+            lok.EnterWriteLock();
+            try
+            {
+                if (pathToNode.ContainsKey(newitem.Path)) pathToNode[newitem.Path] = newitem;
             }
             finally
             {
@@ -176,7 +188,7 @@ namespace Azi.ACDDokanNet
                 DirItem dir;
                 if (pathToDirItem.TryGetValue(newNode.Dir, out dir))
                 {
-                    dir.Items.Add(newNode);
+                    dir.Items.Add(newNode.Path);
                 }
             }
             finally
@@ -194,7 +206,7 @@ namespace Azi.ACDDokanNet
                 DirItem dirItem;
                 if (pathToDirItem.TryGetValue(dirPath, out dirItem))
                 {
-                    dirItem.Items.RemoveWhere(i => i.Path == filePath);
+                    dirItem.Items.Remove(filePath);
                 }
                 pathToNode.Remove(filePath);
             }

@@ -22,6 +22,23 @@ namespace Azi.ACDDokanNet
         public DateTime LastWriteTime { get; internal set; }
         public DateTime CreationTime { get; internal set; }
 
+        private FSItem()
+        {
+
+        }
+
+        public FSItem(FSItem item)
+        {
+            IsFake = item.IsFake;
+            Path = item.Path;
+            Id = item.Id;
+            IsDir = item.IsDir;
+            Length = item.Length;
+            LastAccessTime = item.LastAccessTime;
+            LastWriteTime = item.LastWriteTime;
+            CreationTime = item.CreationTime;
+        }
+
         public void NotFake()
         {
             IsFake = false;

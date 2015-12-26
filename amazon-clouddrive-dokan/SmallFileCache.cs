@@ -20,14 +20,16 @@ namespace Azi.ACDDokanNet
         static ConcurrentDictionary<AmazonDrive, SmallFileCache> Instances = new ConcurrentDictionary<AmazonDrive, SmallFileCache>(10, 3);
 
         readonly AmazonDrive Amazon;
-        private static string cachePath = Path.Combine(Path.GetTempPath(), "CloudDriveTestCache\\SmallFiles");
+        private static string cachePath = null;
         public string CachePath
         {
             get { return cachePath; }
             set
             {
+                if (cachePath == value) return;
                 try
                 {
+                    if (cachePath!=null)
                     Directory.Delete(cachePath, true);
                 }
                 catch (Exception)
@@ -53,9 +55,13 @@ namespace Azi.ACDDokanNet
             }
             catch (IOException e)
             {
-                Log.Warn("File is already downloading: " + node.Id + "\r\n" + e);
+                Log.Trace("File is already downloading: " + node.Id + "\r\n" + e);
             }
         }
+
+        public Action<string> OnDownloadStarted;
+        public Action<string> OnDownloaded;
+        public Action<string> OnDownloadFailed;
 
         private async Task Download(FSItem node, Stream writer)
         {
@@ -65,6 +71,7 @@ namespace Azi.ACDDokanNet
             using (writer)
                 try
                 {
+                    OnDownloadStarted?.Invoke(node.Id);
                     while (writer.Length < node.Length)
                     {
                         await Amazon.Files.Download(node.Id, fileOffset: writer.Length, streammer: async (response) =>
@@ -90,10 +97,11 @@ namespace Azi.ACDDokanNet
                         if (writer.Length < node.Length) await Task.Delay(500);
                     }
                     Log.Trace("Finished download: " + node.Id);
-                    writer.Close();
+                    OnDownloaded?.Invoke(node.Id);
                 }
                 catch (Exception ex)
                 {
+                    OnDownloadFailed?.Invoke(node.Id);
                     Log.Error($"Download failed: {node.Id}\r\n{ex}");
                 }
         }
@@ -101,7 +109,6 @@ namespace Azi.ACDDokanNet
         public SmallFileCache(AmazonDrive a)
         {
             Amazon = a;
-            Directory.CreateDirectory(cachePath);
         }
 
         public IBlockStream OpenRead(FSItem node)

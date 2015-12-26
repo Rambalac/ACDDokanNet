@@ -40,12 +40,12 @@ namespace Azi.Amazon.CloudDrive
             string meta = JsonConvert.SerializeObject(new NewChild { name = fileName, parents = new string[] { parentId }, kind = "FILE" });
 
             var file = new FileUpload
-        {
+            {
                 StreamOpener = streamCreator,
                 FileName = fileName,
                 FormName = "content",
                 Parameters = new Dictionary<string, string>
-            {
+                    {
                         {"metadata", meta}
                     }
             };

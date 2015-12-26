@@ -108,6 +108,7 @@ namespace Azi.ACDDokanNet
             bool readWriteAttributes = (access & DataAccess) == 0;
             switch (mode)
             {
+                case FileMode.OpenOrCreate:
                 case FileMode.Open:
 
                     if (item == null) return DokanResult.FileNotFound;
@@ -179,9 +180,9 @@ namespace Azi.ACDDokanNet
                     Length = i.Length,
                     FileName = i.Name,
                     Attributes = i.IsDir ? FileAttributes.Directory : FileAttributes.Normal,
-                    LastAccessTime = DateTime.Now,
-                    LastWriteTime = DateTime.Now,
-                    CreationTime = DateTime.Now
+                    LastAccessTime = i.LastAccessTime,
+                    LastWriteTime = i.LastWriteTime,
+                    CreationTime = i.CreationTime
                 }).ToList();
                 return DokanResult.Success;
             }

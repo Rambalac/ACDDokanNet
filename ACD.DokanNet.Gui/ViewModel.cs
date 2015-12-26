@@ -16,9 +16,20 @@ namespace Azi.ACDDokanNet.Gui
 
         public IList<char> DriveLetters => VirtualDriveWrapper.GetFreeDriveLettes();
 
+        public ViewModel()
+        {
+            App.OnProviderStatisticsUpdated = ProviderStatisticsUpdated;
+        }
+
         public char SelectedDriveLetter
         {
-            get { return Properties.Settings.Default.LastDriveLetter; }
+            get
+            {
+                var saved = Properties.Settings.Default.LastDriveLetter;
+                var free = VirtualDriveWrapper.GetFreeDriveLettes();
+                if (!free.Any() || free.Contains(saved)) return saved;
+                return free[0];
+            }
             set
             {
                 Properties.Settings.Default.LastDriveLetter = value;
@@ -89,5 +100,15 @@ namespace Azi.ACDDokanNet.Gui
 
         public bool IsMounted => !mounting && !unmounting && (App?.IsMounted ?? false);
         public bool IsUnmounted => !unmounting && !mounting && !(App?.IsMounted ?? false);
+
+        private void ProviderStatisticsUpdated(int downloading, int uploading)
+        {
+            UploadingFilesCount = uploading;
+            DownloadingFilesCount = downloading;
+            OnPropertyChanged(nameof(UploadingFilesCount));
+            OnPropertyChanged(nameof(DownloadingFilesCount));
+        }
+        public int UploadingFilesCount { get; private set; }
+        public int DownloadingFilesCount { get; private set; }
     }
 }

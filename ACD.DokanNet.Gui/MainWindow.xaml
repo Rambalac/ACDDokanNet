@@ -7,7 +7,7 @@
         xmlns:p="clr-namespace:Azi.ACDDokanNet.Gui.Properties"
         x:Class="Azi.ACDDokanNet.Gui.MainWindow"
         mc:Ignorable="d"
-        Title="MainWindow" ResizeMode="NoResize" SizeToContent="WidthAndHeight" Height="297.898">
+        Title="MainWindow" ResizeMode="NoResize" SizeToContent="WidthAndHeight">
     <Window.DataContext>
         <local:ViewModel/>
     </Window.DataContext>
@@ -17,6 +17,7 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
@@ -37,22 +38,48 @@
                     <CheckBox x:Name="automountCheckBox"  Content="Mount on login" IsEnabled="{Binding IsMounted}" Margin="0,5,0,0" Grid.Row="1" Grid.ColumnSpan="3"/>
                 </Grid>
             </GroupBox>
-            <Expander Header="Settings" Grid.Row="1" Padding="5,0,5,5">
+            <GroupBox Header="Transfering" Padding="5" Grid.Row="1">
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="107.428"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    <Label Content="Cache path" Padding="0" />
-                    <Button x:Name="button" Content="Browse" Grid.Column="1" Click="Browse_MouseLeftButtonDown"/>
-                    <TextBox IsReadOnly="True" Text="{Binding CacheFolder}" Grid.Row="1" MaxLines="1" Width="160" Margin="0,5,0,0" Grid.ColumnSpan="2" />
-                    <Label Content="Small files size" Grid.Row="2" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
-                    <TextBox IsReadOnly="True" Text="{Binding SmallFilesSize}" Grid.Row="2" Grid.Column="1" MaxLines="1" Margin="0,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
+                    <Label Content="Files downloading" Grid.Row="0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}" Padding="5,5,5,0"/>
+                    <TextBox IsReadOnly="True" Text="{Binding Mode=OneWay, Path=DownloadingFilesCount}" Grid.Row="0" Grid.Column="1" MaxLines="1" Width="42" Margin="0,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
+
+                    <Label Content="Files uploading" Grid.Row="1" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}" Padding="5,5,5,0"/>
+                    <TextBox IsReadOnly="True" Text="{Binding Mode=OneWay, Path=UploadingFilesCount}" Grid.Row="1" Grid.Column="1" MaxLines="1" Width="42" Margin="0,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
+
+                </Grid>
+            </GroupBox>
+            <Expander Header="Settings" Grid.Row="2" Padding="5,0,5,5">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="107.428"/>
+                        <ColumnDefinition Width="12.572"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Label Content="Cache path" Padding="5,0,0,0" Grid.ColumnSpan="2" />
+                    <Button x:Name="button" Content="Browse" Grid.Column="1" Grid.ColumnSpan="2" Click="Browse_MouseLeftButtonDown" />
+                    <TextBox IsReadOnly="True" Text="{Binding CacheFolder}" Grid.Row="1" MaxLines="1" Width="160" Margin="1,5,1,0" Grid.ColumnSpan="3" />
+
+                    <Label Content="Small files size, Mb" Grid.Row="2" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}" Grid.ColumnSpan="2" Padding="5,5,5,0"/>
+                    <TextBox Text="{Binding SmallFilesSize}" Grid.Row="2" Grid.Column="2" MaxLines="1" Width="42" Margin="0,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
+
+                    <Label Content="Small files cache, Mb" Grid.Row="3" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}" Grid.ColumnSpan="2" Padding="5,5,5,0"/>
+                    <TextBox Text="{Binding SmallFilesSize}" Grid.Row="3" Grid.Column="2" MaxLines="1" Width="42" Margin="0,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
                 </Grid>
             </Expander>
 
