@@ -20,6 +20,9 @@ namespace Azi.ACDDokanNet
         internal readonly AmazonDrive Amazon;
         readonly NodeTreeCache nodeTreeCache = new NodeTreeCache();
         internal SmallFileCache SmallFileCache { get; private set; }
+
+        public long SmallFileSizeLimit { get; set; } = 20 * 1024 * 1024;
+
         string cachePath;
         public string CachePath
         {
@@ -72,6 +75,18 @@ namespace Azi.ACDDokanNet
 
         public string FileSystemName => "Amazon Cloud Drive";
 
+        public long SmallFileCacheSize
+        {
+            get
+            {
+                return SmallFileCache.CacheSize;
+            }
+            set
+            {
+                SmallFileCache.CacheSize = value;
+            }
+        }
+
         public void DeleteFile(string filePath)
         {
             var node = GetItem(filePath);
@@ -87,6 +102,11 @@ namespace Azi.ACDDokanNet
 
                 nodeTreeCache.DeleteFile(filePath);
             }
+        }
+
+        public void ClearSmallFilesCache()
+        {
+            SmallFileCache.Clear();
         }
 
         public bool Exists(string filePath)
@@ -114,7 +134,11 @@ namespace Azi.ACDDokanNet
                 if (item == null) return null;
 
                 if (!item.IsFake)
-                    return SmallFileCache.OpenRead(item);
+                {
+                    if (item.Length < SmallFileSizeLimit)
+                        return SmallFileCache.OpenRead(item);
+                    return new BufferedAmazonBlockReader(item, Amazon);
+                }
 
                 return new FileBlockReader(Path.Combine(CachePath, NewFileBlockWriter.UploadFolder, item.Id), item.Length);
             }
@@ -210,7 +234,7 @@ namespace Azi.ACDDokanNet
             foreach (var name in folders)
             {
                 var newnode = await Amazon.Nodes.GetChild(item.Id, name);
-                if (newnode == null||newnode.status!=AmazonNodeStatus.AVAILABLE) return null;
+                if (newnode == null || newnode.status != AmazonNodeStatus.AVAILABLE) return null;
 
                 if (curpath == "\\") curpath = "";
                 curpath = curpath + "\\" + name;

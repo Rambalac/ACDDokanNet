@@ -17,6 +17,47 @@ namespace Azi.ACDDokanNet
 
     public class SmallFileCache
     {
+        class CacheEntry
+        {
+            public string Id;
+
+            ReaderWriterLockSlim lk = new ReaderWriterLockSlim();
+            DateTime accessTime;
+
+            public DateTime AccessTime
+            {
+                get
+                {
+                    lk.EnterReadLock();
+                    try
+                    {
+                        return accessTime;
+                    }
+                    finally
+                    {
+                        lk.ExitReadLock();
+                    }
+                }
+
+                set
+                {
+                    lk.EnterWriteLock();
+                    try
+                    {
+                        accessTime = value;
+                    }
+                    finally
+                    {
+                        lk.ExitWriteLock();
+                    }
+                }
+            }
+
+            public long Length;
+        }
+
+        ConcurrentDictionary<string, CacheEntry> access = new ConcurrentDictionary<string, CacheEntry>(10, 1000);
+
         static ConcurrentDictionary<AmazonDrive, SmallFileCache> Instances = new ConcurrentDictionary<AmazonDrive, SmallFileCache>(10, 3);
 
         readonly AmazonDrive Amazon;
@@ -27,10 +68,12 @@ namespace Azi.ACDDokanNet
             set
             {
                 if (cachePath == value) return;
+                if (cachePath == null)
+                    Task.Run(() => RecalculateTotalSize());
                 try
                 {
-                    if (cachePath!=null)
-                    Directory.Delete(cachePath, true);
+                    if (cachePath != null)
+                        Directory.Delete(cachePath, true);
                 }
                 catch (Exception)
                 {
@@ -40,6 +83,8 @@ namespace Azi.ACDDokanNet
                 Directory.CreateDirectory(cachePath);
             }
         }
+
+        public long CacheSize { get; internal set; }
 
         public void StartDownload(FSItem node, string path)
         {
@@ -98,12 +143,106 @@ namespace Azi.ACDDokanNet
                     }
                     Log.Trace("Finished download: " + node.Id);
                     OnDownloaded?.Invoke(node.Id);
+
+                    access.TryAdd(node.Id, new CacheEntry { Id = node.Id, AccessTime = DateTime.UtcNow, Length = node.Length });
+                    TotalSize += node.Length;
+                    if (TotalSize > CacheSize) StartClear(TotalSize - CacheSize);
                 }
                 catch (Exception ex)
                 {
                     OnDownloadFailed?.Invoke(node.Id);
                     Log.Error($"Download failed: {node.Id}\r\n{ex}");
                 }
+        }
+
+        long totalSize = 0;
+        public long TotalSize
+        {
+            get { return Interlocked.Read(ref totalSize); }
+            set
+            {
+                Interlocked.Exchange(ref totalSize, value);
+            }
+        }
+
+
+        bool cleaning = false;
+        internal void StartClear(long size)
+        {
+            if (cleaning) return;
+            cleaning = true;
+            Task.Run(() =>
+            {
+                try
+                {
+                    long deleted = 0;
+                    foreach (var file in access.Values.OrderBy(f => f.AccessTime).TakeWhile(f => { size -= f.Length; return size > 0; }).ToList())
+                    {
+                        try
+                        {
+                            var path = Path.Combine(cachePath, file.Id);
+                            var info = new FileInfo(path);
+                            File.Delete(path);
+                            deleted += info.Length;
+                            CacheEntry remove;
+                            access.TryRemove(file.Id, out remove);
+                        }
+                        catch (IOException)
+                        {
+                            //Skip if failed
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Error(ex);
+                        }
+                    }
+
+                    TotalSize -= deleted;
+                }
+                finally
+                {
+                    cleaning = false;
+                }
+            });
+        }
+
+        internal async Task Clear()
+        {
+            await Task.Run(() =>
+            {
+
+                int failed = 0;
+                foreach (var file in Directory.GetFiles(cachePath))
+                {
+                    try
+                    {
+                        File.Delete(file);
+                    }
+                    catch (IOException)
+                    {
+                        failed++;
+                    }
+                }
+                RecalculateTotalSize();
+
+                if (failed > 0) throw new InvalidOperationException("Can not delete all cached files. Some files are still in use.");
+            });
+        }
+
+        private void RecalculateTotalSize()
+        {
+            if (cachePath == null) return;
+            long t = 0;
+            var newaccess = new ConcurrentDictionary<string, CacheEntry>(10, 1000);
+            foreach (var file in Directory.GetFiles(cachePath))
+            {
+                var fi = new FileInfo(file);
+                t += fi.Length;
+                var id = Path.GetFileName(file);
+                newaccess.TryAdd(id, new CacheEntry { Id = id, AccessTime = fi.LastAccessTimeUtc });
+            }
+            access = newaccess;
+            TotalSize = t;
         }
 
         public SmallFileCache(AmazonDrive a)
@@ -115,6 +254,9 @@ namespace Azi.ACDDokanNet
         {
             var path = Path.Combine(cachePath, node.Id);
             StartDownload(node, path);
+
+            CacheEntry entry;
+            if (access.TryGetValue(node.Id, out entry)) entry.AccessTime = DateTime.UtcNow;
 
             Log.Trace("Opened cached: " + node.Id);
             return new FileBlockReader(path, node.Length);

@@ -1,8 +1,11 @@
 ﻿using Azi.Amazon.CloudDrive;
+using Microsoft.Win32;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Forms;
+using Application = System.Windows.Application;
 
 namespace Azi.ACDDokanNet.Gui
 {
@@ -22,21 +25,88 @@ namespace Azi.ACDDokanNet.Gui
 
         }
 
+        NotifyIcon notifyIcon;
+
         public void ProviderStatisticsUpdated(int downloading, int uploading)
         {
             OnProviderStatisticsUpdated?.Invoke(downloading, uploading);
         }
 
+        void SetupNotifyIcon()
+        {
+            var components = new System.ComponentModel.Container();
+            notifyIcon = new NotifyIcon(components);
+
+            var contextMenu = new ContextMenu();
+            var menuItem = new MenuItem();
+
+            // Initialize contextMenu1
+            contextMenu.MenuItems.AddRange(
+                        new MenuItem[] { menuItem });
+
+            // Initialize menuItem1
+            menuItem.Index = 0;
+            menuItem.Text = "E&xit";
+            menuItem.Click += menuItem_Click;
+
+            notifyIcon.Icon = System.Drawing.Icon.ExtractAssociatedIcon(
+             System.Reflection.Assembly.GetEntryAssembly().ManifestModule.Name);
+
+            // The ContextMenu property sets the menu that will
+            // appear when the systray icon is right clicked.
+            notifyIcon.ContextMenu = contextMenu;
+
+            // The Text property sets the text that will be displayed,
+            // in a tooltip, when the mouse hovers over the systray icon.
+            notifyIcon.Text = "Form1 (NotifyIcon example)";
+            notifyIcon.Visible = true;
+
+            // Handle the DoubleClick event to activate the form.
+            notifyIcon.DoubleClick += notifyIcon_DoubleClick;
+
+        }
+
+        private void notifyIcon_DoubleClick(object sender, EventArgs e)
+        {
+            if (mainWindow != null)
+            {
+                mainWindow.Focus();
+                return;
+            }
+            mainWindow = new MainWindow();
+            mainWindow.Show();
+        }
+
+        MainWindow mainWindow;
+        private void menuItem_Click(object sender, EventArgs e)
+        {
+            Shutdown();
+        }
+
+        Mutex startedMutex;
+
         private void Application_Startup(object sender, StartupEventArgs e)
         {
+            bool created;
+            startedMutex = new Mutex(false, appName, out created);
+            if (!created)
+            {
+                Shutdown();
+            }
+
+            SetupNotifyIcon();
+
+            Task task;
+            if (GetAutorun()) task = Mount(Gui.Properties.Settings.Default.LastDriveLetter);
+
             if (e.Args.Length > 0)
             {
                 ProcessArgs(e.Args);
                 return;
             }
 
-            var win = new MainWindow();
-            win.Show();
+            mainWindow = new MainWindow();
+            mainWindow.Show();
         }
 
         static char? mountedLetter = null;
@@ -67,12 +137,47 @@ namespace Azi.ACDDokanNet.Gui
             return null;
         }
 
+        internal void ClearCredentials()
+        {
+            var settings = Gui.Properties.Settings.Default;
+            settings.AuthToken = null;
+            settings.AuthRenewToken = null;
+            settings.AuthTokenExpiration = DateTime.MinValue;
+            settings.Save();
+        }
+
+        internal void ClearCache()
+        {
+            if (provider != null) provider.ClearSmallFilesCache();
+        }
+
+        const string appName = "ACDDokanNet";
+
+        internal void SetAutorun(bool isChecked)
+        {
+            using (var rk = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true))
+            {
+                if (isChecked)
+                    rk.SetValue(appName, System.Reflection.Assembly.GetExecutingAssembly().CodeBase + " /mount");
+                else
+                    rk.DeleteValue(appName, false);
+            }
+        }
+
+        internal bool GetAutorun()
+        {
+            using (var rk = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true))
+            {
+                return rk.GetValue(appName) != null;
+            }
+        }
         internal async Task Unmount()
         {
             if (mounted == 0) return;
             VirtualDriveWrapper.Unmount((char)mountedLetter);
             await mountTask;
         }
+
 
         Task mountTask;
         int mounted = 0;
@@ -97,6 +202,8 @@ namespace Azi.ACDDokanNet.Gui
 
                   provider = new FSProvider(amazon);
                   provider.CachePath = Environment.ExpandEnvironmentVariables(Gui.Properties.Settings.Default.CacheFolder);
+                  provider.SmallFileCacheSize = Gui.Properties.Settings.Default.SmallFilesCacheLimit;
+                  provider.SmallFileSizeLimit = Gui.Properties.Settings.Default.SmallFileSizeLimit;
                   provider.OnStatisticsUpdated = ProviderStatisticsUpdated;
                   cloudDrive = new VirtualDriveWrapper(provider);
                   cloudDrive.Mounted = () =>
@@ -137,9 +244,13 @@ namespace Azi.ACDDokanNet.Gui
         }
 
 
-        private async void Application_Exit(object sender, ExitEventArgs e)
+        private void Application_Exit(object sender, ExitEventArgs e)
         {
-            await Unmount();
+            if (mounted != 0)
+                VirtualDriveWrapper.Unmount((char)mountedLetter);
+
+            if (notifyIcon != null) notifyIcon.Dispose();
+            startedMutex.Dispose();
         }
     }
 }

@@ -16,8 +16,8 @@ namespace Azi.ACDDokanNet
     public class FileBlockReader : AbstractBlockStream
     {
         private readonly ThreadLocal<FileStream> files;
-        private long expectedLength;
-        private string filePath;
+        private readonly long expectedLength;
+        private readonly string filePath;
 
         public FileBlockReader(string path, long length)
         {
@@ -34,7 +34,10 @@ namespace Azi.ACDDokanNet
             Log.Trace(Path.GetFileName(filePath));
 
             foreach (var file in files.Values)
+            {
                 file.Close();
+                file.Dispose();
+            }
             base.Close();
         }
 

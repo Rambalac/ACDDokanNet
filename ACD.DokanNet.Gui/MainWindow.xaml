@@ -27,6 +27,7 @@
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -34,15 +35,16 @@
                     </Grid.RowDefinitions>
                     <ComboBox x:Name="comboBox" ItemsSource="{Binding DriveLetters}" IsEnabled="{Binding IsUnmounted}" SelectedItem="{Binding SelectedDriveLetter}"/>
                     <Button x:Name="mountButton" IsEnabled="{Binding CanMount}" Content="Mount" Margin="3,0,0,0" Padding="5,1" Click="mountButton_Click" Grid.Column="1" />
-                    <Button x:Name="unmountButton" Content="Unmount" Margin="3,0,0,0" Padding="5,1" IsEnabled="{Binding CanUnmount}" Click="unmountButton_Click" Grid.Column="2" />
-                    <CheckBox x:Name="automountCheckBox"  Content="Mount on login" IsEnabled="{Binding IsMounted}" Margin="0,5,0,0" Grid.Row="1" Grid.ColumnSpan="3"/>
+                    <Button x:Name="logoutButton" Content="Logout" Margin="3,0,0,0" Padding="5,1" IsEnabled="{Binding CanUnmount}" Click="logoutButton_Click" Grid.Column="2" />
+                    <Button x:Name="unmountButton" Content="Unmount" Margin="3,0,0,0" Padding="5,1" IsEnabled="{Binding CanUnmount}" Click="unmountButton_Click" Grid.Column="3" />
+                    <CheckBox x:Name="automountCheckBox" IsChecked="{Binding IsAutomount}" Content="Mount on login" IsEnabled="{Binding IsMounted}" Margin="0,5,0,0" Grid.Row="1" Grid.ColumnSpan="3"/>
                 </Grid>
             </GroupBox>
-            <GroupBox Header="Transfering" Padding="5" Grid.Row="1">
+            <GroupBox Header="Transferring" Padding="5" Grid.Row="1">
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="107.428"/>
-                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition/>
+                        <ColumnDefinition Width="40"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -51,18 +53,18 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <Label Content="Files downloading" Grid.Row="0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}" Padding="5,5,5,0"/>
-                    <TextBox IsReadOnly="True" Text="{Binding Mode=OneWay, Path=DownloadingFilesCount}" Grid.Row="0" Grid.Column="1" MaxLines="1" Width="42" Margin="0,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
+                    <TextBox IsReadOnly="True" Text="{Binding Mode=OneWay, Path=DownloadingFilesCount}" Grid.Row="0" Grid.Column="1" MaxLines="1" Margin="1,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
 
                     <Label Content="Files uploading" Grid.Row="1" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}" Padding="5,5,5,0"/>
-                    <TextBox IsReadOnly="True" Text="{Binding Mode=OneWay, Path=UploadingFilesCount}" Grid.Row="1" Grid.Column="1" MaxLines="1" Width="42" Margin="0,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
+                    <TextBox IsReadOnly="True" Text="{Binding Mode=OneWay, Path=UploadingFilesCount}" Grid.Row="1" Grid.Column="1" MaxLines="1" Margin="1,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
 
                 </Grid>
             </GroupBox>
             <Expander Header="Settings" Grid.Row="2" Padding="5,0,5,5">
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="107.428"/>
-                        <ColumnDefinition Width="12.572"/>
+                        <ColumnDefinition/>
+                        <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
@@ -72,14 +74,15 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <Label Content="Cache path" Padding="5,0,0,0" Grid.ColumnSpan="2" />
-                    <Button x:Name="button" Content="Browse" Grid.Column="1" Grid.ColumnSpan="2" Click="Browse_MouseLeftButtonDown" />
-                    <TextBox IsReadOnly="True" Text="{Binding CacheFolder}" Grid.Row="1" MaxLines="1" Width="160" Margin="1,5,1,0" Grid.ColumnSpan="3" />
+                    <Button x:Name="cacheDirButton" Content="Change dir" Click="ChangeCacheDir" Margin="0,0,5,0" Grid.Column="1" />
+                    <Button x:Name="cacheClearButton" Content="Clear Cache" Click="ClearSmallFilesCache" Margin="0,0,0,0" Grid.Column="2" />
+                    <TextBox IsReadOnly="True" Text="{Binding CacheFolder}" Grid.Row="1" MaxLines="1" Margin="0,5,0,0" Grid.ColumnSpan="3" />
 
                     <Label Content="Small files size, Mb" Grid.Row="2" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}" Grid.ColumnSpan="2" Padding="5,5,5,0"/>
-                    <TextBox Text="{Binding SmallFilesSize}" Grid.Row="2" Grid.Column="2" MaxLines="1" Width="42" Margin="0,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
+                    <TextBox Text="{Binding SmallFilesSize}" Grid.Row="2" Grid.Column="2" MaxLines="1" Margin="0,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
 
                     <Label Content="Small files cache, Mb" Grid.Row="3" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}" Grid.ColumnSpan="2" Padding="5,5,5,0"/>
-                    <TextBox Text="{Binding SmallFilesSize}" Grid.Row="3" Grid.Column="2" MaxLines="1" Width="42" Margin="0,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
+                    <TextBox Text="{Binding SmallFilesSize}" Grid.Row="3" Grid.Column="2" MaxLines="1" Margin="0,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
                 </Grid>
             </Expander>
 

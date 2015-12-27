@@ -21,6 +21,19 @@ namespace Azi.ACDDokanNet.Gui
             App.OnProviderStatisticsUpdated = ProviderStatisticsUpdated;
         }
 
+        public bool IsAutomount
+        {
+            get
+            {
+                return App.Current.GetAutorun();
+            }
+
+            set
+            {
+                App.Current.SetAutorun(value);
+            }
+        }
+
         public char SelectedDriveLetter
         {
             get

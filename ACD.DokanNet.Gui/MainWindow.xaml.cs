@@ -1,6 +1,7 @@
 ﻿using Microsoft.WindowsAPICodePack.Dialogs;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -36,7 +37,7 @@ namespace Azi.ACDDokanNet.Gui
             await Model.Unmount();
         }
 
-        private void Browse_MouseLeftButtonDown(object sender, RoutedEventArgs e)
+        private void ChangeCacheDir(object sender, RoutedEventArgs e)
         {
             var path = Environment.ExpandEnvironmentVariables(Model.CacheFolder);
             var dlg = new CommonOpenFileDialog();
@@ -58,6 +59,24 @@ namespace Azi.ACDDokanNet.Gui
             {
                 Model.CacheFolder = dlg.FileName;
                 // Do something with selected folder string
+            }
+        }
+
+        private async void logoutButton_Click(object sender, RoutedEventArgs e)
+        {
+            await Model.Unmount();
+            App.Current.ClearCredentials();
+        }
+
+        private void ClearSmallFilesCache(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                App.Current.ClearCache();
+            }
+            catch (InvalidOperationException ex)
+            {
+                MessageBox.Show(this, ex.Message);
             }
         }
     }

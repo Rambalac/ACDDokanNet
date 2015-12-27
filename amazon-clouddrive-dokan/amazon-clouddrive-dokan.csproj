@@ -50,6 +50,7 @@
     <Reference Include="System.Net.Http" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BufferedAmazonBlockReader.cs" />
     <Compile Include="FileBlockReader.cs" />
     <Compile Include="FSItem.cs" />
     <Compile Include="FSProvider.cs" />
@@ -57,7 +58,6 @@
     <Compile Include="NewFileBlockWriter.cs" />
     <Compile Include="NodeTreeCache.cs" />
     <Compile Include="SmallFileCache.cs" />
-    <Compile Include="UncachedAmazonFileStream.cs" />
     <Compile Include="VirtualDrive.cs" />
     <Compile Include="VirtualDriveWrapper.cs" />
   </ItemGroup>

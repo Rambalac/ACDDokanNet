@@ -80,5 +80,29 @@ namespace Azi.ACDDokanNet.Gui.Properties {
                 this["CacheFolder"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("20000000")]
+        public long SmallFileSizeLimit {
+            get {
+                return ((long)(this["SmallFileSizeLimit"]));
+            }
+            set {
+                this["SmallFileSizeLimit"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1000000000")]
+        public long SmallFilesCacheLimit {
+            get {
+                return ((long)(this["SmallFilesCacheLimit"]));
+            }
+            set {
+                this["SmallFilesCacheLimit"] = value;
+            }
+        }
     }
 }

@@ -144,10 +144,10 @@ namespace Azi.Tools
                         await stream.WriteAsync(buff, 0, red);
                         if (progress != null && input.Position >= nextProgress)
                         {
-                            nextProgress = progress(input.Position);
+                            nextProgress = progress.Invoke(input.Position);
                         }
                     }
-                    if (nextProgress == -1) progress(0);
+                    if (nextProgress == -1) progress?.Invoke(0);
                 }
             }, fileOffset, length);
         }
