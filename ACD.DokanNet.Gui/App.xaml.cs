@@ -29,8 +29,25 @@ namespace Azi.ACDDokanNet.Gui
 
             set
             {
-                provider.SmallFileSizeLimit = value * (1 << 20);
+                if (provider != null)
+                    provider.SmallFileSizeLimit = value * (1 << 20);
                 Gui.Properties.Settings.Default.SmallFileSizeLimit = value;
+                Gui.Properties.Settings.Default.Save();
+            }
+        }
+
+        public string SmallFileCacheFolder
+        {
+            get
+            {
+                return Gui.Properties.Settings.Default.CacheFolder;
+            }
+
+            set
+            {
+                if (provider != null)
+                    provider.CachePath = Environment.ExpandEnvironmentVariables(value);
+                Gui.Properties.Settings.Default.CacheFolder = value;
                 Gui.Properties.Settings.Default.Save();
             }
         }
@@ -44,7 +61,8 @@ namespace Azi.ACDDokanNet.Gui
 
             set
             {
-                provider.SmallFilesCacheSize = value * (1 << 20);
+                if (provider != null)
+                    provider.SmallFilesCacheSize = value * (1 << 20);
                 Gui.Properties.Settings.Default.SmallFilesCacheLimit = value;
                 Gui.Properties.Settings.Default.Save();
             }
@@ -93,7 +111,7 @@ namespace Azi.ACDDokanNet.Gui
             notifyIcon.Visible = true;
 
             // Handle the DoubleClick event to activate the form.
-            notifyIcon.DoubleClick += (sender,e)=>OpenSettings();
+            notifyIcon.DoubleClick += (sender, e) => OpenSettings();
 
         }
 

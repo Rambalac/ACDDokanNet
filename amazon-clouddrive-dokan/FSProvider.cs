@@ -32,6 +32,8 @@ namespace Azi.ACDDokanNet
             }
             set
             {
+                if (cachePath == value) return;
+                if (cachePath != null) SmallFilesCache.Clear().Wait();
                 cachePath = value;
                 SmallFilesCache.CachePath = value;
                 Directory.CreateDirectory(Path.Combine(CachePath, NewFileBlockWriter.UploadFolder));

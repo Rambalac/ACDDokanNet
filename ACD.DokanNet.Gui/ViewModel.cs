@@ -59,8 +59,8 @@ namespace Azi.ACDDokanNet.Gui
             get { return Properties.Settings.Default.CacheFolder; }
             set
             {
-                Properties.Settings.Default.CacheFolder = value;
-                Properties.Settings.Default.Save();
+                App.SmallFileCacheFolder = value;
+                OnPropertyChanged(nameof(CacheFolder));
             }
         }
 

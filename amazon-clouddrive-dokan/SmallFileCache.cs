@@ -73,8 +73,7 @@ namespace Azi.ACDDokanNet
             set
             {
                 if (cachePath == value) return;
-                if (cachePath == null)
-                    Task.Run(() => RecalculateTotalSize());
+                bool wasNull = (cachePath == null);
                 try
                 {
                     if (cachePath != null)
@@ -85,6 +84,8 @@ namespace Azi.ACDDokanNet
                     Log.Warn("Can not delete old cache: " + cachePath);
                 }
                 cachePath = Path.Combine(value, "SmallFiles");
+                if (wasNull) Task.Run(() => RecalculateTotalSize());
+
                 Directory.CreateDirectory(cachePath);
             }
         }
@@ -211,13 +212,14 @@ namespace Azi.ACDDokanNet
             });
         }
 
-        internal async Task Clear()
+        public Task Clear()
         {
-            await Task.Run(() =>
+            var oldcachePath = cachePath;
+            return Task.Run(() =>
             {
 
                 int failed = 0;
-                foreach (var file in Directory.GetFiles(cachePath))
+                foreach (var file in Directory.GetFiles(oldcachePath).ToList())
                 {
                     try
                     {
