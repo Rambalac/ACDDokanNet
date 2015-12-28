@@ -155,7 +155,7 @@ namespace Azi.ACDDokanNet
 
         public NtStatus DeleteDirectory(string fileName, DokanFileInfo info)
         {
-            if (!provider.Exists(fileName) || provider.GetDirItems(fileName).Result.Any()) return DokanResult.DirectoryNotEmpty;
+            if (!provider.Exists(fileName)) return DokanResult.PathNotFound;
 
             provider.DeleteDir(fileName);
             return DokanResult.Success;

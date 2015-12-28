@@ -106,7 +106,7 @@ namespace Azi.ACDDokanNet
 
         public void ClearSmallFilesCache()
         {
-            SmallFileCache.Clear();
+            var task = SmallFileCache.Clear();
         }
 
         public bool Exists(string filePath)
@@ -137,7 +137,16 @@ namespace Azi.ACDDokanNet
                 {
                     if (item.Length < SmallFileSizeLimit)
                         return SmallFileCache.OpenRead(item);
-                    return new BufferedAmazonBlockReader(item, Amazon);
+
+                    Interlocked.Increment(ref downloadingCount);
+                    var buffered = new BufferedAmazonBlockReader(item, Amazon);
+                    buffered.OnClose = () =>
+                      {
+                          Interlocked.Decrement(ref downloadingCount);
+                          OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+                      };
+
+                    return buffered;
                 }
 
                 return new FileBlockReader(Path.Combine(CachePath, NewFileBlockWriter.UploadFolder, item.Id), item.Length);
@@ -152,10 +161,13 @@ namespace Azi.ACDDokanNet
                 item = uploader.Node;
                 nodeTreeCache.Add(item);
                 Interlocked.Increment(ref uploadingCount);
+                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
 
                 uploader.OnUpload = (parent, newnode) =>
                   {
                       Interlocked.Decrement(ref uploadingCount);
+                      OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+
                       var newitemPath = Path.Combine(SmallFileCache.CachePath, newnode.id);
                       if (!File.Exists(newitemPath))
                           File.Move(uploader.CachedPath, newitemPath);
@@ -169,6 +181,8 @@ namespace Azi.ACDDokanNet
                 uploader.OnUploadFailed = (parent, path, id) =>
                   {
                       Interlocked.Decrement(ref uploadingCount);
+                      OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+
                       nodeTreeCache.DeleteFile(path);
                   };
 

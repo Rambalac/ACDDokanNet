@@ -236,10 +236,17 @@ namespace Azi.ACDDokanNet
             var newaccess = new ConcurrentDictionary<string, CacheEntry>(10, 1000);
             foreach (var file in Directory.GetFiles(cachePath))
             {
-                var fi = new FileInfo(file);
-                t += fi.Length;
-                var id = Path.GetFileName(file);
-                newaccess.TryAdd(id, new CacheEntry { Id = id, AccessTime = fi.LastAccessTimeUtc });
+                try
+                {
+                    var fi = new FileInfo(file);
+                    t += fi.Length;
+                    var id = Path.GetFileName(file);
+                    newaccess.TryAdd(id, new CacheEntry { Id = id, AccessTime = fi.LastAccessTimeUtc });
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex);
+                }
             }
             access = newaccess;
             TotalSize = t;

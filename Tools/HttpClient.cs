@@ -293,10 +293,12 @@ namespace Azi.Tools
             return result;
         }
 
+        static Encoding UTF8 => new UTF8Encoding(false, true);
+
         private Stream GetMultipartFormPre(FileUpload file, long filelength, string boundry)
         {
             var result = new MemoryStream(1000);
-            using (var writer = new StreamWriter(result, Encoding.UTF8, 16, true))
+            using (var writer = new StreamWriter(result, UTF8, 16, true))
             {
                 foreach (var pair in file.Parameters)
                 {
@@ -318,7 +320,7 @@ namespace Azi.Tools
         private Stream GetMultipartFormPost(FileUpload file, string boundry)
         {
             var result = new MemoryStream(1000);
-            using (var writer = new StreamWriter(result, Encoding.UTF8, 16, true))
+            using (var writer = new StreamWriter(result, UTF8, 16, true))
             {
                 writer.Write($"\r\n--{boundry}--\r\n");
             }
