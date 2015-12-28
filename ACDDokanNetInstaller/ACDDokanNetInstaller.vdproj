@@ -15,13 +15,13 @@
     {
         "Entry"
         {
-        "MsmKey" = "8:_043F816FE40CBF8FBB1444F77CF43F94"
+        "MsmKey" = "8:_21C4E8166CBD293F1F5CB20971B1CAD6"
         "OwnerKey" = "8:_AE24DB195703AE7BFF50E330215BFC76"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
         {
-        "MsmKey" = "8:_043F816FE40CBF8FBB1444F77CF43F94"
+        "MsmKey" = "8:_21C4E8166CBD293F1F5CB20971B1CAD6"
         "OwnerKey" = "8:_841307B971FF437FB4050A50EEB9DC8D"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -39,26 +39,26 @@
         }
         "Entry"
         {
-        "MsmKey" = "8:_47435E3860E64CB5EE61FF92AB8CC760"
-        "OwnerKey" = "8:_C78D7B29AC3C47FAC7FAC9D8AC23172F"
+        "MsmKey" = "8:_841307B971FF437FB4050A50EEB9DC8D"
+        "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
         {
-        "MsmKey" = "8:_47435E3860E64CB5EE61FF92AB8CC760"
+        "MsmKey" = "8:_A5B0FAA0CBC7B4ED33A89D6C39943260"
         "OwnerKey" = "8:_FA6D349852ADE25D89A546C4DEAB1757"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
         {
-        "MsmKey" = "8:_47435E3860E64CB5EE61FF92AB8CC760"
+        "MsmKey" = "8:_A5B0FAA0CBC7B4ED33A89D6C39943260"
         "OwnerKey" = "8:_841307B971FF437FB4050A50EEB9DC8D"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
         {
-        "MsmKey" = "8:_841307B971FF437FB4050A50EEB9DC8D"
-        "OwnerKey" = "8:_UNDEFINED"
+        "MsmKey" = "8:_A5B0FAA0CBC7B4ED33A89D6C39943260"
+        "OwnerKey" = "8:_C78D7B29AC3C47FAC7FAC9D8AC23172F"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -136,6 +136,18 @@
         "Entry"
         {
         "MsmKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_BFFC10DC8A16E34E9A16AB663A3F99FA"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_30846F3CECE8A9F8B7D2F987EF9860D9"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_UNDEFINED"
         "OwnerKey" = "8:_AE24DB195703AE7BFF50E330215BFC76"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -154,25 +166,13 @@
         "Entry"
         {
         "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_BFFC10DC8A16E34E9A16AB663A3F99FA"
+        "OwnerKey" = "8:_A5B0FAA0CBC7B4ED33A89D6C39943260"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
         {
         "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_30846F3CECE8A9F8B7D2F987EF9860D9"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_47435E3860E64CB5EE61FF92AB8CC760"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_043F816FE40CBF8FBB1444F77CF43F94"
+        "OwnerKey" = "8:_21C4E8166CBD293F1F5CB20971B1CAD6"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -276,14 +276,14 @@
         }
         "File"
         {
-            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_043F816FE40CBF8FBB1444F77CF43F94"
+            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_21C4E8166CBD293F1F5CB20971B1CAD6"
             {
             "AssemblyRegister" = "3:1"
             "AssemblyIsInGAC" = "11:FALSE"
             "AssemblyAsmDisplayName" = "8:DokanNet, Version=1.0.8.0, Culture=neutral, PublicKeyToken=3709aaa01df28a9e, processorArchitecture=MSIL"
                 "ScatterAssemblies"
                 {
-                    "_043F816FE40CBF8FBB1444F77CF43F94"
+                    "_21C4E8166CBD293F1F5CB20971B1CAD6"
                     {
                     "Name" = "8:DokanNet.dll"
                     "Attributes" = "3:512"
@@ -338,14 +338,14 @@
             "IsDependency" = "11:TRUE"
             "IsolateTo" = "8:"
             }
-            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_47435E3860E64CB5EE61FF92AB8CC760"
+            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_A5B0FAA0CBC7B4ED33A89D6C39943260"
             {
             "AssemblyRegister" = "3:1"
             "AssemblyIsInGAC" = "11:FALSE"
             "AssemblyAsmDisplayName" = "8:Newtonsoft.Json, Version=7.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL"
                 "ScatterAssemblies"
                 {
-                    "_47435E3860E64CB5EE61FF92AB8CC760"
+                    "_A5B0FAA0CBC7B4ED33A89D6C39943260"
                     {
                     "Name" = "8:Newtonsoft.Json.dll"
                     "Attributes" = "3:512"
@@ -613,15 +613,15 @@
         {
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:ACDDokanNet"
-        "ProductCode" = "8:{798C511C-74DA-4727-835A-79F9784F5138}"
-        "PackageCode" = "8:{E76DF204-1E1F-4FA4-BCEA-725E87B80F6D}"
+        "ProductCode" = "8:{E210ED2F-9813-490B-A201-E6C2FBB80A33}"
+        "PackageCode" = "8:{0D200E7A-7946-4071-9344-53EF36377A9E}"
         "UpgradeCode" = "8:{8818562C-90F4-4776-A0AD-516460DB8E73}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
         "RemovePreviousVersions" = "11:TRUE"
         "DetectNewerInstalledVersion" = "11:TRUE"
         "InstallAllUsers" = "11:FALSE"
-        "ProductVersion" = "8:1.0.0"
+        "ProductVersion" = "8:0.1.0"
         "Manufacturer" = "8:Rambalac"
         "ARPHELPTELEPHONE" = "8:"
         "ARPHELPLINK" = "8:https://github.com/Rambalac/ACDDokanNet"
