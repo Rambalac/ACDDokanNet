@@ -13,13 +13,13 @@ using Tools;
 
 namespace Azi.ACDDokanNet
 {
-    public class FSProvider: IDisposable
+    public class FSProvider : IDisposable
     {
         static readonly string[] fsItemKinds = { "FILE", "FOLDER" };
 
         internal readonly AmazonDrive Amazon;
         readonly NodeTreeCache nodeTreeCache = new NodeTreeCache();
-        internal SmallFileCache SmallFileCache { get; private set; }
+        internal SmallFileCache SmallFilesCache { get; private set; }
 
         public long SmallFileSizeLimit { get; set; } = 20 * 1024 * 1024;
 
@@ -33,7 +33,7 @@ namespace Azi.ACDDokanNet
             set
             {
                 cachePath = value;
-                SmallFileCache.CachePath = value;
+                SmallFilesCache.CachePath = value;
                 Directory.CreateDirectory(Path.Combine(CachePath, NewFileBlockWriter.UploadFolder));
             }
         }
@@ -41,18 +41,18 @@ namespace Azi.ACDDokanNet
         public FSProvider(AmazonDrive amazon)
         {
             this.Amazon = amazon;
-            SmallFileCache = new SmallFileCache(amazon);
-            SmallFileCache.OnDownloadStarted = (id) =>
+            SmallFilesCache = new SmallFileCache(amazon);
+            SmallFilesCache.OnDownloadStarted = (id) =>
             {
                 Interlocked.Increment(ref downloadingCount);
                 OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
             };
-            SmallFileCache.OnDownloaded = (id) =>
+            SmallFilesCache.OnDownloaded = (id) =>
             {
                 Interlocked.Decrement(ref downloadingCount);
                 OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
             };
-            SmallFileCache.OnDownloadFailed = (id) =>
+            SmallFilesCache.OnDownloadFailed = (id) =>
             {
                 Interlocked.Decrement(ref downloadingCount);
                 OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
@@ -75,15 +75,15 @@ namespace Azi.ACDDokanNet
 
         public string FileSystemName => "Amazon Cloud Drive";
 
-        public long SmallFileCacheSize
+        public long SmallFilesCacheSize
         {
             get
             {
-                return SmallFileCache.CacheSize;
+                return SmallFilesCache.CacheSize;
             }
             set
             {
-                SmallFileCache.CacheSize = value;
+                SmallFilesCache.CacheSize = value;
             }
         }
 
@@ -106,7 +106,7 @@ namespace Azi.ACDDokanNet
 
         public void ClearSmallFilesCache()
         {
-            var task = SmallFileCache.Clear();
+            var task = SmallFilesCache.Clear();
         }
 
         public bool Exists(string filePath)
@@ -136,7 +136,7 @@ namespace Azi.ACDDokanNet
                 if (!item.IsFake)
                 {
                     if (item.Length < SmallFileSizeLimit)
-                        return SmallFileCache.OpenRead(item);
+                        return SmallFilesCache.OpenRead(item);
 
                     Interlocked.Increment(ref downloadingCount);
                     var buffered = new BufferedAmazonBlockReader(item, Amazon);
@@ -152,7 +152,7 @@ namespace Azi.ACDDokanNet
                 return new FileBlockReader(Path.Combine(CachePath, NewFileBlockWriter.UploadFolder, item.Id), item.Length);
             }
 
-            if (mode == FileMode.CreateNew || ((mode == FileMode.Create && mode == FileMode.OpenOrCreate) && (item == null || item.Length == 0)))
+            if (mode == FileMode.CreateNew || ((mode == FileMode.Create || mode == FileMode.OpenOrCreate) && (item == null || item.Length == 0)))
             {
                 var dir = Path.GetDirectoryName(filePath);
                 var name = Path.GetFileName(filePath);
@@ -160,15 +160,19 @@ namespace Azi.ACDDokanNet
                 var uploader = new NewFileBlockWriter(dirNode, item, filePath, this);
                 item = uploader.Node;
                 nodeTreeCache.Add(item);
-                Interlocked.Increment(ref uploadingCount);
-                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+
+                uploader.OnUploadStarted = () =>
+                  {
+                      Interlocked.Increment(ref uploadingCount);
+                      OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+                  };
 
                 uploader.OnUpload = (parent, newnode) =>
                   {
                       Interlocked.Decrement(ref uploadingCount);
                       OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
 
-                      var newitemPath = Path.Combine(SmallFileCache.CachePath, newnode.id);
+                      var newitemPath = Path.Combine(SmallFilesCache.CachePath, newnode.id);
                       if (!File.Exists(newitemPath))
                           File.Move(uploader.CachedPath, newitemPath);
 
@@ -215,6 +219,7 @@ namespace Azi.ACDDokanNet
             if (curdir == "\\") curdir = "";
             foreach (var node in nodes.Where(n => fsItemKinds.Contains(n.kind)))
             {
+                if (node.status != AmazonNodeStatus.AVAILABLE) continue;
                 var path = curdir + "\\" + node.name;
                 items.Add(FSItem.FromNode(path, node));
             }

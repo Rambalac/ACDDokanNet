@@ -79,10 +79,10 @@
                     <TextBox IsReadOnly="True" Text="{Binding CacheFolder}" Grid.Row="1" MaxLines="1" Margin="0,5,0,0" Grid.ColumnSpan="3" />
 
                     <Label Content="Small files size, Mb" Grid.Row="2" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}" Grid.ColumnSpan="2" Padding="5,5,5,0"/>
-                    <TextBox Text="{Binding SmallFilesSize}" Grid.Row="2" Grid.Column="2" MaxLines="1" Margin="0,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
+                    <TextBox Text="{Binding SmallFileSizeLimit}" Grid.Row="2" Grid.Column="2" MaxLines="1" Margin="0,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
 
                     <Label Content="Small files cache, Mb" Grid.Row="3" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}" Grid.ColumnSpan="2" Padding="5,5,5,0"/>
-                    <TextBox Text="{Binding SmallFilesSize}" Grid.Row="3" Grid.Column="2" MaxLines="1" Margin="0,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
+                    <TextBox Text="{Binding SmallFilesCacheSize}" Grid.Row="3" Grid.Column="2" MaxLines="1" Margin="0,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
                 </Grid>
             </Expander>
 

@@ -18,19 +18,22 @@ namespace Azi.ACDDokanNet.Gui
 
         public ViewModel()
         {
-            App.OnProviderStatisticsUpdated = ProviderStatisticsUpdated;
+            if (App != null)
+            {
+                App.OnProviderStatisticsUpdated = ProviderStatisticsUpdated;
+            }
         }
 
         public bool IsAutomount
         {
             get
             {
-                return App.Current.GetAutorun();
+                return App.GetAutorun();
             }
 
             set
             {
-                App.Current.SetAutorun(value);
+                App.SetAutorun(value);
             }
         }
 
@@ -123,5 +126,32 @@ namespace Azi.ACDDokanNet.Gui
         }
         public int UploadingFilesCount { get; private set; }
         public int DownloadingFilesCount { get; private set; }
+
+        public long SmallFileSizeLimit
+        {
+            get
+            {
+                return App.SmallFileSizeLimit;
+            }
+
+            set
+            {
+                App.SmallFileSizeLimit = value;
+            }
+        }
+
+        public long SmallFilesCacheSize
+        {
+            get
+            {
+                return App.SmallFilesCacheSize;
+            }
+
+            set
+            {
+                App.SmallFilesCacheSize = value;
+            }
+        }
+
     }
 }

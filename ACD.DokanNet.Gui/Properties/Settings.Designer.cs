@@ -83,7 +83,7 @@ namespace Azi.ACDDokanNet.Gui.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("20000000")]
+        [global::System.Configuration.DefaultSettingValueAttribute("20")]
         public long SmallFileSizeLimit {
             get {
                 return ((long)(this["SmallFileSizeLimit"]));
@@ -95,7 +95,7 @@ namespace Azi.ACDDokanNet.Gui.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("1000000000")]
+        [global::System.Configuration.DefaultSettingValueAttribute("1000")]
         public long SmallFilesCacheLimit {
             get {
                 return ((long)(this["SmallFilesCacheLimit"]));

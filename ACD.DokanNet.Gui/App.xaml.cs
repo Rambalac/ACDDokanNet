@@ -20,6 +20,37 @@ namespace Azi.ACDDokanNet.Gui
 
         public FSProvider.StatisticsUpdated OnProviderStatisticsUpdated { get; set; }
 
+        public long SmallFileSizeLimit
+        {
+            get
+            {
+                return Gui.Properties.Settings.Default.SmallFileSizeLimit;
+            }
+
+            set
+            {
+                provider.SmallFileSizeLimit = value * (1 << 20);
+                Gui.Properties.Settings.Default.SmallFileSizeLimit = value;
+                Gui.Properties.Settings.Default.Save();
+            }
+        }
+
+        public long SmallFilesCacheSize
+        {
+            get
+            {
+                return Gui.Properties.Settings.Default.SmallFilesCacheLimit;
+            }
+
+            set
+            {
+                provider.SmallFilesCacheSize = value * (1 << 20);
+                Gui.Properties.Settings.Default.SmallFilesCacheLimit = value;
+                Gui.Properties.Settings.Default.Save();
+            }
+        }
+
+
         void ProcessArgs(string[] args)
         {
 
@@ -58,26 +89,29 @@ namespace Azi.ACDDokanNet.Gui
 
             // The Text property sets the text that will be displayed,
             // in a tooltip, when the mouse hovers over the systray icon.
-            notifyIcon.Text = "Form1 (NotifyIcon example)";
+            notifyIcon.Text = "Amazon Cloud Drive Dokan.NET Settings";
             notifyIcon.Visible = true;
 
             // Handle the DoubleClick event to activate the form.
-            notifyIcon.DoubleClick += notifyIcon_DoubleClick;
+            notifyIcon.DoubleClick += (sender,e)=>OpenSettings();
 
         }
 
-        private void notifyIcon_DoubleClick(object sender, EventArgs e)
+        void OpenSettings()
         {
-            if (mainWindow != null)
+            if (MainWindow != null)
             {
-                mainWindow.Focus();
+                MainWindow.Focus();
                 return;
             }
-            mainWindow = new MainWindow();
-            mainWindow.Show();
+            MainWindow = new MainWindow();
+            MainWindow.Closed += (sender, e) =>
+            {
+                MainWindow = null;
+            };
+            MainWindow.Show();
         }
 
-        MainWindow mainWindow;
         private void menuItem_Click(object sender, EventArgs e)
         {
             Shutdown();
@@ -105,8 +139,7 @@ namespace Azi.ACDDokanNet.Gui
                 return;
             }
 
-            mainWindow = new MainWindow();
-            mainWindow.Show();
+            OpenSettings();
         }
 
         static char? mountedLetter = null;
@@ -202,8 +235,8 @@ namespace Azi.ACDDokanNet.Gui
 
                   provider = new FSProvider(amazon);
                   provider.CachePath = Environment.ExpandEnvironmentVariables(Gui.Properties.Settings.Default.CacheFolder);
-                  provider.SmallFileCacheSize = Gui.Properties.Settings.Default.SmallFilesCacheLimit;
-                  provider.SmallFileSizeLimit = Gui.Properties.Settings.Default.SmallFileSizeLimit;
+                  provider.SmallFilesCacheSize = Gui.Properties.Settings.Default.SmallFilesCacheLimit * (1 << 20);
+                  provider.SmallFileSizeLimit = Gui.Properties.Settings.Default.SmallFileSizeLimit * (1 << 20);
                   provider.OnStatisticsUpdated = ProviderStatisticsUpdated;
                   cloudDrive = new VirtualDriveWrapper(provider);
                   cloudDrive.Mounted = () =>
@@ -242,7 +275,6 @@ namespace Azi.ACDDokanNet.Gui
               }, TaskCreationOptions.LongRunning).Unwrap();
             return await mountedEvent.Task;
         }
-
 
         private void Application_Exit(object sender, ExitEventArgs e)
         {

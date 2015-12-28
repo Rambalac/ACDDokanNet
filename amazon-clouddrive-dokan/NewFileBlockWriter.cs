@@ -24,6 +24,7 @@ namespace Azi.ACDDokanNet
         public readonly string CachedPath;
         private Task uploader;
         public OnUploadDelegate OnUpload;
+        public Action OnUploadStarted;
         public OnUploadFailedDelegate OnUploadFailed;
 
         public NewFileBlockWriter(FSItem dirNode, FSItem node, string filePath, FSProvider provider)
@@ -38,7 +39,9 @@ namespace Azi.ACDDokanNet
                 Node = FSItem.FromFake(filePath, Guid.NewGuid().ToString());
             }
 
-            CachedPath = Path.Combine(provider.CachePath, UploadFolder, Node.Id);
+            var dir = Path.Combine(provider.CachePath, UploadFolder);
+            Directory.CreateDirectory(dir);
+            CachedPath = Path.Combine(dir, Node.Id);
             Log.Trace("Created file: " + filePath);
             writer = File.OpenWrite(CachedPath);
         }
@@ -67,6 +70,7 @@ namespace Azi.ACDDokanNet
             try
             {
                 Log.Trace("Started upload: " + filePath);
+                OnUploadStarted?.Invoke();
                 var node = await provider.Amazon.Files.UploadNew(dirNode.Id, Path.GetFileName(filePath),
                     () => new FileStream(CachedPath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true));
                 if (node != null)

@@ -18,10 +18,10 @@
       <Value Profile="(Default)">%TEMP%\ACDDokanNetCache</Value>
     </Setting>
     <Setting Name="SmallFileSizeLimit" Type="System.Int64" Scope="User">
-      <Value Profile="(Default)">20000000</Value>
+      <Value Profile="(Default)">20</Value>
     </Setting>
     <Setting Name="SmallFilesCacheLimit" Type="System.Int64" Scope="User">
-      <Value Profile="(Default)">1000000000</Value>
+      <Value Profile="(Default)">1000</Value>
     </Setting>
   </Settings>
 </SettingsFile>
