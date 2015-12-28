@@ -70,7 +70,7 @@ namespace ConsoleApplication1
             var newbuf = new byte[300];
 
             long pos = 0;
-            using (var stream = provider.OpenFile("\\test.txt", System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.None, System.IO.FileOptions.None))
+            using (var stream = provider.OpenFile("\\test.txt", FileMode.Open, FileAccess.Read, FileShare.None, FileOptions.None))
             {
                 var buf = new byte[100];
                 
@@ -81,7 +81,6 @@ namespace ConsoleApplication1
                     Array.Copy(buf, 0, newbuf, pos, red);
                     pos += red;
                 }
-                stream.Close();
             }
 
             if (pos != orig.Length) Console.WriteLine("Wrong length:" + pos);

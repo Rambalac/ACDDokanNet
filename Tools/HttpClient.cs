@@ -9,6 +9,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Runtime.Serialization;
 
 namespace Azi.Tools
 {
@@ -22,6 +23,7 @@ namespace Azi.Tools
         public int Timeout = 30000;
     }
 
+    [Serializable]
     public class HttpWebException : Exception
     {
         public readonly HttpStatusCode StatusCode;
@@ -32,6 +34,11 @@ namespace Azi.Tools
         public HttpWebException(string message, HttpStatusCode code, Exception e) : base(message, e)
         {
             this.StatusCode = code;
+        }
+
+        public override void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            base.GetObjectData(info, context);
         }
     }
 
@@ -311,7 +318,6 @@ namespace Azi.Tools
                 writer.Write($"Content-Type: application/octet-stream\r\n");
 
                 writer.Write($"Content-Length: {filelength}\r\n\r\n");
-                writer.Close();
             }
             result.Position = 0;
             return result;

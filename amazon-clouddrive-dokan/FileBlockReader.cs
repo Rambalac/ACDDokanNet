@@ -36,7 +36,6 @@ namespace Azi.ACDDokanNet
             foreach (var file in files.Values)
             {
                 file.Close();
-                file.Dispose();
             }
             base.Close();
         }

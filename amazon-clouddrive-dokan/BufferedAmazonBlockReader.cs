@@ -29,7 +29,6 @@ namespace Azi.ACDDokanNet
         const int blockSize = 1 * 1024 * 1024;
         const int keepLastBlocks = 5;
         ConcurrentDictionary<long, Block> blocks = new ConcurrentDictionary<long, Block>(5, keepLastBlocks * 5);
-        ReaderWriterLockSlim lk = new ReaderWriterLockSlim();
 
         public BufferedAmazonBlockReader(FSItem item, AmazonDrive amazon)
         {

@@ -17,11 +17,11 @@ namespace Azi.ACDDokanNet
 
     public class SmallFileCache
     {
-        class CacheEntry
+        class CacheEntry : IDisposable
         {
             public string Id;
 
-            ReaderWriterLockSlim lk = new ReaderWriterLockSlim();
+            readonly ReaderWriterLockSlim lk = new ReaderWriterLockSlim();
             DateTime accessTime;
 
             public DateTime AccessTime
@@ -54,6 +54,11 @@ namespace Azi.ACDDokanNet
             }
 
             public long Length;
+
+            public void Dispose()
+            {
+                ((IDisposable)lk).Dispose();
+            }
         }
 
         ConcurrentDictionary<string, CacheEntry> access = new ConcurrentDictionary<string, CacheEntry>(10, 1000);
