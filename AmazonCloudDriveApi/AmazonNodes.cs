@@ -31,9 +31,25 @@ namespace Azi.Amazon.CloudDrive
         public async Task<IList<AmazonNode>> GetChildren(string id = null)
         {
             if (id == null) id = (await GetRoot()).id;
-            var url = string.Format("{0}nodes/{1}/children", await amazon.GetMetadataUrl(), id);
-            var children = await http.GetJsonAsync<Children>(url);
-            return children.data.Where(n => n.parents.Contains(id)).ToList(); // Hack for wrong Amazon output when file location was changed recently
+            var baseurl = string.Format("{0}nodes/{1}/children", await amazon.GetMetadataUrl(), id);
+            var result = new List<AmazonNode>();
+            string nextToken = null;
+            do
+            {
+                var url = string.IsNullOrWhiteSpace(nextToken) ? baseurl : baseurl + "?startToken=" + nextToken;
+                try
+                {
+                    var children = await http.GetJsonAsync<Children>(url);
+                    result.AddRange(children.data.Where(n => n.parents.Contains(id))); // Hack for wrong Amazon output when file location was changed recently
+                    nextToken = children.nextToken;
+                }
+                catch (HttpWebException ex)
+                {
+                    if (ex.StatusCode == System.Net.HttpStatusCode.NotFound) break;
+                    throw;
+                }
+            } while (!string.IsNullOrWhiteSpace(nextToken));
+            return result;
         }
 
         readonly static Regex filterEscapeChars = new Regex("[ \\+\\-&|!(){}[\\]^'\"~\\*\\?:\\\\]");

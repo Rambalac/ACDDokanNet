@@ -174,7 +174,7 @@ namespace Azi.ACDDokanNet
             }
             finally
             {
-                Log.Warn("File deleted: " + filePath);
+                //Log.Warn("File deleted: " + filePath);
                 lok.ExitWriteLock();
             }
         }

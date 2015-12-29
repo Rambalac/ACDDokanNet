@@ -241,7 +241,7 @@ namespace Azi.ACDDokanNet
             var cached = nodeTreeCache.GetDir(folderPath);
             if (cached != null)
             {
-                Log.Warn("Got cached dir:\r\n  " + string.Join("\r\n  ", cached));
+                //Log.Warn("Got cached dir:\r\n  " + string.Join("\r\n  ", cached));
                 return (await Task.WhenAll(cached.Select(i => FetchNode(i)))).Where(i => i != null).ToList();
             }
 
@@ -257,7 +257,7 @@ namespace Azi.ACDDokanNet
                 items.Add(FSItem.FromNode(path, node));
             }
 
-            Log.Warn("Got real dir:\r\n  " + string.Join("\r\n  ", items.Select(i => i.Path)));
+            //Log.Warn("Got real dir:\r\n  " + string.Join("\r\n  ", items.Select(i => i.Path)));
 
             nodeTreeCache.AddDirItems(folderPath, items);
             return items;
