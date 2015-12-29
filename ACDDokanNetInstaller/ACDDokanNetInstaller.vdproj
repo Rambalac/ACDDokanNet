@@ -15,30 +15,6 @@
     {
         "Entry"
         {
-        "MsmKey" = "8:_0046582067BC69872E71CD543121AB9B"
-        "OwnerKey" = "8:_841307B971FF437FB4050A50EEB9DC8D"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_0046582067BC69872E71CD543121AB9B"
-        "OwnerKey" = "8:_F666595FD7227EF8DC7BE4FE6913ED71"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_0046582067BC69872E71CD543121AB9B"
-        "OwnerKey" = "8:_71E89629C39B6E32CE97C1079549C394"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_0046582067BC69872E71CD543121AB9B"
-        "OwnerKey" = "8:_53F41B713F854086BDCC162F04C2B52B"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
         "MsmKey" = "8:_1F34E990366CB9B6BDEE74114C9638FF"
         "OwnerKey" = "8:_841307B971FF437FB4050A50EEB9DC8D"
         "MsmSig" = "8:_UNDEFINED"
@@ -82,12 +58,6 @@
         "Entry"
         {
         "MsmKey" = "8:_72D018C36728ABE67AE7864E65AF5810"
-        "OwnerKey" = "8:_F666595FD7227EF8DC7BE4FE6913ED71"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_72D018C36728ABE67AE7864E65AF5810"
         "OwnerKey" = "8:_71E89629C39B6E32CE97C1079549C394"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -95,6 +65,12 @@
         {
         "MsmKey" = "8:_72D018C36728ABE67AE7864E65AF5810"
         "OwnerKey" = "8:_841307B971FF437FB4050A50EEB9DC8D"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_72D018C36728ABE67AE7864E65AF5810"
+        "OwnerKey" = "8:_F666595FD7227EF8DC7BE4FE6913ED71"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -117,6 +93,30 @@
         }
         "Entry"
         {
+        "MsmKey" = "8:_D2CE32D4F9359082A816DC942EAB9454"
+        "OwnerKey" = "8:_841307B971FF437FB4050A50EEB9DC8D"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_D2CE32D4F9359082A816DC942EAB9454"
+        "OwnerKey" = "8:_F666595FD7227EF8DC7BE4FE6913ED71"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_D2CE32D4F9359082A816DC942EAB9454"
+        "OwnerKey" = "8:_71E89629C39B6E32CE97C1079549C394"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_D2CE32D4F9359082A816DC942EAB9454"
+        "OwnerKey" = "8:_53F41B713F854086BDCC162F04C2B52B"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
         "MsmKey" = "8:_F666595FD7227EF8DC7BE4FE6913ED71"
         "OwnerKey" = "8:_53F41B713F854086BDCC162F04C2B52B"
         "MsmSig" = "8:_UNDEFINED"
@@ -125,30 +125,6 @@
         {
         "MsmKey" = "8:_F666595FD7227EF8DC7BE4FE6913ED71"
         "OwnerKey" = "8:_841307B971FF437FB4050A50EEB9DC8D"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_0046582067BC69872E71CD543121AB9B"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_53F41B713F854086BDCC162F04C2B52B"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_F666595FD7227EF8DC7BE4FE6913ED71"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_71E89629C39B6E32CE97C1079549C394"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -172,6 +148,24 @@
         "Entry"
         {
         "MsmKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_53F41B713F854086BDCC162F04C2B52B"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_F666595FD7227EF8DC7BE4FE6913ED71"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_71E89629C39B6E32CE97C1079549C394"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_UNDEFINED"
         "OwnerKey" = "8:_72D018C36728ABE67AE7864E65AF5810"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -179,6 +173,12 @@
         {
         "MsmKey" = "8:_UNDEFINED"
         "OwnerKey" = "8:_6FA25ECCA6B7606D3A4D01BAEF25761F"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_D2CE32D4F9359082A816DC942EAB9454"
         "MsmSig" = "8:_UNDEFINED"
         }
     }
@@ -199,6 +199,14 @@
         "PrivateKeyFile" = "8:"
         "TimeStampServer" = "8:"
         "InstallerBootstrapper" = "3:2"
+            "BootstrapperCfg:{63ACBE69-63AA-4F98-B2B6-99F9E24495F2}"
+            {
+            "Enabled" = "11:TRUE"
+            "PromptEnabled" = "11:TRUE"
+            "PrerequisitesLocation" = "2:1"
+            "Url" = "8:"
+            "ComponentsUrl" = "8:"
+            }
         }
         "Release"
         {
@@ -215,6 +223,14 @@
         "PrivateKeyFile" = "8:"
         "TimeStampServer" = "8:"
         "InstallerBootstrapper" = "3:2"
+            "BootstrapperCfg:{63ACBE69-63AA-4F98-B2B6-99F9E24495F2}"
+            {
+            "Enabled" = "11:TRUE"
+            "PromptEnabled" = "11:TRUE"
+            "PrerequisitesLocation" = "2:1"
+            "Url" = "8:"
+            "ComponentsUrl" = "8:"
+            }
         }
     }
     "Deployable"
@@ -244,37 +260,6 @@
         }
         "File"
         {
-            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_0046582067BC69872E71CD543121AB9B"
-            {
-            "AssemblyRegister" = "3:1"
-            "AssemblyIsInGAC" = "11:FALSE"
-            "AssemblyAsmDisplayName" = "8:System.Net.Http, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a"
-                "ScatterAssemblies"
-                {
-                    "_0046582067BC69872E71CD543121AB9B"
-                    {
-                    "Name" = "8:System.Net.Http.dll"
-                    "Attributes" = "3:512"
-                    }
-                }
-            "SourcePath" = "8:System.Net.Http.dll"
-            "TargetName" = "8:"
-            "Tag" = "8:"
-            "Folder" = "8:_BACA36414E1C4DC887DF0F110676394C"
-            "Condition" = "8:"
-            "Transitive" = "11:FALSE"
-            "Vital" = "11:TRUE"
-            "ReadOnly" = "11:FALSE"
-            "Hidden" = "11:FALSE"
-            "System" = "11:FALSE"
-            "Permanent" = "11:FALSE"
-            "SharedLegacy" = "11:FALSE"
-            "PackageAs" = "3:1"
-            "Register" = "3:1"
-            "Exclude" = "11:FALSE"
-            "IsDependency" = "11:TRUE"
-            "IsolateTo" = "8:"
-            }
             "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_1F34E990366CB9B6BDEE74114C9638FF"
             {
             "AssemblyRegister" = "3:1"
@@ -461,6 +446,37 @@
             "IsDependency" = "11:TRUE"
             "IsolateTo" = "8:"
             }
+            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_D2CE32D4F9359082A816DC942EAB9454"
+            {
+            "AssemblyRegister" = "3:1"
+            "AssemblyIsInGAC" = "11:FALSE"
+            "AssemblyAsmDisplayName" = "8:System.Net.Http, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a"
+                "ScatterAssemblies"
+                {
+                    "_D2CE32D4F9359082A816DC942EAB9454"
+                    {
+                    "Name" = "8:System.Net.Http.dll"
+                    "Attributes" = "3:512"
+                    }
+                }
+            "SourcePath" = "8:System.Net.Http.dll"
+            "TargetName" = "8:"
+            "Tag" = "8:"
+            "Folder" = "8:_BACA36414E1C4DC887DF0F110676394C"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:TRUE"
+            "IsolateTo" = "8:"
+            }
             "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_F666595FD7227EF8DC7BE4FE6913ED71"
             {
             "AssemblyRegister" = "3:1"
@@ -539,7 +555,7 @@
             {
             "Name" = "8:DokanExists"
             "Condition" = "8:DOKANEXISTS"
-            "Message" = "8:This User level driver requires kernal driver Dokan.NET. Please download and install DokanInstall_X.X.X_redist.exe"
+            "Message" = "8:This User level driver requires kernal driver Dokan.NET. Please download and install DokanInstall_X.X.X_redist.exe. Do you want to to open its web page now?"
             "InstallUrl" = "8:https://github.com/dokan-dev/dokany/releases/latest"
             }
         }

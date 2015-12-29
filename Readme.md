@@ -1,5 +1,5 @@
 ACD Dokan.NET
-=========
+=============
 
 This is [Dokan.NET](https://github.com/dokan-dev/dokan-dotnet) based driver for Amazon Cloud Drive. 
 In other words you can use Amazon Cloud Drive as real disk drive in Windows. 
@@ -19,7 +19,8 @@ Prerequisites
 
 Warning
 -------
-As it's say Gamma version it may crush together with your OS and/or (really it should not, but...) damage files in your Amazon Cloud Drive.
+* As it's say Gamma version it may crush together with your OS and/or (really it should not, but...) damage files in your Amazon Cloud Drive.
+* Some applications like anti-viruses can crawl all over your Amazon Cloud Drive wasting Internet connection especially if it's not flat rate.
 
 News
 ----
@@ -30,7 +31,7 @@ News
 * File/folders move/rename - done
 
 Still there are issues. 
-* Moving files from Cloud Drive can show security dialogs about files from bad place. 
+* Moving files from Amazon Cloud Drive can show security dialogs about files from bad place. 
 * Explorer does not accept names for renaming longer 8 symbols.
 
 ### 2015-12-14
