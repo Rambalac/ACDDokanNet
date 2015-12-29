@@ -5,6 +5,7 @@ using System.IO;
 using Azi.Amazon.CloudDrive;
 using Azi.Tools;
 using System.Threading;
+using System.Security.Cryptography;
 
 namespace Azi.ACDDokanNet
 {
@@ -12,13 +13,12 @@ namespace Azi.ACDDokanNet
     {
         public const string UploadFolder = "Upload";
 
-        public delegate void OnUploadDelegate(FSItem node, AmazonNode amazonNode);
-        public delegate void OnUploadFailedDelegate(FSItem node, string filePath, string localId);
+        public delegate void OnUploadDelegate(FSItem item, AmazonNode amazonNode);
+        public delegate void OnUploadFailedDelegate(FSItem item, string filePath, string localId);
 
         private FSProvider provider;
-        private FSItem dirNode;
-        public readonly FSItem Node;
-        private string filePath;
+        private FSItem dirItem;
+        public readonly FSItem Item;
         private readonly FileStream writer;
         private object fileLock = new object();
         public readonly string CachedPath;
@@ -26,23 +26,23 @@ namespace Azi.ACDDokanNet
         public OnUploadDelegate OnUpload;
         public Action OnUploadStarted;
         public OnUploadFailedDelegate OnUploadFailed;
+        public Func<string, bool> OnIsDuplicate;
 
-        public NewFileBlockWriter(FSItem dirNode, FSItem node, string filePath, FSProvider provider)
+        public NewFileBlockWriter(FSItem dirItem, FSItem item, string filePath, FSProvider provider)
         {
-            this.dirNode = dirNode;
-            this.Node = node;
-            this.filePath = filePath;
+            this.dirItem = dirItem;
+            this.Item = item;
             this.provider = provider;
 
-            if (node == null)
+            if (item == null)
             {
-                Node = FSItem.FromFake(filePath, Guid.NewGuid().ToString());
+                Item = FSItem.FromFake(filePath, Guid.NewGuid().ToString(), dirItem.Id);
             }
 
             var dir = Path.Combine(provider.CachePath, UploadFolder);
             Directory.CreateDirectory(dir);
-            CachedPath = Path.Combine(dir, Node.Id);
-            Log.Trace("Created file: " + filePath);
+            CachedPath = Path.Combine(dir, Item.Id);
+            Log.Trace("Created file: " + Item.Path);
             writer = File.OpenWrite(CachedPath);
         }
 
@@ -56,38 +56,53 @@ namespace Azi.ACDDokanNet
             {
                 writer.Close();
             }
-            Node.Length = len;
-            Log.Trace("Closed file: " + filePath);
+            Item.Length = len;
+            Log.Trace("Closed file: " + Item.Path);
             if (len == 0)
-                Log.Warn("Zero Length file: " + filePath);
+                Log.Warn("Zero Length file: " + Item.Path);
             else
-                uploader = Task.Run(Upload);
+            {
+                if (!OnIsDuplicate(CalcMD5()))
+                    uploader = Task.Run(Upload);
+            }
             base.Close();
+        }
+
+        private string CalcMD5()
+        {
+            using (var md5 = MD5.Create())
+            {
+                using (var stream = File.OpenRead(CachedPath))
+                {
+                    var bytes = md5.ComputeHash(stream);
+                    return BitConverter.ToString(bytes).Replace("-", "").ToLowerInvariant();
+                }
+            }
         }
 
         private async Task Upload()
         {
             try
             {
-                Log.Trace("Started upload: " + filePath);
+                Log.Trace("Started upload: " + Item.Path);
                 OnUploadStarted?.Invoke();
-                var node = await provider.Amazon.Files.UploadNew(dirNode.Id, Path.GetFileName(filePath),
+                var node = await provider.Amazon.Files.UploadNew(dirItem.Id, Path.GetFileName(Item.Path),
                     () => new FileStream(CachedPath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true));
                 if (node != null)
                 {
-                    OnUpload?.Invoke(dirNode, node);
-                    Log.Trace("Finished upload: " + filePath + " id:" + node.id);
+                    OnUpload?.Invoke(dirItem, node);
+                    Log.Trace("Finished upload: " + Item.Path + " id:" + node.id);
                 }
                 else
                 {
-                    OnUploadFailed?.Invoke(dirNode, filePath, Node.Id);
-                    throw new NullReferenceException("File node is null: " + filePath);
+                    OnUploadFailed?.Invoke(dirItem, Item.Path, Item.Id);
+                    throw new NullReferenceException("File node is null: " + Item.Path);
                 }
             }
             catch (Exception ex)
             {
-                Log.Error($"Upload failed: {filePath}\r\n{ex}");
-                OnUploadFailed?.Invoke(dirNode, filePath, Node.Id);
+                Log.Error($"Upload failed: {Item.Path}\r\n{ex}");
+                OnUploadFailed?.Invoke(dirItem, Item.Path, Item.Id);
             }
         }
 
@@ -103,7 +118,7 @@ namespace Azi.ACDDokanNet
                 writer.Position = position;
                 writer.Write(buffer, offset, count);
             }
-            Node.Length = writer.Length;
+            Item.Length = writer.Length;
             Log.Trace("Write byte: " + count);
         }
 

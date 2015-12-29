@@ -2,6 +2,7 @@
 using Azi.Tools;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -32,7 +33,7 @@ namespace Azi.Amazon.CloudDrive
             if (id == null) id = (await GetRoot()).id;
             var url = string.Format("{0}nodes/{1}/children", await amazon.GetMetadataUrl(), id);
             var children = await http.GetJsonAsync<Children>(url);
-            return children.data;
+            return children.data.Where(n => n.parents.Contains(id)).ToList(); // Hack for wrong Amazon output when file location was changed recently
         }
 
         readonly static Regex filterEscapeChars = new Regex("[ \\+\\-&|!(){}[\\]^'\"~\\*\\?:\\\\]");
@@ -46,16 +47,37 @@ namespace Azi.Amazon.CloudDrive
             return "parents:" + id;
         }
 
+        private string MakeMD5Filter(string md5)
+        {
+            return "contentProperties.md5:" + md5;
+        }
+
         public async Task<AmazonNode> GetChild(string parentid, string name)
         {
             if (parentid == null) parentid = (await GetRoot()).id;
             var url = string.Format("{0}nodes?filters={1} AND {2}", await amazon.GetMetadataUrl(), MakeParentFilter(parentid), MakeNameFilter(name));
             var result = await http.GetJsonAsync<Children>(url);
             if (result.count == 0) return null;
+            if (result.count != 1) throw new InvalidOperationException("Duplicated node name");
+
+            if (!result.data[0].parents.Contains(parentid)) return null; // Hack for wrong Amazon output when file location was changed recently
+
             return result.data[0];
         }
 
-        public async Task Delete(string id)
+        public async Task Add(string parentid, string nodeid)
+        {
+            var url = string.Format("{0}/nodes/{1}/children/{2}", await amazon.GetMetadataUrl(), parentid, nodeid);
+            await http.Send<object>(HttpMethod.Put, url);
+        }
+
+        public async Task Remove(string parentid, string nodeid)
+        {
+            var url = string.Format("{0}/nodes/{1}/children/{2}", await amazon.GetMetadataUrl(), parentid, nodeid);
+            await http.Send<object>(HttpMethod.Delete, url);
+        }
+
+        public async Task Trash(string id)
         {
             var url = string.Format("{0}trash/{1}", await amazon.GetMetadataUrl(), id);
 
@@ -101,6 +123,14 @@ namespace Azi.Amazon.CloudDrive
                 childId = id
             };
             return await http.Post<object, AmazonNode>(string.Format(url, await amazon.GetMetadataUrl(), newDirId), data);
+        }
+
+        public async Task<AmazonNode> GetNodeByMD5(string md5)
+        {
+            var url = string.Format("{0}nodes?filters={1}", await amazon.GetMetadataUrl(), MakeMD5Filter(md5));
+            var result = await http.GetJsonAsync<Children>(url);
+            if (result.count == 0) return null;
+            return result.data[0];
         }
     }
 }
