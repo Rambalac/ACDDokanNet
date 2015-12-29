@@ -5,6 +5,8 @@ This is [Dokan.NET](https://github.com/dokan-dev/dokan-dotnet) based driver for 
 In other words you can use Amazon Cloud Drive as real disk drive in Windows. 
 Not just in Windows Explorer, but in any application.
 
+![Sample](/images/Amazon Cloud Drive as real drive.png)
+
 Login is done via default browser, so it does not need your login and password.
 
 Prerequisites
@@ -15,14 +17,20 @@ Prerequisites
 
 - For developing
     * VS 2015
-    * .NET 4.6
+    * .NET 4.5
 
 Warning
 -------
-As it's say Gamma version it may crush together with your OS and/or (really it should not, but...) damage files in your Amazon Cloud Drive.
+As it's Beta version it may crush together with your OS and/or (really it should not, but...) damage files in your Amazon Cloud Drive. Use it on your one risk.
 
 News
 ----
+### 2015-12-28
+* First release!
+* GUI for settings
+* Many fixes
+* Limit for file size in disk cache and total cache size. Other files cached only in memory.
+
 ### 2015-12-20
 * New files upload - done
 * Files read cached - done

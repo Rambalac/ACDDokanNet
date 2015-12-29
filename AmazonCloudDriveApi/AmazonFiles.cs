@@ -37,7 +37,8 @@ namespace Azi.Amazon.CloudDrive
         {
             var url = string.Format("{0}nodes", await amazon.GetContentUrl());
 
-            string meta = JsonConvert.SerializeObject(new NewChild { name = fileName, parents = new string[] { parentId }, kind = "FILE" });
+            var obj = new NewChild { name = fileName, parents = new string[] { parentId }, kind = "FILE" };
+            string meta = JsonConvert.SerializeObject(obj);
 
             var file = new FileUpload
             {

@@ -7,11 +7,10 @@ using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Net;
 using System.Net.Cache;
-using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace Azi.Amazon.CloudDrive
 {
@@ -181,13 +180,14 @@ namespace Azi.Amazon.CloudDrive
         private async Task ProcessRedirect(HttpListenerContext context, string clientId, string secret, string redirectUrl)
         {
             ///signin/?error_description=Access+not+permitted.&error=access_denied
-            var error = context.Request.Url.ParseQueryString()["error_description"];
+            var error = HttpUtility.ParseQueryString(context.Request.Url.Query).Get("error_description");
+
             if (error != null)
             {
                 throw new InvalidOperationException(error);
             }
 
-            var code = context.Request.Url.ParseQueryString()["code"];
+            var code = HttpUtility.ParseQueryString(context.Request.Url.Query).Get("code");
 
             await SendRedirectResponse(context.Response);
 

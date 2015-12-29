@@ -12,7 +12,7 @@ using System.Text.RegularExpressions;
 namespace Azi.ACDDokanNet
 {
 
-    public class VirtualDrive : IDokanOperations
+    internal class VirtualDrive : IDokanOperations
     {
         FSProvider provider;
         public VirtualDrive(FSProvider provider)
@@ -29,22 +29,6 @@ namespace Azi.ACDDokanNet
                     var str = info.Context as IBlockStream;
                     if (str != null) str.Close();
                 }
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-            }
-        }
-
-        public void Mount(string path)
-        {
-            try
-            {
-#if DEBUG
-                this.Mount(path, DokanOptions.DebugMode | DokanOptions.NetworkDrive);
-#else
-                this.Mount(path, DokanOptions.NetworkDrive);
-#endif
             }
             catch (Exception e)
             {
@@ -124,6 +108,7 @@ namespace Azi.ACDDokanNet
             bool readWriteAttributes = (access & DataAccess) == 0;
             switch (mode)
             {
+                case FileMode.OpenOrCreate:
                 case FileMode.Open:
 
                     if (item == null) return DokanResult.FileNotFound;
@@ -170,7 +155,7 @@ namespace Azi.ACDDokanNet
 
         public NtStatus DeleteDirectory(string fileName, DokanFileInfo info)
         {
-            if (!provider.Exists(fileName) || provider.GetDirItems(fileName).Result.Any()) return DokanResult.DirectoryNotEmpty;
+            if (!provider.Exists(fileName)) return DokanResult.PathNotFound;
 
             provider.DeleteDir(fileName);
             return DokanResult.Success;
@@ -195,9 +180,9 @@ namespace Azi.ACDDokanNet
                     Length = i.Length,
                     FileName = i.Name,
                     Attributes = i.IsDir ? FileAttributes.Directory : FileAttributes.Normal,
-                    LastAccessTime = DateTime.Now,
-                    LastWriteTime = DateTime.Now,
-                    CreationTime = DateTime.Now
+                    LastAccessTime = i.LastAccessTime,
+                    LastWriteTime = i.LastWriteTime,
+                    CreationTime = i.CreationTime
                 }).ToList();
                 return DokanResult.Success;
             }
@@ -301,7 +286,7 @@ namespace Azi.ACDDokanNet
                 FileSystemFeatures.SupportsRemoteStorage |
                 FileSystemFeatures.UnicodeOnDisk |
                 FileSystemFeatures.SequentialWriteOnce;
-            fileSystemName = "ACD";
+            fileSystemName = provider.FileSystemName;
             return DokanResult.Success;
         }
 
@@ -450,13 +435,18 @@ namespace Azi.ACDDokanNet
             return DokanResult.NotImplemented;
         }
 
+        public Action OnMount;
+        internal Action OnUnmount;
+
         public NtStatus Mounted(DokanFileInfo info)
         {
+            OnMount?.Invoke();
             return DokanResult.Success;
         }
 
         public NtStatus Unmounted(DokanFileInfo info)
         {
+            OnUnmount?.Invoke();
             return DokanResult.Success;
         }
     }

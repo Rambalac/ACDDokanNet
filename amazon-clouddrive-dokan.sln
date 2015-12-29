@@ -20,6 +20,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tools", "Tools\Tools.csproj", "{199CDB28-7472-41BD-BB1F-BF345451A68D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACD.DokanNet.Gui", "ACD.DokanNet.Gui\ACD.DokanNet.Gui.csproj", "{B1639C0F-0459-4690-87AE-66EBED228F0F}"
+EndProject
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "ACDDokanNetInstaller", "ACDDokanNetInstaller\ACDDokanNetInstaller.vdproj", "{CD0ECDAA-982F-4E35-8BA9-E319D8D1F95F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "images", "images", "{C40D9D1E-23C5-46BF-B902-4DF1677F7C95}"
+	ProjectSection(SolutionItems) = preProject
+		images\Amazon Cloud Drive as real drive.png = images\Amazon Cloud Drive as real drive.png
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -46,8 +55,17 @@ Global
 		{199CDB28-7472-41BD-BB1F-BF345451A68D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{199CDB28-7472-41BD-BB1F-BF345451A68D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{199CDB28-7472-41BD-BB1F-BF345451A68D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B1639C0F-0459-4690-87AE-66EBED228F0F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B1639C0F-0459-4690-87AE-66EBED228F0F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B1639C0F-0459-4690-87AE-66EBED228F0F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B1639C0F-0459-4690-87AE-66EBED228F0F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CD0ECDAA-982F-4E35-8BA9-E319D8D1F95F}.Debug|Any CPU.ActiveCfg = Debug
+		{CD0ECDAA-982F-4E35-8BA9-E319D8D1F95F}.Release|Any CPU.ActiveCfg = Release
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{C40D9D1E-23C5-46BF-B902-4DF1677F7C95} = {F031D0CA-AD7C-4355-838D-CD12011F987C}
 	EndGlobalSection
 EndGlobal

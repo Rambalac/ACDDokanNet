@@ -4,11 +4,14 @@ using Azi.Amazon.CloudDrive.JsonObjects;
 using System.IO;
 using Azi.Amazon.CloudDrive;
 using Azi.Tools;
+using System.Threading;
 
 namespace Azi.ACDDokanNet
 {
-    public class NewBlockFileUploader : IBlockStream
+    public class NewFileBlockWriter : AbstractBlockStream
     {
+        public const string UploadFolder = "Upload";
+
         public delegate void OnUploadDelegate(FSItem node, AmazonNode amazonNode);
         public delegate void OnUploadFailedDelegate(FSItem node, string filePath, string localId);
 
@@ -18,12 +21,13 @@ namespace Azi.ACDDokanNet
         private string filePath;
         private readonly FileStream writer;
         private object fileLock = new object();
+        public readonly string CachedPath;
         private Task uploader;
         public OnUploadDelegate OnUpload;
+        public Action OnUploadStarted;
         public OnUploadFailedDelegate OnUploadFailed;
-        private bool closed = false;
 
-        public NewBlockFileUploader(FSItem dirNode, FSItem node, string filePath, FSProvider provider)
+        public NewFileBlockWriter(FSItem dirNode, FSItem node, string filePath, FSProvider provider)
         {
             this.dirNode = dirNode;
             this.Node = node;
@@ -35,20 +39,22 @@ namespace Azi.ACDDokanNet
                 Node = FSItem.FromFake(filePath, Guid.NewGuid().ToString());
             }
 
-            var path = Path.Combine(provider.SmallFileCache.CachePath, Node.Id);
+            var dir = Path.Combine(provider.CachePath, UploadFolder);
+            Directory.CreateDirectory(dir);
+            CachedPath = Path.Combine(dir, Node.Id);
             Log.Trace("Created file: " + filePath);
-            writer = File.OpenWrite(path);
+            writer = File.OpenWrite(CachedPath);
         }
 
-        public void Close()
+        int closed = 0;
+        public override void Close()
         {
-            if (closed) return;
+            if (Interlocked.CompareExchange(ref closed, 1, 0) == 1) return;
 
             long len = writer.Length;
             lock (fileLock)
             {
                 writer.Close();
-                closed = true;
             }
             Node.Length = len;
             Log.Trace("Closed file: " + filePath);
@@ -56,6 +62,7 @@ namespace Azi.ACDDokanNet
                 Log.Warn("Zero Length file: " + filePath);
             else
                 uploader = Task.Run(Upload);
+            base.Close();
         }
 
         private async Task Upload()
@@ -63,31 +70,33 @@ namespace Azi.ACDDokanNet
             try
             {
                 Log.Trace("Started upload: " + filePath);
+                OnUploadStarted?.Invoke();
                 var node = await provider.Amazon.Files.UploadNew(dirNode.Id, Path.GetFileName(filePath),
-                    () => new FileStream(Path.Combine(provider.SmallFileCache.CachePath, Node.Id), FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true));
+                    () => new FileStream(CachedPath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true));
                 if (node != null)
                 {
-                    OnUpload(dirNode, node);
+                    OnUpload?.Invoke(dirNode, node);
                     Log.Trace("Finished upload: " + filePath + " id:" + node.id);
                 }
                 else
                 {
-                    OnUploadFailed(dirNode, filePath, Node.Id);
+                    OnUploadFailed?.Invoke(dirNode, filePath, Node.Id);
                     throw new NullReferenceException("File node is null: " + filePath);
                 }
             }
             catch (Exception ex)
             {
                 Log.Error($"Upload failed: {filePath}\r\n{ex}");
+                OnUploadFailed?.Invoke(dirNode, filePath, Node.Id);
             }
         }
 
-        public int Read(long position, byte[] buffer, int offset, int count, int timeout = 1000)
+        public override int Read(long position, byte[] buffer, int offset, int count, int timeout = 1000)
         {
             throw new NotSupportedException();
         }
 
-        public void Write(long position, byte[] buffer, int offset, int count, int timeout = 1000)
+        public override void Write(long position, byte[] buffer, int offset, int count, int timeout = 1000)
         {
             lock (fileLock)
             {
@@ -98,7 +107,7 @@ namespace Azi.ACDDokanNet
             Log.Trace("Write byte: " + count);
         }
 
-        public void Flush()
+        public override void Flush()
         {
             writer.Flush();
         }
@@ -106,7 +115,7 @@ namespace Azi.ACDDokanNet
         #region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls
 
-        protected virtual void Dispose(bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (!disposedValue)
             {
@@ -119,12 +128,6 @@ namespace Azi.ACDDokanNet
             }
         }
 
-        // This code added to correctly implement the disposable pattern.
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-            Dispose(true);
-        }
         #endregion
     }
 }
