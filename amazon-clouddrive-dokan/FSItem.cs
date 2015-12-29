@@ -1,5 +1,6 @@
 ﻿using Azi.Amazon.CloudDrive.JsonObjects;
 using System;
+using System.Collections.Concurrent;
 
 namespace Azi.ACDDokanNet
 {
@@ -11,6 +12,8 @@ namespace Azi.ACDDokanNet
 
         public bool IsFake { get; internal set; } = false;
         public string Path { get; internal set; }
+
+        public ConcurrentBag<string> ParentIds { get; private set; }
         public string Id { get; internal set; }
         public bool IsDir { get; internal set; }
         public long Length { get; internal set; }
@@ -37,6 +40,7 @@ namespace Azi.ACDDokanNet
             LastAccessTime = item.LastAccessTime;
             LastWriteTime = item.LastWriteTime;
             CreationTime = item.CreationTime;
+            ParentIds = new ConcurrentBag<string>(item.ParentIds);
         }
 
         public void NotFake()
@@ -56,11 +60,12 @@ namespace Azi.ACDDokanNet
                 IsDir = node.kind == folderKind,
                 CreationTime = node.createdDate,
                 LastAccessTime = node.modifiedDate,
-                LastWriteTime = node.modifiedDate
+                LastWriteTime = node.modifiedDate,
+                ParentIds = new ConcurrentBag<string>(node.parents)
             };
         }
 
-        public static FSItem FromFake(string path, string cachedName)
+        public static FSItem FromFake(string path, string cachedName, string parentId)
         {
             var now = DateTime.UtcNow;
             return new FSItem
@@ -72,7 +77,8 @@ namespace Azi.ACDDokanNet
                 IsDir = false,
                 CreationTime = now,
                 LastAccessTime = now,
-                LastWriteTime = now
+                LastWriteTime = now,
+                ParentIds = new ConcurrentBag<string>(new string[] { parentId })
             };
         }
 

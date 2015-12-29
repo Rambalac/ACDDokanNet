@@ -8,6 +8,7 @@ using FileAccess = DokanNet.FileAccess;
 using Azi.Tools;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
+using System.Diagnostics;
 
 namespace Azi.ACDDokanNet
 {
@@ -325,7 +326,6 @@ namespace Azi.ACDDokanNet
             try
             {
                 var reader = info.Context as IBlockStream;
-                info.TryResetTimeout(readTimeout + 100);
 
                 bytesRead = reader.Read(offset, buffer, 0, buffer.Length, readTimeout);
                 return DokanResult.Success;

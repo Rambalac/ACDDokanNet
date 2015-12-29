@@ -35,34 +35,6 @@ namespace Azi.ACDDokanNet
         public int FSItemsExpirationSeconds = 5 * 60;
 
 
-        public void DeleteDir(string filePath)
-        {
-            lok.EnterWriteLock();
-            try
-            {
-                var dirPath = Path.GetDirectoryName(filePath);
-                DirItem dirItem;
-                if (pathToDirItem.TryGetValue(dirPath, out dirItem))
-                {
-                    dirItem.Items.RemoveWhere(i => i == filePath);
-                }
-
-                foreach (var key in pathToNode.Keys.Where(v => v.StartsWith(filePath, StringComparison.InvariantCulture)).ToList())
-                {
-                    pathToNode.Remove(key);
-                }
-
-                foreach (var key in pathToDirItem.Keys.Where(v => v.StartsWith(filePath, StringComparison.InvariantCulture)).ToList())
-                {
-                    pathToDirItem.Remove(key);
-                }
-            }
-            finally
-            {
-                lok.ExitWriteLock();
-            }
-        }
-
         public FSItem GetNode(string filePath)
         {
             lok.EnterUpgradeableReadLock();
@@ -152,12 +124,21 @@ namespace Azi.ACDDokanNet
             try
             {
                 DeleteFile(oldPath);
+                Add(newNode);
+            }
+            finally
+            {
+                lok.ExitWriteLock();
+            }
+        }
 
-                DirItem dir;
-                if (pathToDirItem.TryGetValue(newNode.Dir, out dir))
-                {
-                    dir.Items.Add(newNode.Path);
-                }
+        public void MoveDir(string oldPath, FSItem newNode)
+        {
+            lok.EnterWriteLock();
+            try
+            {
+                DeleteDir(oldPath);
+                Add(newNode);
             }
             finally
             {
@@ -178,25 +159,6 @@ namespace Azi.ACDDokanNet
             }
         }
 
-        public void MoveDir(string oldPath, FSItem newNode)
-        {
-            lok.EnterWriteLock();
-            try
-            {
-                DeleteDir(oldPath);
-
-                DirItem dir;
-                if (pathToDirItem.TryGetValue(newNode.Dir, out dir))
-                {
-                    dir.Items.Add(newNode.Path);
-                }
-            }
-            finally
-            {
-                lok.ExitWriteLock();
-            }
-        }
-
         public void DeleteFile(string filePath)
         {
             lok.EnterWriteLock();
@@ -209,6 +171,35 @@ namespace Azi.ACDDokanNet
                     dirItem.Items.Remove(filePath);
                 }
                 pathToNode.Remove(filePath);
+            }
+            finally
+            {
+                //Log.Warn("File deleted: " + filePath);
+                lok.ExitWriteLock();
+            }
+        }
+
+        public void DeleteDir(string filePath)
+        {
+            lok.EnterWriteLock();
+            try
+            {
+                var dirPath = Path.GetDirectoryName(filePath);
+                DirItem dirItem;
+                if (pathToDirItem.TryGetValue(dirPath, out dirItem))
+                {
+                    dirItem.Items.RemoveWhere(i => i == filePath);
+                }
+
+                foreach (var key in pathToNode.Keys.Where(v => v.StartsWith(filePath, StringComparison.InvariantCulture)).ToList())
+                {
+                    pathToNode.Remove(key);
+                }
+
+                foreach (var key in pathToDirItem.Keys.Where(v => v.StartsWith(filePath, StringComparison.InvariantCulture)).ToList())
+                {
+                    pathToDirItem.Remove(key);
+                }
             }
             finally
             {
