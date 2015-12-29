@@ -15,7 +15,7 @@ namespace Azi.ACDDokanNet
 {
     public class FSProvider : IDisposable
     {
-        static readonly string[] fsItemKinds = { "FILE", "FOLDER" };
+        static readonly AmazonNodeKind[] fsItemKinds = { AmazonNodeKind.FILE, AmazonNodeKind.FOLDER };
 
         internal readonly AmazonDrive Amazon;
         readonly NodeTreeCache nodeTreeCache = new NodeTreeCache();
@@ -121,7 +121,7 @@ namespace Azi.ACDDokanNet
                 if (webex == null || (webex.StatusCode != HttpStatusCode.NotFound && webex.StatusCode != HttpStatusCode.Conflict)) throw ex.InnerException;
             }
 
-            }
+        }
 
         public void DeleteDir(string filePath)
         {
@@ -131,7 +131,7 @@ namespace Azi.ACDDokanNet
                 if (!item.IsDir) throw new InvalidOperationException("Not dir");
                 DeleteItem(filePath, item);
                 nodeTreeCache.DeleteDir(filePath);
-        }
+            }
         }
 
         public void ClearSmallFilesCache()
@@ -272,7 +272,15 @@ namespace Azi.ACDDokanNet
         {
             if (itemPath == "\\" || itemPath == "") return FSItem.FromRoot(await Amazon.Nodes.GetRoot());
             var cached = nodeTreeCache.GetNode(itemPath);
-            if (cached != null) return cached;
+            if (cached != null)
+            {
+                if (cached.NotExistingDummy)
+                {
+                    Log.Warn("NonExisting path from cache: " + itemPath);
+                    return null;
+                }
+                return cached;
+            }
 
             var folders = new LinkedList<string>();
             var curpath = itemPath;
@@ -287,11 +295,18 @@ namespace Azi.ACDDokanNet
             if (item == null) item = FSItem.FromRoot(await Amazon.Nodes.GetRoot());
             foreach (var name in folders)
             {
-                var newnode = await Amazon.Nodes.GetChild(item.Id, name);
-                if (newnode == null || newnode.status != AmazonNodeStatus.AVAILABLE) return null;
-
                 if (curpath == "\\") curpath = "";
                 curpath = curpath + "\\" + name;
+
+                var newnode = await Amazon.Nodes.GetChild(item.Id, name);
+                if (newnode == null || newnode.status != AmazonNodeStatus.AVAILABLE)
+                {
+                    nodeTreeCache.AddNodeOnly(FSItem.MakeNotExistingDummy(curpath));
+                    Log.Error("NonExisting path from server: " + itemPath);
+                    return null;
+                }
+
+
                 item = FSItem.FromNode(curpath, newnode);
                 nodeTreeCache.Add(item);
             }

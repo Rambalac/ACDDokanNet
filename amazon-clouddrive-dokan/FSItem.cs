@@ -8,9 +8,10 @@ namespace Azi.ACDDokanNet
     {
         public readonly DateTime FetchTime = DateTime.UtcNow;
 
-        const string folderKind = "FOLDER";
-
         public bool IsFake { get; internal set; } = false;
+
+        // To replacement to cache files in path that does not exist
+        public bool NotExistingDummy { get; private set; } = false;
         public string Path { get; internal set; }
 
         public ConcurrentBag<string> ParentIds { get; private set; }
@@ -57,11 +58,20 @@ namespace Azi.ACDDokanNet
                 Length = node.contentProperties?.size ?? 0,
                 Id = node.id,
                 Path = itemPath,
-                IsDir = node.kind == folderKind,
+                IsDir = node.kind == AmazonNodeKind.FOLDER,
                 CreationTime = node.createdDate,
                 LastAccessTime = node.modifiedDate,
                 LastWriteTime = node.modifiedDate,
                 ParentIds = new ConcurrentBag<string>(node.parents)
+            };
+        }
+
+        public static FSItem MakeNotExistingDummy(string path)
+        {
+            return new FSItem
+            {
+                Path = path,
+                NotExistingDummy = true
             };
         }
 

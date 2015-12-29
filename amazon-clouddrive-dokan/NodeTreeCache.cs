@@ -88,6 +88,19 @@ namespace Azi.ACDDokanNet
 
         }
 
+        public void AddNodeOnly(FSItem item)
+        {
+            lok.EnterWriteLock();
+            try
+            {
+                pathToNode[item.Path] = item;
+            }
+            finally
+            {
+                lok.ExitWriteLock();
+            }
+        }
+
         public void Add(FSItem item)
         {
             lok.EnterWriteLock();

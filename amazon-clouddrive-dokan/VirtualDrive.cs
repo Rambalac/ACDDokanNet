@@ -84,8 +84,6 @@ namespace Azi.ACDDokanNet
             }
         }
 
-        static readonly Regex ignoreFilesPattern = new Regex("folder.(gif|jpg)$");
-
         public NtStatus _CreateFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
         {
             if (info.IsDirectory)
@@ -101,8 +99,6 @@ namespace Azi.ACDDokanNet
                 info.Context = new object();
                 return DokanResult.Success;
             }
-
-            if (access == FileAccess.ReadAttributes && ignoreFilesPattern.IsMatch(fileName)) return DokanResult.FileNotFound;
 
             var item = provider.GetItem(fileName);
 
