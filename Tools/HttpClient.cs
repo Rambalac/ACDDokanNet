@@ -334,12 +334,10 @@ namespace Azi.Tools
             return result;
         }
 
-        private MultipartFormDataContent GetMultipartFormDataContent(HttpWebRequest client, FileUpload file, Stream input)
+        public async Task<T> SendFile<T>(HttpMethod method, string url, FileUpload file)
         {
-            var content = new MultipartFormDataContent();
-            client.ContentType = content.Headers.ContentType.ToString();
-
-            if (file.Parameters != null)
+            T result = default(T);
+            await Retry.Do(retryTimes, retryDelay, async () =>
             {
                 var client = await GetHttpClient(url);
                 client.Method = method.ToString();
@@ -361,7 +359,7 @@ namespace Azi.Tools
                         await input.CopyToAsync(output);
                         await post.CopyToAsync(output);
                     }
-                    }
+                }
                 using (var response = (HttpWebResponse)await client.GetResponseAsync())
                 {
                     if (!response.IsSuccessStatusCode())
@@ -371,7 +369,7 @@ namespace Azi.Tools
 
                     result = await response.ReadAsAsync<T>();
                 }
-                    return true;
+                return true;
             }, GeneralExceptionProcessor);
             return result;
         }
