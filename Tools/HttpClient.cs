@@ -131,7 +131,7 @@ namespace Azi.Tools
         public async Task<T> GetJsonAsync<T>(string url)
         {
             return await Send<T>(HttpMethod.Get, url);
-        }
+                    }
 
         public async Task GetToStreamAsync(string url, Stream stream, long? fileOffset = null, long? length = null, int bufferSize = 4096, Func<long, long> progress = null)
         {
@@ -172,7 +172,7 @@ namespace Azi.Tools
                 client.Method = "GET";
 
                 using (var response = (HttpWebResponse)await client.GetResponseAsync())
-                {
+                    {
                     if (!response.IsSuccessStatusCode())
                     {
                         return await LogBadResponse(response);
@@ -216,7 +216,7 @@ namespace Azi.Tools
             {
                 var client = await GetHttpClient(url);
                 client.Method = method.ToString();
-                var content = new FormUrlEncodedContent(pars);
+                    var content = new FormUrlEncodedContent(pars);
                 client.ContentType = content.Headers.ContentType.ToString();
 
                 using (var output = await client.GetRequestStreamAsync())
@@ -233,7 +233,7 @@ namespace Azi.Tools
 
                     result = await response.ReadAsAsync<T>();
                 }
-                return true;
+                    return true;
             }, GeneralExceptionProcessor);
             return result;
         }
@@ -255,8 +255,8 @@ namespace Azi.Tools
             {
                 var client = await GetHttpClient(url);
                 client.Method = method.ToString();
-                var data = JsonConvert.SerializeObject(obj);
-                var content = new StringContent(data);
+                    var data = JsonConvert.SerializeObject(obj);
+                    var content = new StringContent(data);
                 client.ContentType = content.Headers.ContentType.ToString();
 
                 using (var output = await client.GetRequestStreamAsync())
@@ -273,7 +273,7 @@ namespace Azi.Tools
 
                     result = await responseParser(response);
                 }
-                return true;
+                    return true;
             }, GeneralExceptionProcessor);
             return result;
         }
@@ -295,7 +295,7 @@ namespace Azi.Tools
 
                     result = await responseParser(response);
                 }
-                return true;
+                    return true;
             }, GeneralExceptionProcessor);
             return result;
         }

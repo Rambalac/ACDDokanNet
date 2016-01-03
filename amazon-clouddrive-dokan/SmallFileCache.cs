@@ -135,14 +135,14 @@ namespace Azi.ACDDokanNet
                                 if (contentRange.From != writer.Length) throw new InvalidOperationException("Content range does not match request");
                             }
                             using (var stream = response.GetResponseStream())
+                        {
+                            int red = 0;
+                            do
                             {
-                                int red = 0;
-                                do
-                                {
-                                    red = await stream.ReadAsync(buf, 0, buf.Length);
-                                    if (writer.Length == 0) Log.Trace("Got first part: " + node.Id + " in " + start.ElapsedMilliseconds);
-                                    writer.Write(buf, 0, red);
-                                } while (red > 0);
+                                red = await stream.ReadAsync(buf, 0, buf.Length);
+                                if (writer.Length == 0) Log.Trace("Got first part: " + node.Id + " in " + start.ElapsedMilliseconds);
+                                writer.Write(buf, 0, red);
+                            } while (red > 0);
                             }
                         });
                         if (writer.Length < node.Length) await Task.Delay(500);

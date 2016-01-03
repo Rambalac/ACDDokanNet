@@ -27,6 +27,7 @@ namespace Azi.Tools
             [CallerFilePath] string sourceFilePath = "",
             [CallerLineNumber] int sourceLineNumber = 0)
         {
+            Console.WriteLine($"{DateTime.Now} {memberName}: {message}\r\n\r\n{sourceFilePath}: {sourceLineNumber}");
             WriteEntry(message, EventLogEntryType.Error, memberName, sourceFilePath, sourceLineNumber);
         }
 

@@ -45,9 +45,9 @@ namespace Azi.ACDDokanNet
             try
             {
 #if DEBUG
-                virtualDrive.Mount(path, DokanOptions.DebugMode);
+                virtualDrive.Mount(path, DokanOptions.DebugMode | DokanOptions.FixedDrive, 0, 800, TimeSpan.FromSeconds(30));
 #else
-                virtualDrive.Mount(path);
+                virtualDrive.Mount(path, DokanOptions.FixedDrive,0, 800, TimeSpan.FromSeconds(30));
 #endif
             }
             catch (DokanException e)

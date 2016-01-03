@@ -6,7 +6,15 @@ namespace Azi.Amazon.CloudDrive.JsonObjects
     public enum AmazonNodeStatus
     {
         AVAILABLE,
-        TRASH
+        TRASH,
+        PURGED
+    }
+
+    public enum AmazonNodeKind
+    {
+        FILE,
+        ASSET,
+        FOLDER
     }
 
     public class AmazonNode
@@ -17,7 +25,7 @@ namespace Azi.Amazon.CloudDrive.JsonObjects
         public string eTagResponse { get; set; }
         public string id { get; set; }
         public string name { get; set; }
-        public string kind { get; set; }
+        public AmazonNodeKind kind { get; set; }
         public int version { get; set; }
         public DateTime modifiedDate { get; set; }
         public DateTime createdDate { get; set; }
