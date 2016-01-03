@@ -30,6 +30,13 @@ namespace Azi.ACDDokanNet
                     var str = info.Context as IBlockStream;
                     if (str != null) str.Close();
                 }
+                if (info.DeleteOnClose)
+                {
+                    if (info.IsDirectory)
+                        provider.DeleteDir(fileName);
+                    else
+                        provider.DeleteFile(fileName);
+                }
             }
             catch (Exception e)
             {
