@@ -1,5 +1,4 @@
 ﻿using Azi.Amazon.CloudDrive;
-using Azi.Amazon.CloudDrive.JsonObjects;
 using Azi.Tools;
 using System;
 using System.Collections.Concurrent;
@@ -135,14 +134,14 @@ namespace Azi.ACDDokanNet
                                 if (contentRange.From != writer.Length) throw new InvalidOperationException("Content range does not match request");
                             }
                             using (var stream = response.GetResponseStream())
-                        {
-                            int red = 0;
-                            do
                             {
-                                red = await stream.ReadAsync(buf, 0, buf.Length);
-                                if (writer.Length == 0) Log.Trace("Got first part: " + node.Id + " in " + start.ElapsedMilliseconds);
-                                writer.Write(buf, 0, red);
-                            } while (red > 0);
+                                int red = 0;
+                                do
+                                {
+                                    red = await stream.ReadAsync(buf, 0, buf.Length);
+                                    if (writer.Length == 0) Log.Trace("Got first part: " + node.Id + " in " + start.ElapsedMilliseconds);
+                                    writer.Write(buf, 0, red);
+                                } while (red > 0);
                             }
                         });
                         if (writer.Length < node.Length) await Task.Delay(500);
@@ -259,21 +258,33 @@ namespace Azi.ACDDokanNet
             TotalSize = t;
         }
 
+        internal void AddExisting(FSItem item)
+        {
+            access.TryAdd(item.Id, new CacheEntry { Id = item.Id, AccessTime = DateTime.UtcNow });
+        }
+
         public SmallFileCache(AmazonDrive a)
         {
             Amazon = a;
         }
 
-        public IBlockStream OpenRead(FSItem node)
+        public IBlockStream OpenReadWithDownload(FSItem node)
         {
             var path = Path.Combine(cachePath, node.Id);
             StartDownload(node, path);
+
+            return OpenReadCachedOnly(node);
+        }
+
+        public IBlockStream OpenReadCachedOnly(FSItem node)
+        {
+            var path = Path.Combine(cachePath, node.Id);
 
             CacheEntry entry;
             if (access.TryGetValue(node.Id, out entry)) entry.AccessTime = DateTime.UtcNow;
 
             Log.Trace("Opened cached: " + node.Id);
-            return new FileBlockReader(path, node.Length);
+            return FileBlockReader.Open(path, node.Length);
         }
     }
 }

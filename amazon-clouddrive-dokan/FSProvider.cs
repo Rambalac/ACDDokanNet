@@ -166,7 +166,10 @@ namespace Azi.ACDDokanNet
                 if (!item.IsFake)
                 {
                     if (item.Length < SmallFileSizeLimit)
-                        return SmallFilesCache.OpenRead(item);
+                        return SmallFilesCache.OpenReadWithDownload(item);
+
+                    var result = SmallFilesCache.OpenReadCachedOnly(item);
+                    if (result != null) return result;
 
                     Interlocked.Increment(ref downloadingCount);
                     var buffered = new BufferedAmazonBlockReader(item, Amazon);
@@ -179,7 +182,7 @@ namespace Azi.ACDDokanNet
                     return buffered;
                 }
 
-                return new FileBlockReader(Path.Combine(CachePath, NewFileBlockWriter.UploadFolder, item.Id), item.Length);
+                return FileBlockReader.Open(Path.Combine(CachePath, NewFileBlockWriter.UploadFolder, item.Id), item.Length);
             }
 
             if (mode == FileMode.CreateNew || ((mode == FileMode.Create || mode == FileMode.OpenOrCreate) && (item == null || item.Length == 0)))
@@ -197,7 +200,7 @@ namespace Azi.ACDDokanNet
                       if (newnode == null) return false;
 
                       Amazon.Nodes.Add(dirItem.Id, newnode.id).Wait();
-                      var newitem = FSItem.FromNode(item.Path, newnode);
+                      var newitem = FSItem.FromNode(filePath, newnode);
                       newitem.ParentIds.Add(dirItem.Id);
 
                       nodeTreeCache.Update(newitem);
@@ -216,10 +219,14 @@ namespace Azi.ACDDokanNet
                       OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
 
                       var newitemPath = Path.Combine(SmallFilesCache.CachePath, newnode.id);
-                      if (!File.Exists(newitemPath))
-                          File.Move(uploader.CachedPath, newitemPath);
+                      var newitem = FSItem.FromNode(filePath, newnode);
 
-                      var newitem = FSItem.FromNode(item.Path, newnode);
+                      if (!File.Exists(newitemPath))
+                      {
+                          File.Move(uploader.CachedPath, newitemPath);
+                          SmallFilesCache.AddExisting(newitem);
+                      }
+
                       nodeTreeCache.Update(newitem);
                   };
                 uploader.OnUploadFailed = (parent, path, id) =>
@@ -276,7 +283,7 @@ namespace Azi.ACDDokanNet
             {
                 if (cached.NotExistingDummy)
                 {
-                    Log.Warn("NonExisting path from cache: " + itemPath);
+                    //Log.Warn("NonExisting path from cache: " + itemPath);
                     return null;
                 }
                 return cached;
@@ -302,7 +309,7 @@ namespace Azi.ACDDokanNet
                 if (newnode == null || newnode.status != AmazonNodeStatus.AVAILABLE)
                 {
                     nodeTreeCache.AddNodeOnly(FSItem.MakeNotExistingDummy(curpath));
-                    Log.Error("NonExisting path from server: " + itemPath);
+                    //Log.Error("NonExisting path from server: " + itemPath);
                     return null;
                 }
 

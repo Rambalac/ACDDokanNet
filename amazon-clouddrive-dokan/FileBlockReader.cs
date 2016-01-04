@@ -19,11 +19,27 @@ namespace Azi.ACDDokanNet
         private readonly long expectedLength;
         private readonly string filePath;
 
-        public FileBlockReader(string path, long length)
+        private FileBlockReader(string path, long length)
         {
             filePath = path;
             expectedLength = length;
             files = new ThreadLocal<FileStream>(() => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite), true);
+        }
+
+        public static FileBlockReader Open(string path, long length)
+        {
+            var result = new FileBlockReader(path, length);
+            try
+            {
+                if (result.files.Value.CanRead) return result;
+            }
+            catch (IOException)
+            {
+                //Skip
+            }
+
+            result.Dispose();
+            return null;
         }
 
         int closed = 0;
