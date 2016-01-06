@@ -15,7 +15,7 @@ Pros
 * Driver presents Amazon Cloud Drive as it is with folders and files. 
 * Driver does not create any special files on your Amazon Cloud Drive.
 * Same Amazon Cloud Drive can be used on multiple PCs with this Driver or in Web simultaneously. 
-There can be a conflict if you try to upload file which was also upload same time with other way, only first file will remain.
+There can be a conflict if you try to upload file which was also uploaded same time with other way, only first file will remain.
 
 Issues
 ------
