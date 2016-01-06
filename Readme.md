@@ -28,7 +28,7 @@ Notes
 -----
 * Copying file from Amazon Cloud Drive into different folder in the same cloud will download file and reupload it back.
 * There is no limit for Upload folder where files for upload are stored.
-* Folders are cached in memory for 60 seconds. If you deleted or 
+* Folders are cached in memory for 60 seconds. If you deleted or uploaded some files in other way they will not appear/disappear same time even if you refresh folder, you have to wait up to 60 seconds and then refresh.
 
 Prerequisites
 -------------
