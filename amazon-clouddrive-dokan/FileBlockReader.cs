@@ -15,7 +15,7 @@ namespace Azi.ACDDokanNet
 
     public class FileBlockReader : AbstractBlockStream
     {
-        private readonly ThreadLocal<FileStream> files;
+        private readonly ConcurrentBag<FileStream> files;
         private readonly long expectedLength;
         private readonly string filePath;
 
@@ -23,7 +23,19 @@ namespace Azi.ACDDokanNet
         {
             filePath = path;
             expectedLength = length;
-            files = new ThreadLocal<FileStream>(() => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite), true);
+            files = new ConcurrentBag<FileStream>();
+        }
+
+        private FileStream GetFile()
+        {
+            FileStream result;
+            if (files.TryTake(out result)) return result;
+            return new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        }
+
+        private void ReleaseFile(FileStream file)
+        {
+            files.Add(file);
         }
 
         public static FileBlockReader Open(string path, long length)
@@ -31,7 +43,7 @@ namespace Azi.ACDDokanNet
             var result = new FileBlockReader(path, length);
             try
             {
-                if (result.files.Value.CanRead) return result;
+                if (result.GetFile().CanRead) return result;
             }
             catch (IOException)
             {
@@ -49,7 +61,7 @@ namespace Azi.ACDDokanNet
 
             Log.Trace(Path.GetFileName(filePath));
 
-            foreach (var file in files.Values)
+            foreach (var file in files)
             {
                 file.Close();
             }
@@ -63,15 +75,22 @@ namespace Azi.ACDDokanNet
             if (expectedLength == 0) return 0;
             var timeouttime = DateTime.UtcNow.AddMilliseconds(timeout);
             int red;
-            do
+            var file = GetFile();
+            try
             {
-                var file = files.Value;
                 file.Position = position;
-                red = file.Read(buffer, offset, count);
-                if (red != 0) return red;
-                Thread.Sleep(waitForFile);
-                if (DateTime.UtcNow > timeouttime) throw new TimeoutException();
-            } while (true);
+                do
+                {
+                    red = file.Read(buffer, offset, count);
+                    if (red != 0) return red;
+                    Thread.Sleep(waitForFile);
+                    if (DateTime.UtcNow > timeouttime) throw new TimeoutException();
+                } while (true);
+            }
+            finally
+            {
+                ReleaseFile(file);
+            }
         }
 
         public override void Write(long position, byte[] buffer, int offset, int count, int timeout = 1000)
@@ -92,7 +111,10 @@ namespace Azi.ACDDokanNet
             {
                 if (disposing)
                 {
-                    files.Dispose();
+                    foreach (var file in files)
+                    {
+                        file.Dispose();
+                    }
                 }
 
                 disposedValue = true;

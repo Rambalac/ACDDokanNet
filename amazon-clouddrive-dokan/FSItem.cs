@@ -75,14 +75,14 @@ namespace Azi.ACDDokanNet
             };
         }
 
-        public static FSItem FromFake(string path, string cachedName, string parentId)
+        public static FSItem FromFake(string path, string cachedId, string parentId)
         {
             var now = DateTime.UtcNow;
             return new FSItem
             {
                 IsFake = true,
                 Length = 0,
-                Id = cachedName,
+                Id = cachedId,
                 Path = path,
                 IsDir = false,
                 CreationTime = now,

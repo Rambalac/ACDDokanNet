@@ -340,7 +340,7 @@ namespace Azi.ACDDokanNet
             }
             catch (NotSupportedException)
             {
-                Log.Warn("ReadWrite: " + fileName);
+                Log.Warn("ReadWrite not supported: " + fileName);
                 bytesRead = 0;
                 return DokanResult.AccessDenied;
             }
@@ -419,7 +419,7 @@ namespace Azi.ACDDokanNet
             }
             catch (NotSupportedException)
             {
-                Log.Warn("ReadWrite: " + fileName);
+                Log.Warn("ReadWrite not supported: " + fileName);
                 bytesWritten = 0;
                 return DokanResult.AccessDenied;
             }

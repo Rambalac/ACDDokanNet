@@ -13,7 +13,7 @@ using Tools;
 namespace Azi.ACDDokanNet
 {
 
-    public class NodeTreeCache : IDisposable
+    public class ItemsTreeCache : IDisposable
     {
         class DirItem
         {
@@ -35,7 +35,7 @@ namespace Azi.ACDDokanNet
         public int FSItemsExpirationSeconds = 5 * 60;
 
 
-        public FSItem GetNode(string filePath)
+        public FSItem GetItem(string filePath)
         {
             lok.EnterUpgradeableReadLock();
             FSItem item;
@@ -88,7 +88,7 @@ namespace Azi.ACDDokanNet
 
         }
 
-        public void AddNodeOnly(FSItem item)
+        public void AddItemOnly(FSItem item)
         {
             lok.EnterWriteLock();
             try

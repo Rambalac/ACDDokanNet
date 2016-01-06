@@ -296,10 +296,10 @@ namespace Azi.ACDDokanNet.Gui
 
         private void Application_Exit(object sender, ExitEventArgs e)
         {
-            if (mounted != 0)
-                VirtualDriveWrapper.Unmount((char)mountedLetter);
-
             if (notifyIcon != null) notifyIcon.Dispose();
+            if (mounted == 0) return;
+            VirtualDriveWrapper.Unmount((char)mountedLetter);
+            mountTask.Wait();
         }
 
         #region IDisposable Support

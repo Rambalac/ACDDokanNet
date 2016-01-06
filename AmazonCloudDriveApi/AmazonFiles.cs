@@ -33,9 +33,10 @@ namespace Azi.Amazon.CloudDrive
             return await http.SendFile<AmazonNode>(HttpMethod.Put, url, file);
         }
 
-        public async Task<AmazonNode> UploadNew(string parentId, string fileName, Func<Stream> streamCreator)
+        public async Task<AmazonNode> UploadNew(string parentId, string fileName, Func<Stream> streamCreator, bool allowDuplicate=true)
         {
             var url = string.Format("{0}nodes", await amazon.GetContentUrl());
+            if (allowDuplicate) url += "?suppress=deduplication";
 
             var obj = new NewChild { name = fileName, parents = new string[] { parentId }, kind = "FILE" };
             string meta = JsonConvert.SerializeObject(obj);
