@@ -189,7 +189,6 @@ namespace Azi.ACDDokanNet
 
         public IBlockStream OpenFile(string filePath, FileMode mode, FileAccess fileAccess, FileShare share, FileOptions options)
         {
-            if (fileAccess == FileAccess.ReadWrite) return null;
             var item = GetItem(filePath);
             if (fileAccess == FileAccess.Read)
             {

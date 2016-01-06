@@ -72,20 +72,27 @@ namespace Azi.ACDDokanNet
 
         public override int Read(long position, byte[] buffer, int offset, int count, int timeout)
         {
-            if (expectedLength == 0) return 0;
+            if (count == 0 || expectedLength == 0) return 0;
             var timeouttime = DateTime.UtcNow.AddMilliseconds(timeout);
             int red;
             var file = GetFile();
+            int totalred = 0;
             try
             {
                 file.Position = position;
                 do
                 {
                     red = file.Read(buffer, offset, count);
-                    if (red != 0) return red;
-                    Thread.Sleep(waitForFile);
+                    totalred += red;
+                    offset += red;
+                    count -= red;
+                    if (file.Position < expectedLength && red == 0)
+                    {
+                        Thread.Sleep(waitForFile);
+                    }
                     if (DateTime.UtcNow > timeouttime) throw new TimeoutException();
-                } while (true);
+                } while (file.Position < expectedLength && count > 0);
+                return totalred;
             }
             finally
             {

@@ -101,6 +101,10 @@ namespace Azi.ACDDokanNet
                     writer.Close();
                     return;
                 }
+                if (writer.Length>0)
+                {
+                    Log.Warn($"File was not totally downloaded. Should be {node.Length} but was {writer.Length}: {path}");
+                }
                 Task.Run(async () => await Download(node, writer));
             }
             catch (IOException e)

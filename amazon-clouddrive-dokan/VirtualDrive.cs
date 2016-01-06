@@ -112,7 +112,6 @@ namespace Azi.ACDDokanNet
             bool readWriteAttributes = (access & DataAccess) == 0;
             switch (mode)
             {
-                case FileMode.OpenOrCreate:
                 case FileMode.Open:
 
                     if (item == null) return DokanResult.FileNotFound;
