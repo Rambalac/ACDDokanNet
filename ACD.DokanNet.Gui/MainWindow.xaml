@@ -7,7 +7,7 @@
         xmlns:p="clr-namespace:Azi.ACDDokanNet.Gui.Properties"
         x:Class="Azi.ACDDokanNet.Gui.MainWindow"
         mc:Ignorable="d"
-        Title="MainWindow" ResizeMode="NoResize" SizeToContent="WidthAndHeight">
+        Title="ACD Dokan.Net Settings" ResizeMode="NoResize" SizeToContent="WidthAndHeight" Closing="Window_Closing">
     <Window.DataContext>
         <local:ViewModel/>
     </Window.DataContext>

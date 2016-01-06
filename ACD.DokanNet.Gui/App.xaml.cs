@@ -1,10 +1,12 @@
 ﻿using Azi.Amazon.CloudDrive;
 using Microsoft.Win32;
 using System;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
+using System.Windows.Interop;
 using Application = System.Windows.Application;
 
 namespace Azi.ACDDokanNet.Gui
@@ -117,17 +119,8 @@ namespace Azi.ACDDokanNet.Gui
 
         void OpenSettings()
         {
-            if (MainWindow != null)
-            {
-                MainWindow.Focus();
-                return;
-            }
-            MainWindow = new MainWindow();
-            MainWindow.Closed += (sender, e) =>
-            {
-                MainWindow = null;
-            };
             MainWindow.Show();
+            MainWindow.Activate();
         }
 
         private void menuItem_Click(object sender, EventArgs e)
@@ -144,12 +137,15 @@ namespace Azi.ACDDokanNet.Gui
             if (!created)
             {
                 Shutdown();
+                return;
             }
 
+            MainWindow = new MainWindow();
             SetupNotifyIcon();
 
             Task task;
             if (GetAutorun()) task = Mount(Gui.Properties.Settings.Default.LastDriveLetter);
+
 
             if (e.Args.Length > 0)
             {
@@ -157,7 +153,7 @@ namespace Azi.ACDDokanNet.Gui
                 return;
             }
 
-            OpenSettings();
+            MainWindow.Show();
         }
 
         static char? mountedLetter = null;

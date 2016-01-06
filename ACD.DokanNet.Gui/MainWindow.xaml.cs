@@ -79,5 +79,11 @@ namespace Azi.ACDDokanNet.Gui
                 MessageBox.Show(this, ex.Message);
             }
         }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            e.Cancel = true;
+            Hide();
+        }
     }
 }
