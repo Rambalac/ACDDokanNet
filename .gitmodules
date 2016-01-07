@@ -1,0 +1,3 @@
+[submodule "AmazonCloudDriveApi"]
+	path = AmazonCloudDriveApi
+	url = https://github.com/Rambalac/AmazonCloudDriveApi.git

@@ -43,11 +43,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ConcurrentHashSet.cs" />
-    <Compile Include="FuncEqualityComparer.cs" />
-    <Compile Include="HttpClient.cs" />
     <Compile Include="Log.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Retry.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
