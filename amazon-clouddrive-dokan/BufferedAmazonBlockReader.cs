@@ -26,7 +26,7 @@ namespace Azi.ACDDokanNet
         }
         AmazonDrive amazon;
         private FSItem item;
-        const int blockSize = 1 * 1024 * 1024;
+        const int blockSize = 4 * 1024 * 1024;
         const int keepLastBlocks = 5;
         ConcurrentDictionary<long, Block> blocks = new ConcurrentDictionary<long, Block>(5, keepLastBlocks * 5);
 
