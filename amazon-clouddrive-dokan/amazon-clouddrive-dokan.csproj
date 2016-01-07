@@ -78,10 +78,6 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\AmazonCloudDriveApi\AmazonCloudDriveApi.csproj">
-      <Project>{6b9bd9ba-3b77-4f1a-b132-45e68d9951ee}</Project>
-      <Name>AmazonCloudDriveApi</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Tools\Tools.csproj">
       <Project>{199cdb28-7472-41bd-bb1f-bf345451a68d}</Project>
       <Name>Tools</Name>
