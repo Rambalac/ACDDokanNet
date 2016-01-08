@@ -67,15 +67,15 @@ namespace Azi.ACDDokanNet
                 Interlocked.Decrement(ref uploadingCount);
                 OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
 
-                itemsTreeCache.DeleteFile(item.Path);
+                itemsTreeCache.DeleteFile(item.path);
             };
             UploadService.OnUploadFinished = (item, node) =>
               {
                   Interlocked.Decrement(ref uploadingCount);
                   OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
 
-                  var newitem = FSItem.FromNode(item.Path, node);
-                  var olditemPath = Path.Combine(UploadService.CachePath, item.Id);
+                  var newitem = FSItem.FromNode(item.path, node);
+                  var olditemPath = Path.Combine(UploadService.CachePath, item.id);
                   var newitemPath = Path.Combine(SmallFilesCache.CachePath, node.id);
 
                   if (!File.Exists(newitemPath))
@@ -132,7 +132,7 @@ namespace Azi.ACDDokanNet
             }
         }
 
-        public void DeleteItem(string filePath, FSItem item)
+        private void DeleteItem(string filePath, FSItem item)
         {
             try
             {
@@ -194,7 +194,7 @@ namespace Azi.ACDDokanNet
             {
                 if (item == null) return null;
 
-                if (!item.IsFake)
+                if (!item.IsUploading)
                 {
                     if (item.Length < SmallFileSizeLimit)
                         return SmallFilesCache.OpenReadWithDownload(item);
@@ -203,6 +203,7 @@ namespace Azi.ACDDokanNet
                     if (result != null) return result;
 
                     Interlocked.Increment(ref downloadingCount);
+                    OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
                     var buffered = new BufferedAmazonBlockReader(item, Amazon);
                     buffered.OnClose = () =>
                       {
@@ -216,13 +217,13 @@ namespace Azi.ACDDokanNet
                 return FileBlockReader.Open(Path.Combine(CachePath, UploadService.CachePath, item.Id), item.Length);
             }
 
-            if (mode == FileMode.CreateNew || ((mode == FileMode.Create || mode == FileMode.OpenOrCreate) && (item == null || item.Length == 0)))
+            if (mode == FileMode.CreateNew || ((mode == FileMode.Create || mode == FileMode.OpenOrCreate || mode == FileMode.Append) && (item == null || item.Length == 0)))
             {
                 var dir = Path.GetDirectoryName(filePath);
                 var name = Path.GetFileName(filePath);
                 var dirItem = GetItem(dir);
 
-                if (item == null) item = FSItem.FromFake(filePath, Guid.NewGuid().ToString(), dirItem.Id);
+                if (item == null) item = FSItem.MakeUploading(filePath, Guid.NewGuid().ToString(), dirItem.Id);
 
                 var uploader = UploadService.OpenNew(item);
                 Interlocked.Increment(ref uploadingCount);
@@ -234,6 +235,38 @@ namespace Azi.ACDDokanNet
                 return uploader;
             }
 
+            if (item == null) return null;
+            if (mode == FileMode.Open || mode == FileMode.Append || mode == FileMode.OpenOrCreate)
+            {
+                if (item.Length < SmallFileSizeLimit)
+                {
+                    var file = SmallFilesCache.OpenReadWrite(item);
+                    file.OnChangedAndClosed = (it, path) =>
+                    {
+                        Interlocked.Increment(ref uploadingCount);
+                        OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+
+                        if (!it.IsUploading)
+                        {
+                            var newitem = FSItem.MakeUploading(it.Path, it.Id, it.ParentIds.First());
+                            var olditemPath = Path.Combine(SmallFilesCache.CachePath, item.Id);
+                            var newitemPath = Path.Combine(UploadService.CachePath, item.Id);
+
+                            if (File.Exists(newitemPath)) File.Delete(newitemPath);
+                            {
+                                File.Move(olditemPath, newitemPath);
+                                SmallFilesCache.AddExisting(newitem);
+                            }
+                            itemsTreeCache.Update(newitem);
+                        }
+
+                        UploadService.AddOverwrite(it);
+                    };
+
+                    return file;
+                }
+                Log.Warn("File is too big for ReadWrite: " + filePath);
+            }
             return null;
         }
 

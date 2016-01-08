@@ -22,10 +22,21 @@ namespace Azi.ACDDokanNet
 
     public class UploadService : IDisposable
     {
-        class UploadInfo
+        public class UploadInfo
         {
+            public long length;
+            public string id;
             public string path;
             public string parentId;
+            public bool overwrite = false;
+
+            public UploadInfo(FSItem item)
+            {
+                id = item.Id;
+                path = item.Path;
+                parentId = item.ParentIds.First();
+                length = item.Length;
+            }
         }
 
         public const string UploadFolder = "Upload";
@@ -34,13 +45,13 @@ namespace Azi.ACDDokanNet
 
 
         readonly SemaphoreSlim uploadLimit;
-        readonly BlockingCollection<FSItem> uploads = new BlockingCollection<FSItem>();
+        readonly BlockingCollection<UploadInfo> uploads = new BlockingCollection<UploadInfo>();
         readonly CancellationTokenSource cancellation = new CancellationTokenSource();
         readonly AmazonDrive amazon;
 
 
-        public delegate void OnUploadFinishedDelegate(FSItem item, AmazonNode amazonNode);
-        public delegate void OnUploadFailedDelegate(FSItem item, FailReason reason);
+        public delegate void OnUploadFinishedDelegate(UploadInfo item, AmazonNode amazonNode);
+        public delegate void OnUploadFailedDelegate(UploadInfo item, FailReason reason);
 
         public OnUploadFinishedDelegate OnUploadFinished;
         public OnUploadFailedDelegate OnUploadFailed;
@@ -72,7 +83,7 @@ namespace Azi.ACDDokanNet
             foreach (var file in files)
             {
                 var uploadinfo = JsonConvert.DeserializeObject<UploadInfo>(File.ReadAllText(file));
-                var item = FSItem.FromFake(uploadinfo.path, Path.GetFileNameWithoutExtension(file), uploadinfo.parentId);
+                var item = FSItem.MakeUploading(uploadinfo.path, Path.GetFileNameWithoutExtension(file), uploadinfo.parentId);
                 var fileinfo = new FileInfo(file);
                 item.Length = fileinfo.Length;
                 OnUploadResumed(item);
@@ -86,16 +97,27 @@ namespace Azi.ACDDokanNet
             this.amazon = amazon;
         }
 
-        public void AddUpload(FSItem item)
+        private void AddUpload(FSItem item)
         {
-            uploads.Add(item);
+            var info = new UploadInfo(item);
+
+            uploads.Add(info);
             var path = Path.Combine(cachePath, item.Id);
-            File.WriteAllText(path + ".info", JsonConvert.SerializeObject(new UploadInfo
-            {
-                path = item.Path,
-                parentId = item.ParentIds.First()
-            }));
+            File.WriteAllText(path + ".info", JsonConvert.SerializeObject(info));
         }
+
+        public void AddOverwrite(FSItem item)
+        {
+            var info = new UploadInfo(item)
+            {
+                overwrite = true
+            };
+
+            uploads.Add(info);
+            var path = Path.Combine(cachePath, item.Id);
+            File.WriteAllText(path + ".info", JsonConvert.SerializeObject(info));
+        }
+
 
         private string CalcMD5(string path)
         {
@@ -111,53 +133,53 @@ namespace Azi.ACDDokanNet
 
 
 
-        private async Task Upload(FSItem item)
+        private async Task Upload(UploadInfo item)
         {
             try
             {
-                var path = Path.Combine(cachePath, item.Id);
-                if (item.Length == 0)
+                var path = Path.Combine(cachePath, item.id);
+                if (item.length == 0)
                 {
-                    Log.Warn("Zero Length file: " + item.Path);
+                    Log.Warn("Zero Length file: " + item.path);
                     OnUploadFailed(item, FailReason.ZeroLength);
                     return;
                 }
 
-                Log.Trace("Started upload: " + item.Path);
-                var node = await amazon.Files.UploadNew(item.ParentIds.Single(), Path.GetFileName(item.Path),
+                Log.Trace("Started upload: " + item.path);
+                var node = await amazon.Files.UploadNew(item.parentId, Path.GetFileName(item.path),
                     () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true));
                 if (node != null)
                 {
                     File.Delete(path + ".info");
                     OnUploadFinished(item, node);
-                    Log.Trace("Finished upload: " + item.Path + " id:" + node.id);
+                    Log.Trace("Finished upload: " + item.path + " id:" + node.id);
                     return;
                 }
                 else
                 {
                     OnUploadFailed(item, FailReason.NoNode);
-                    throw new NullReferenceException("File node is null: " + item.Path);
+                    throw new NullReferenceException("File node is null: " + item.path);
                 }
             }
             catch (HttpWebException ex)
             {
                 if (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
                 {
-                    Log.Error($"Upload conflict: {item.Path}\r\n{ex}");
+                    Log.Error($"Upload conflict: {item.path}\r\n{ex}");
                     return;
                 }
                 throw;
             }
             catch (Exception ex)
             {
-                Log.Error($"Upload failed: {item.Path}\r\n{ex}");
+                Log.Error($"Upload failed: {item.path}\r\n{ex}");
             }
             finally
             {
                 uploadLimit.Release();
             }
             await Task.Delay(reuploadDelay);
-            AddUpload(item);
+            uploads.Add(item);
         }
 
         public NewFileBlockWriter OpenNew(FSItem item)
@@ -189,7 +211,7 @@ namespace Azi.ACDDokanNet
         }
         private void UploadTask()
         {
-            FSItem upload;
+            UploadInfo upload;
             while (uploads.TryTake(out upload, -1, cancellation.Token))
             {
                 var uploadCopy = upload;
@@ -232,6 +254,7 @@ namespace Azi.ACDDokanNet
             // TODO: uncomment the following line if the finalizer is overridden above.
             // GC.SuppressFinalize(this);
         }
+
         #endregion
     }
 }

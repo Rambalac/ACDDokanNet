@@ -23,6 +23,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "images", "images", "{C40D9D
 		images\Amazon Cloud Drive as real drive.png = images\Amazon Cloud Drive as real drive.png
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "amazon-clouddrive-dokanTests", "amazon-clouddrive-dokanTests\amazon-clouddrive-dokanTests.csproj", "{07444044-FB75-4639-AF4B-044A48EAD482}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -43,6 +45,10 @@ Global
 		{B1639C0F-0459-4690-87AE-66EBED228F0F}.Release|Any CPU.Build.0 = Release|Any CPU
 		{CD0ECDAA-982F-4E35-8BA9-E319D8D1F95F}.Debug|Any CPU.ActiveCfg = Debug
 		{CD0ECDAA-982F-4E35-8BA9-E319D8D1F95F}.Release|Any CPU.ActiveCfg = Release
+		{07444044-FB75-4639-AF4B-044A48EAD482}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{07444044-FB75-4639-AF4B-044A48EAD482}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{07444044-FB75-4639-AF4B-044A48EAD482}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{07444044-FB75-4639-AF4B-044A48EAD482}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

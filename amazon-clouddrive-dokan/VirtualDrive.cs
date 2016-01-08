@@ -113,7 +113,6 @@ namespace Azi.ACDDokanNet
             switch (mode)
             {
                 case FileMode.Open:
-
                     if (item == null) return DokanResult.FileNotFound;
                     if (item.IsDir)
                     // check if driver only wants to read attributes, security info, or open directory

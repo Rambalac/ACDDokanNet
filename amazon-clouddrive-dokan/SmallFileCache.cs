@@ -12,7 +12,54 @@ using System.Net.Http.Headers;
 
 namespace Azi.ACDDokanNet
 {
+    public class Downloader
+    {
+        public readonly FSItem Item;
+        public readonly string Path;
+        private Task task;
+        public Task Task
+        {
+            get { return task; }
+            set
+            {
+                if (task != null) throw new InvalidOperationException("Cannot reset task");
+                task = value;
+            }
+        }
+        private long downloaded = 0;
 
+        public long Downloaded
+        {
+            get
+            {
+                return Interlocked.Read(ref downloaded);
+            }
+
+            set
+            {
+                Interlocked.Exchange(ref downloaded, value);
+            }
+        }
+
+        public bool WaitToTheEnd(int timeout)
+        {
+            return Task.Wait(timeout);
+        }
+
+        public Downloader(FSItem item, string path)
+        {
+            Item = item;
+            Path = path;
+        }
+        public static Downloader CreateCompleted(FSItem item, string path, long length)
+        {
+            return new Downloader(item, path)
+            {
+                Task = Task.FromResult<bool>(true),
+                Downloaded = length
+            };
+        }
+    }
 
     public class SmallFileCache
     {
@@ -63,6 +110,7 @@ namespace Azi.ACDDokanNet
         ConcurrentDictionary<string, CacheEntry> access = new ConcurrentDictionary<string, CacheEntry>(10, 1000);
 
         static ConcurrentDictionary<AmazonDrive, SmallFileCache> Instances = new ConcurrentDictionary<AmazonDrive, SmallFileCache>(10, 3);
+        static ConcurrentDictionary<string, Downloader> Downloaders = new ConcurrentDictionary<string, Downloader>(10, 3);
 
         readonly AmazonDrive Amazon;
         private static string cachePath = null;
@@ -83,33 +131,40 @@ namespace Azi.ACDDokanNet
                     Log.Warn("Can not delete old cache: " + cachePath);
                 }
                 cachePath = Path.Combine(value, "SmallFiles");
+                Directory.CreateDirectory(cachePath);
                 if (wasNull) Task.Run(() => RecalculateTotalSize());
 
-                Directory.CreateDirectory(cachePath);
             }
         }
 
         public long CacheSize { get; internal set; }
 
-        public void StartDownload(FSItem node, string path)
+        private Downloader StartDownload(FSItem item, string path)
         {
             try
             {
+                var downloader = new Downloader(item, path);
+                if (!Downloaders.TryAdd(item.Path, downloader)) return Downloaders[item.Path];
                 var writer = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.Read, 4096, FileOptions.Asynchronous | FileOptions.SequentialScan);
-                if (writer.Length == node.Length)
+                if (writer.Length == item.Length)
                 {
                     writer.Close();
-                    return;
+                    return Downloader.CreateCompleted(item, path, item.Length);
                 }
-                if (writer.Length>0)
+                if (writer.Length > 0)
                 {
-                    Log.Warn($"File was not totally downloaded. Should be {node.Length} but was {writer.Length}: {path}");
+                    Log.Warn($"File was not totally downloaded. Should be {item.Length} but was {writer.Length}: {path}");
                 }
-                Task.Run(async () => await Download(node, writer));
+
+                Downloaders.TryAdd(item.Path, downloader);
+                downloader.Downloaded = writer.Length;
+                downloader.Task = Task.Run(async () => await Download(item, writer, downloader));
+                return downloader;
             }
             catch (IOException e)
             {
-                Log.Trace("File is already downloading: " + node.Id + "\r\n" + e);
+                Log.Trace("File is already downloading: " + item.Id + "\r\n" + e);
+                return Downloaders[item.Path];
             }
         }
 
@@ -117,18 +172,18 @@ namespace Azi.ACDDokanNet
         public Action<string> OnDownloaded;
         public Action<string> OnDownloadFailed;
 
-        private async Task Download(FSItem node, Stream writer)
+        private async Task Download(FSItem item, Stream writer, Downloader downloader)
         {
-            Log.Trace("Started download: " + node.Id);
+            Log.Trace("Started download: " + item.Id);
             var start = Stopwatch.StartNew();
             var buf = new byte[4096];
             using (writer)
                 try
                 {
-                    OnDownloadStarted?.Invoke(node.Id);
-                    while (writer.Length < node.Length)
+                    OnDownloadStarted?.Invoke(item.Id);
+                    while (writer.Length < item.Length)
                     {
-                        await Amazon.Files.Download(node.Id, fileOffset: writer.Length, streammer: async (response) =>
+                        await Amazon.Files.Download(item.Id, fileOffset: writer.Length, streammer: async (response) =>
                         {
                             var partial = response.StatusCode == System.Net.HttpStatusCode.PartialContent;
                             ContentRangeHeaderValue contentRange = null;
@@ -143,24 +198,30 @@ namespace Azi.ACDDokanNet
                                 do
                                 {
                                     red = await stream.ReadAsync(buf, 0, buf.Length);
-                                    if (writer.Length == 0) Log.Trace("Got first part: " + node.Id + " in " + start.ElapsedMilliseconds);
+                                    if (writer.Length == 0) Log.Trace("Got first part: " + item.Id + " in " + start.ElapsedMilliseconds);
                                     writer.Write(buf, 0, red);
+                                    downloader.Downloaded = writer.Length;
                                 } while (red > 0);
                             }
                         });
-                        if (writer.Length < node.Length) await Task.Delay(500);
+                        if (writer.Length < item.Length) await Task.Delay(500);
                     }
-                    Log.Trace("Finished download: " + node.Id);
-                    OnDownloaded?.Invoke(node.Id);
+                    Log.Trace("Finished download: " + item.Id);
+                    OnDownloaded?.Invoke(item.Id);
 
-                    access.TryAdd(node.Id, new CacheEntry { Id = node.Id, AccessTime = DateTime.UtcNow, Length = node.Length });
-                    TotalSize += node.Length;
+                    access.TryAdd(item.Id, new CacheEntry { Id = item.Id, AccessTime = DateTime.UtcNow, Length = item.Length });
+                    TotalSize += item.Length;
                     if (TotalSize > CacheSize) StartClear(TotalSize - CacheSize);
                 }
                 catch (Exception ex)
                 {
-                    OnDownloadFailed?.Invoke(node.Id);
-                    Log.Error($"Download failed: {node.Id}\r\n{ex}");
+                    OnDownloadFailed?.Invoke(item.Id);
+                    Log.Error($"Download failed: {item.Id}\r\n{ex}");
+                }
+                finally
+                {
+                    Downloader remove;
+                    Downloaders.TryRemove(item.Path, out remove);
                 }
         }
 
@@ -262,6 +323,18 @@ namespace Azi.ACDDokanNet
             TotalSize = t;
         }
 
+        internal SmallFileBlockReaderWriter OpenReadWrite(FSItem item)
+        {
+            var path = Path.Combine(cachePath, item.Id);
+            var downloader = StartDownload(item, path);
+
+            CacheEntry entry;
+            if (access.TryGetValue(item.Id, out entry)) entry.AccessTime = DateTime.UtcNow;
+
+            Log.Trace("Opened ReadWrite cached: " + item.Id);
+            return new SmallFileBlockReaderWriter(downloader);
+        }
+
         internal void AddExisting(FSItem item)
         {
             access.TryAdd(item.Id, new CacheEntry { Id = item.Id, AccessTime = DateTime.UtcNow });
@@ -272,23 +345,23 @@ namespace Azi.ACDDokanNet
             Amazon = a;
         }
 
-        public IBlockStream OpenReadWithDownload(FSItem node)
+        public IBlockStream OpenReadWithDownload(FSItem item)
         {
-            var path = Path.Combine(cachePath, node.Id);
-            StartDownload(node, path);
+            var path = Path.Combine(cachePath, item.Id);
+            StartDownload(item, path);
 
-            return OpenReadCachedOnly(node);
+            return OpenReadCachedOnly(item);
         }
 
-        public IBlockStream OpenReadCachedOnly(FSItem node)
+        public FileBlockReader OpenReadCachedOnly(FSItem item)
         {
-            var path = Path.Combine(cachePath, node.Id);
+            var path = Path.Combine(cachePath, item.Id);
 
             CacheEntry entry;
-            if (access.TryGetValue(node.Id, out entry)) entry.AccessTime = DateTime.UtcNow;
+            if (access.TryGetValue(item.Id, out entry)) entry.AccessTime = DateTime.UtcNow;
 
-            Log.Trace("Opened cached: " + node.Id);
-            return FileBlockReader.Open(path, node.Length);
+            Log.Trace("Opened cached: " + item.Id);
+            return FileBlockReader.Open(path, item.Length);
         }
     }
 }

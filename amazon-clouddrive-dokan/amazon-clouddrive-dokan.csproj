@@ -40,9 +40,16 @@
     <StartupObject>
     </StartupObject>
   </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>false</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>
+    </AssemblyOriginatorKeyFile>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="AmazonCloudDriveApi, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\AmazonCloudDriveApi.1.0.0\lib\net45\AmazonCloudDriveApi.dll</HintPath>
+      <HintPath>..\packages\AmazonCloudDriveApi.1.0.1\lib\net45\AmazonCloudDriveApi.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="DokanNet, Version=1.0.8.0, Culture=neutral, PublicKeyToken=3709aaa01df28a9e, processorArchitecture=MSIL">
@@ -66,6 +73,7 @@
     <Compile Include="IBlockReader.cs" />
     <Compile Include="ItemsTreeCache.cs" />
     <Compile Include="NewFileBlockWriter.cs" />
+    <Compile Include="SmallFileBlockReaderWriter.cs" />
     <Compile Include="SmallFileCache.cs" />
     <Compile Include="UploadService.cs" />
     <Compile Include="VirtualDrive.cs" />

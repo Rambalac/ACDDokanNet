@@ -1,6 +1,7 @@
 ﻿using Azi.Amazon.CloudDrive.JsonObjects;
 using System;
 using System.Collections.Concurrent;
+using System.Threading;
 
 namespace Azi.ACDDokanNet
 {
@@ -8,7 +9,7 @@ namespace Azi.ACDDokanNet
     {
         public readonly DateTime FetchTime = DateTime.UtcNow;
 
-        public bool IsFake { get; internal set; } = false;
+        public bool IsUploading { get; internal set; } = false;
 
         // To replacement to cache files in path that does not exist
         public bool NotExistingDummy { get; private set; } = false;
@@ -17,7 +18,20 @@ namespace Azi.ACDDokanNet
         public ConcurrentBag<string> ParentIds { get; private set; }
         public string Id { get; internal set; }
         public bool IsDir { get; internal set; }
-        public long Length { get; internal set; }
+
+        private long length;
+
+        public long Length
+        {
+            get
+            {
+                return Interlocked.Read(ref length);
+            }
+            internal set
+            {
+                Interlocked.Exchange(ref length, value);
+            }
+        }
 
         public string Dir => System.IO.Path.GetDirectoryName(Path);
         public string Name => System.IO.Path.GetFileName(Path);
@@ -33,7 +47,7 @@ namespace Azi.ACDDokanNet
 
         public FSItem(FSItem item)
         {
-            IsFake = item.IsFake;
+            IsUploading = item.IsUploading;
             Path = item.Path;
             Id = item.Id;
             IsDir = item.IsDir;
@@ -46,7 +60,7 @@ namespace Azi.ACDDokanNet
 
         public void NotFake()
         {
-            IsFake = false;
+            IsUploading = false;
         }
 
         public bool IsExpired(int expirationSeconds) => DateTime.UtcNow > FetchTime.AddSeconds(expirationSeconds);
@@ -75,12 +89,12 @@ namespace Azi.ACDDokanNet
             };
         }
 
-        public static FSItem FromFake(string path, string cachedId, string parentId)
+        public static FSItem MakeUploading(string path, string cachedId, string parentId)
         {
             var now = DateTime.UtcNow;
             return new FSItem
             {
-                IsFake = true,
+                IsUploading = true,
                 Length = 0,
                 Id = cachedId,
                 Path = path,
