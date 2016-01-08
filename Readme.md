@@ -15,16 +15,17 @@ Pros
 * Amazon Cloud Drive is presented as real drive working not only in Windows Explorer but in many other apps (with issues). 
 * Driver presents Amazon Cloud Drive as it is with folders and files. 
 * Driver does not create any special files on your Amazon Cloud Drive.
-* Same Amazon Cloud Drive can be used on multiple PCs with this Driver or in Web simultaneously. 
-There can be a conflict if you try to upload file which was also uploaded same time with other way, only the first uploaded file will remain.
+* Same Amazon Cloud Drive can be used on multiple PCs with this Driver or in Web simultaneously (with issues). 
+
 
 Issues
 ------
-* Disk caching is done only for files with size less 20Mb. Big files are partially cached in memory and random access can be slow. Common video files are big and requier random access to play. It's very unlikely you can play any video directly, but you can copy it to real drive first.
+* Disk caching is done only for files with size less 20Mb. Big files are partially cached in memory and random access can be slow. Common video files are big and require random access to play. It's very unlikely you can play any video directly, but you can copy it to real drive first.
 * Only new files can be written. To overwrite delete first.
-* Files cannot be opened for Read and Write simultaneously.
+* Files cannot be opened for Read and Write simultaneously except new files.
 * Some applications can report some files cannot be opened. Still such files can be reopened later.
 * Sometimes Explorer thumbnails get broken.
+* There can be a conflict if you try to upload files with same name from different apps or web, only the first uploaded file will remain.
 
 Notes
 -----
