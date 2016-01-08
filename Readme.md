@@ -8,7 +8,7 @@ Not just in Windows Explorer, but in any application.
 ![Sample](/images/Amazon Cloud Drive as real drive.png)
 
 Login is done via default browser, so application itself can not get your login and password, 
-and if you already logged into Amazon Cloud Drive you dont need to enter anything, just click a button.
+and if you already logged into Amazon Cloud Drive you don't need to enter anything, just click a button.
 
 Pros
 ----
@@ -30,8 +30,9 @@ Issues
 Notes
 -----
 * Copying file from Amazon Cloud Drive into different folder in the same cloud will download file and reupload it back.
-* There is no limit for Upload folder where files for upload are stored.
+* There is no limit for Upload cache folder where file copies for upload are stored.
 * Folders are cached in memory for 60 seconds. If you deleted or uploaded some files in other way they will not appear/disappear same time even if you refresh folder, you have to wait up to 60 seconds and then refresh.
+* Communication between Amazon Cloud Drive and this driver is secured by SSL, but there is no built-in way, at least for now, to encrypt files before uploading to Amazon Cloud Drive.
 
 Prerequisites
 -------------
@@ -65,7 +66,7 @@ Keep catalog on real drive.
 
 Browsing and editing generally works. There can be some glitches with some files. Open file in develop mode, if you see an error switch to another file and after few seconds switch back, repeat if needed.
 
-Catalog backup currently does not work due requairment for write already created files.
+Catalog backup currently does not work due requirement for write already created files.
 
 News
 ----
