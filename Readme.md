@@ -12,16 +12,18 @@ and if you already logged into Amazon Cloud Drive you dont need to enter anythin
 
 Pros
 ----
+* Amazon Cloud Drive is presented as real drive working not only in Windows Explorer but in many other apps (with issues). 
 * Driver presents Amazon Cloud Drive as it is with folders and files. 
 * Driver does not create any special files on your Amazon Cloud Drive.
 * Same Amazon Cloud Drive can be used on multiple PCs with this Driver or in Web simultaneously. 
-There can be a conflict if you try to upload file which was also uploaded same time with other way, only first file will remain.
+There can be a conflict if you try to upload file which was also uploaded same time with other way, only the first uploaded file will remain.
 
 Issues
 ------
+* Disk caching is done only for files with size less 20Mb. Big files are partially cached in memory and random access can be slow. Common video files are big and requier random access to play. It's very unlikely you can play any video directly, but you can copy it to real drive first.
 * Only new files can be written. To overwrite delete first.
 * Files cannot be opened for Read and Write simultaneously.
-* Some applications can report some file cannot be opened. Still such files can be reopened later.
+* Some applications can report some files cannot be opened. Still such files can be reopened later.
 * Sometimes Explorer thumbnails get broken.
 
 Notes
@@ -39,6 +41,30 @@ Prerequisites
 - For developing
     * VS 2015
     * .NET 4.5
+
+Installation
+------------
+* Read [Issues](#issues) section for limitations, it may not work for apps you want to use.
+* Install Dokany with DokanInstall_x.x.x_redist.exe from https://github.com/dokan-dev/dokany/releases .
+* Install my latest release from https://github.com/Rambalac/ACDDokanNet/releases/latest .
+* Open Settings from App list.
+* Select drive letter if needed.
+* Mount
+* Amazon Cloud Drive page should be opened
+* Login and/or confirm to allow app to access Amazon Cloud Drive.
+* If I did everything right, you should get drive letter with your Amazon Cloud Drive.
+
+Tested apps
+-----------
+#### Windows Explorer
+There can be issues with thumbnails, refresh to fix.
+
+#### Lightroom 4
+Keep catalog on real drive. 
+
+Browsing and editing generally works. There can be some glitches with some files. Open file in develop mode, if you see an error switch to another file and after few seconds switch back, repeat if needed.
+
+Catalog backup currently does not work due requairment for write already created files.
 
 News
 ----
