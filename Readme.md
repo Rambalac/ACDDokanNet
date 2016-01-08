@@ -42,7 +42,7 @@ Prerequisites
 
 News
 ----
-### 2015-01-06
+### 2016-01-06
 * Release 1.1.0
 * Fixed crash on exit in Windows 7
 * Upload will be resumed on next start if app was closed before all files got uploaded.
