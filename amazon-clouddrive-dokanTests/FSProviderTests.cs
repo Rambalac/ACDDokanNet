@@ -48,6 +48,7 @@ namespace Azi.ACDDokanNet.Tests
             {
                 throw new InvalidOperationException("Authentication failed");
             }
+            if (Directory.Exists("TempCache")) Directory.Delete("TempCache", true);
 
             provider = new FSProvider(amazon);
             provider.CachePath = "TempCache";
@@ -118,7 +119,8 @@ namespace Azi.ACDDokanNet.Tests
                 file.Write(0, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, 0, 10);
             }
 
-            Thread.Sleep(1000);
+            while (provider.GetItem(path).IsUploading) Thread.Sleep(500);
+
             var info = provider.GetItem(path);
             Assert.Equal(10, info.Length);
 
@@ -135,7 +137,8 @@ namespace Azi.ACDDokanNet.Tests
                 file.Write(9, new byte[] { 8, 7, 6, 5, 4, 3, 2, 1 }, 0, 8);
             }
 
-            Thread.Sleep(1000);
+            while (provider.GetItem(path).IsUploading) Thread.Sleep(500);
+
             info = provider.GetItem(path);
             Assert.Equal(17, info.Length);
 

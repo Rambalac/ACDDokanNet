@@ -16,6 +16,7 @@ namespace Azi.ACDDokanNet
         private readonly ConcurrentBag<FileStream> readers = new ConcurrentBag<FileStream>();
 
         private object fileLock = new object();
+        private object closeLock = new object();
         private Downloader downloader;
 
         public Action<FSItem, string> OnChangedAndClosed;
@@ -30,28 +31,49 @@ namespace Azi.ACDDokanNet
         int closed = 0;
         public override void Close()
         {
-            if (Interlocked.CompareExchange(ref closed, 1, 0) == 1) return;
-
-            lock (fileLock)
+            lock (closeLock)
             {
-                downloader.Item.Length = writer.Length;
-                writer.Close();
+                if (Interlocked.CompareExchange(ref closed, 1, 0) == 1) return;
+
+                lock (fileLock)
+                {
+                    downloader.Item.Length = writer.Length;
+                    writer.Close();
+                }
+
+                foreach (var file in readers)
+                {
+                    file.Close();
+                }
+
+                Log.Trace("Closed file: " + downloader.Item.Path);
+                base.Close();
+                if (written) OnChangedAndClosed(downloader.Item, downloader.Path);
             }
-            Log.Trace("Closed file: " + downloader.Item.Path);
-            base.Close();
-            if (written) OnChangedAndClosed(downloader.Item, downloader.Path);
         }
 
         private FileStream GetReader()
         {
+            if (closed == 1) throw new IOException("File is alredy closed");
+
             FileStream result;
             if (readers.TryTake(out result)) return result;
-            return new FileStream(downloader.Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            lock (closeLock)
+            {
+                if (closed == 1) throw new IOException("File is already closed");
+                return new FileStream(downloader.Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            }
         }
 
         private void ReleaseFile(FileStream file)
         {
-            readers.Add(file);
+            lock (closeLock)
+            {
+                if (closed != 1)
+                    readers.Add(file);
+                else
+                    file.Close();
+            }
         }
 
         const int waitForFile = 50;
@@ -122,6 +144,7 @@ namespace Azi.ACDDokanNet
             {
                 if (disposing)
                 {
+                    Close();
                     writer.Dispose();
                 }
 

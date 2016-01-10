@@ -30,6 +30,10 @@ namespace Azi.ACDDokanNet
             public string parentId;
             public bool overwrite = false;
 
+            public UploadInfo()
+            {
+            }
+
             public UploadInfo(FSItem item)
             {
                 id = item.Id;
@@ -44,11 +48,11 @@ namespace Azi.ACDDokanNet
         private string cachePath;
 
 
-        readonly SemaphoreSlim uploadLimit;
+        readonly SemaphoreSlim uploadLimitSemaphore;
         readonly BlockingCollection<UploadInfo> uploads = new BlockingCollection<UploadInfo>();
         readonly CancellationTokenSource cancellation = new CancellationTokenSource();
         readonly AmazonDrive amazon;
-
+        readonly int uploadLimit;
 
         public delegate void OnUploadFinishedDelegate(UploadInfo item, AmazonNode amazonNode);
         public delegate void OnUploadFailedDelegate(UploadInfo item, FailReason reason);
@@ -83,17 +87,19 @@ namespace Azi.ACDDokanNet
             foreach (var file in files)
             {
                 var uploadinfo = JsonConvert.DeserializeObject<UploadInfo>(File.ReadAllText(file));
-                var item = FSItem.MakeUploading(uploadinfo.path, Path.GetFileNameWithoutExtension(file), uploadinfo.parentId);
                 var fileinfo = new FileInfo(file);
-                item.Length = fileinfo.Length;
+                var item = FSItem.MakeUploading(uploadinfo.path, Path.GetFileNameWithoutExtension(file), uploadinfo.parentId, fileinfo.Length);
                 OnUploadResumed(item);
                 AddUpload(item);
             }
         }
 
+
+
         public UploadService(int limit, AmazonDrive amazon)
         {
-            uploadLimit = new SemaphoreSlim(limit);
+            uploadLimit = limit;
+            uploadLimitSemaphore = new SemaphoreSlim(limit);
             this.amazon = amazon;
         }
 
@@ -146,8 +152,13 @@ namespace Azi.ACDDokanNet
                 }
 
                 Log.Trace("Started upload: " + item.path);
-                var node = await amazon.Files.UploadNew(item.parentId, Path.GetFileName(item.path),
-                    () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true));
+                AmazonNode node;
+                if (!item.overwrite)
+                    node = await amazon.Files.UploadNew(item.parentId, Path.GetFileName(item.path),
+                        () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true));
+                else
+                    node = await amazon.Files.Overwrite(item.id,
+                        () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true));
                 if (node != null)
                 {
                     File.Delete(path + ".info");
@@ -176,7 +187,7 @@ namespace Azi.ACDDokanNet
             }
             finally
             {
-                uploadLimit.Release();
+                uploadLimitSemaphore.Release();
             }
             await Task.Delay(reuploadDelay);
             uploads.Add(item);
@@ -209,16 +220,24 @@ namespace Azi.ACDDokanNet
             if (serviceTask != null) return;
             serviceTask = Task.Factory.StartNew(() => UploadTask(), cancellation.Token, TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
+
         private void UploadTask()
         {
             UploadInfo upload;
             while (uploads.TryTake(out upload, -1, cancellation.Token))
             {
                 var uploadCopy = upload;
-                if (!uploadLimit.Wait(-1, cancellation.Token)) return;
+                if (!uploadLimitSemaphore.Wait(-1, cancellation.Token)) return;
                 Task.Run(async () => await Upload(uploadCopy));
             }
 
+        }
+
+        public void WaitForUploadsFnish()
+        {
+            while (uploads.Count > 0) Thread.Sleep(100);
+            for (int i = 0; i < uploadLimit; i++) uploadLimitSemaphore.Wait();
+            return;
         }
 
         #region IDisposable Support

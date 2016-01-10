@@ -70,6 +70,7 @@ namespace Azi.ACDDokanNet
             {
                 if (disposing)
                 {
+                    Close();
                     writer.Dispose();
                 }
 

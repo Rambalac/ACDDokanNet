@@ -89,13 +89,13 @@ namespace Azi.ACDDokanNet
             };
         }
 
-        public static FSItem MakeUploading(string path, string cachedId, string parentId)
+        public static FSItem MakeUploading(string path, string cachedId, string parentId, long length)
         {
             var now = DateTime.UtcNow;
             return new FSItem
             {
                 IsUploading = true,
-                Length = 0,
+                Length = length,
                 Id = cachedId,
                 Path = path,
                 IsDir = false,

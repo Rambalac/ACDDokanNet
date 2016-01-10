@@ -149,6 +149,8 @@ namespace Azi.ACDDokanNet
                 if (writer.Length == item.Length)
                 {
                     writer.Close();
+                    Downloader removed;
+                    Downloaders.TryRemove(item.Path, out removed);
                     return Downloader.CreateCompleted(item, path, item.Length);
                 }
                 if (writer.Length > 0)
@@ -156,7 +158,6 @@ namespace Azi.ACDDokanNet
                     Log.Warn($"File was not totally downloaded. Should be {item.Length} but was {writer.Length}: {path}");
                 }
 
-                Downloaders.TryAdd(item.Path, downloader);
                 downloader.Downloaded = writer.Length;
                 downloader.Task = Task.Run(async () => await Download(item, writer, downloader));
                 return downloader;

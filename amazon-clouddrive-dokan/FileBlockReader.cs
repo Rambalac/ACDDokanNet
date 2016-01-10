@@ -18,6 +18,7 @@ namespace Azi.ACDDokanNet
         private readonly ConcurrentBag<FileStream> files;
         private readonly long expectedLength;
         private readonly string filePath;
+        private object closeLock = new object();
 
         private FileBlockReader(string path, long length)
         {
@@ -30,28 +31,30 @@ namespace Azi.ACDDokanNet
         {
             FileStream result;
             if (files.TryTake(out result)) return result;
-            return new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            lock (closeLock)
+            {
+                if (closed == 1) throw new IOException("File is already closed");
+                return new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            }
         }
 
         private void ReleaseFile(FileStream file)
         {
-            files.Add(file);
+            lock (closeLock)
+            {
+                if (closed != 1)
+                    files.Add(file);
+                else
+                    file.Close();
+            }
         }
 
-        public static FileBlockReader Open(string path, long length)
+        public static FileBlockReader Open(string filePath, long length)
         {
-            var result = new FileBlockReader(path, length);
-            try
-            {
-                if (result.GetFile().CanRead) return result;
-            }
-            catch (IOException)
-            {
-                //Skip
-            }
+            var result = new FileBlockReader(filePath, length);
 
-            result.Dispose();
-            return null;
+            result.ReleaseFile(new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite));
+            return result;
         }
 
         int closed = 0;
@@ -118,10 +121,7 @@ namespace Azi.ACDDokanNet
             {
                 if (disposing)
                 {
-                    foreach (var file in files)
-                    {
-                        file.Dispose();
-                    }
+                    Close();
                 }
 
                 disposedValue = true;

@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -33,12 +34,24 @@ namespace Azi.ACDDokanNet
             }
             set
             {
-                if (cachePath == value) return;
+                var val = Path.GetFullPath(value);
+                if (cachePath == val) return;
                 if (cachePath != null) SmallFilesCache.Clear().Wait();
-                cachePath = value;
-                SmallFilesCache.CachePath = value;
-                UploadService.CachePath = value;
+                cachePath = val;
+                SmallFilesCache.CachePath = val;
+                UploadService.CachePath = val;
             }
+        }
+
+        string GetRelativePath(string filepath, string relativeto)
+        {
+            Uri pathUri = new Uri(filepath);
+            if (!relativeto.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.InvariantCulture))
+            {
+                relativeto += Path.DirectorySeparatorChar;
+            }
+            Uri relativetoUri = new Uri(relativeto);
+            return Uri.UnescapeDataString(relativetoUri.MakeRelativeUri(pathUri).ToString().Replace('/', Path.DirectorySeparatorChar));
         }
 
         public FSProvider(AmazonDrive amazon)
@@ -80,7 +93,7 @@ namespace Azi.ACDDokanNet
 
                   if (!File.Exists(newitemPath))
                   {
-                      File.Move(olditemPath, newitemPath);
+                      SymbolicLink.CreateFile(GetRelativePath(olditemPath, Path.GetDirectoryName(newitemPath)), newitemPath);
                       SmallFilesCache.AddExisting(newitem);
                   }
                   itemsTreeCache.Update(newitem);
@@ -198,7 +211,7 @@ namespace Azi.ACDDokanNet
                 {
                     if (item.Length < SmallFileSizeLimit)
                         return SmallFilesCache.OpenReadWithDownload(item);
-
+    
                     var result = SmallFilesCache.OpenReadCachedOnly(item);
                     if (result != null) return result;
 
@@ -223,7 +236,7 @@ namespace Azi.ACDDokanNet
                 var name = Path.GetFileName(filePath);
                 var dirItem = GetItem(dir);
 
-                if (item == null) item = FSItem.MakeUploading(filePath, Guid.NewGuid().ToString(), dirItem.Id);
+                if (item == null) item = FSItem.MakeUploading(filePath, Guid.NewGuid().ToString(), dirItem.Id, 0);
 
                 var uploader = UploadService.OpenNew(item);
                 Interlocked.Increment(ref uploadingCount);
@@ -248,13 +261,13 @@ namespace Azi.ACDDokanNet
 
                         if (!it.IsUploading)
                         {
-                            var newitem = FSItem.MakeUploading(it.Path, it.Id, it.ParentIds.First());
+                            var newitem = FSItem.MakeUploading(it.Path, it.Id, it.ParentIds.First(), it.Length);
                             var olditemPath = Path.Combine(SmallFilesCache.CachePath, item.Id);
                             var newitemPath = Path.Combine(UploadService.CachePath, item.Id);
 
                             if (File.Exists(newitemPath)) File.Delete(newitemPath);
                             {
-                                File.Move(olditemPath, newitemPath);
+                                SymbolicLink.CreateFile(GetRelativePath(olditemPath, Path.GetDirectoryName(newitemPath)), newitemPath);
                                 SmallFilesCache.AddExisting(newitem);
                             }
                             itemsTreeCache.Update(newitem);
