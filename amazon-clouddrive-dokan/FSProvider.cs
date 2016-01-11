@@ -80,6 +80,8 @@ namespace Azi.ACDDokanNet
                 Interlocked.Decrement(ref uploadingCount);
                 OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
 
+                if (reason == FailReason.ZeroLength) return;
+
                 itemsTreeCache.DeleteFile(item.path);
             };
             UploadService.OnUploadFinished = (item, node) =>
@@ -211,7 +213,7 @@ namespace Azi.ACDDokanNet
                 {
                     if (item.Length < SmallFileSizeLimit)
                         return SmallFilesCache.OpenReadWithDownload(item);
-    
+
                     var result = SmallFilesCache.OpenReadCachedOnly(item);
                     if (result != null) return result;
 

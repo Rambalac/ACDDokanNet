@@ -42,7 +42,7 @@ namespace Azi.ACDDokanNet
             try
             {
                 if (!pathToNode.TryGetValue(filePath, out item)) return null;
-                if (item.IsExpired(FSItemsExpirationSeconds))
+                if (!item.IsUploading && item.IsExpired(FSItemsExpirationSeconds))
                 {
                     lok.EnterWriteLock();
                     try
