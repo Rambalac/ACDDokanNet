@@ -68,6 +68,7 @@
   <ItemGroup>
     <Compile Include="AbstractBlockStream.cs" />
     <Compile Include="BufferedAmazonBlockReader.cs" />
+    <Compile Include="Downloader.cs" />
     <Compile Include="FileBlockReader.cs" />
     <Compile Include="FSItem.cs" />
     <Compile Include="FSProvider.cs" />
@@ -75,7 +76,7 @@
     <Compile Include="ItemsTreeCache.cs" />
     <Compile Include="NewFileBlockWriter.cs" />
     <Compile Include="SmallFileBlockReaderWriter.cs" />
-    <Compile Include="SmallFileCache.cs" />
+    <Compile Include="SmallFilesCache.cs" />
     <Compile Include="SymbolicLink.cs" />
     <Compile Include="UploadService.cs" />
     <Compile Include="VirtualDrive.cs" />

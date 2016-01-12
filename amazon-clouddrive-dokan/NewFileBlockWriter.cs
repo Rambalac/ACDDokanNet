@@ -11,7 +11,7 @@ namespace Azi.ACDDokanNet
 {
     public class NewFileBlockWriter : AbstractBlockStream
     {
-        public readonly FSItem Item;
+        private readonly FSItem Item;
         private readonly FileStream writer;
         private object fileLock = new object();
 

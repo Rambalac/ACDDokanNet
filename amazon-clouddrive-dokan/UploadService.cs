@@ -205,6 +205,18 @@ namespace Azi.ACDDokanNet
             return result;
         }
 
+        public NewFileBlockWriter OpenTruncate(FSItem item)
+        {
+            var path = Path.Combine(cachePath, item.Id);
+            var result = new NewFileBlockWriter(item, path);
+            result.OnClose = () =>
+            {
+                AddOverwrite(item);
+            };
+
+            return result;
+        }
+
         Task serviceTask;
 
         public void Stop()

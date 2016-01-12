@@ -58,9 +58,14 @@ namespace Azi.ACDDokanNet
             ParentIds = new ConcurrentBag<string>(item.ParentIds);
         }
 
-        public void NotFake()
+        public void MakeNotUploading()
         {
             IsUploading = false;
+        }
+
+        public void MakeUploading()
+        {
+            IsUploading = true;
         }
 
         public bool IsExpired(int expirationSeconds) => DateTime.UtcNow > FetchTime.AddSeconds(expirationSeconds);

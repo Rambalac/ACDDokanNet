@@ -12,56 +12,8 @@ using System.Net.Http.Headers;
 
 namespace Azi.ACDDokanNet
 {
-    public class Downloader
-    {
-        public readonly FSItem Item;
-        public readonly string Path;
-        private Task task;
-        public Task Task
-        {
-            get { return task; }
-            set
-            {
-                if (task != null) throw new InvalidOperationException("Cannot reset task");
-                task = value;
-            }
-        }
-        private long downloaded = 0;
 
-        public long Downloaded
-        {
-            get
-            {
-                return Interlocked.Read(ref downloaded);
-            }
-
-            set
-            {
-                Interlocked.Exchange(ref downloaded, value);
-            }
-        }
-
-        public bool WaitToTheEnd(int timeout)
-        {
-            return Task.Wait(timeout);
-        }
-
-        public Downloader(FSItem item, string path)
-        {
-            Item = item;
-            Path = path;
-        }
-        public static Downloader CreateCompleted(FSItem item, string path, long length)
-        {
-            return new Downloader(item, path)
-            {
-                Task = Task.FromResult<bool>(true),
-                Downloaded = length
-            };
-        }
-    }
-
-    public class SmallFileCache
+    public class SmallFilesCache
     {
         class CacheEntry : IDisposable
         {
@@ -109,7 +61,7 @@ namespace Azi.ACDDokanNet
 
         ConcurrentDictionary<string, CacheEntry> access = new ConcurrentDictionary<string, CacheEntry>(10, 1000);
 
-        static ConcurrentDictionary<AmazonDrive, SmallFileCache> Instances = new ConcurrentDictionary<AmazonDrive, SmallFileCache>(10, 3);
+        static ConcurrentDictionary<AmazonDrive, SmallFilesCache> Instances = new ConcurrentDictionary<AmazonDrive, SmallFilesCache>(10, 3);
         static ConcurrentDictionary<string, Downloader> Downloaders = new ConcurrentDictionary<string, Downloader>(10, 3);
 
         readonly AmazonDrive Amazon;
@@ -324,6 +276,12 @@ namespace Azi.ACDDokanNet
             TotalSize = t;
         }
 
+        internal void Delete(FSItem item)
+        {
+            var path = Path.Combine(cachePath, item.Id);
+            File.Delete(path);
+        }
+
         internal SmallFileBlockReaderWriter OpenReadWrite(FSItem item)
         {
             var path = Path.Combine(cachePath, item.Id);
@@ -341,7 +299,7 @@ namespace Azi.ACDDokanNet
             access.TryAdd(item.Id, new CacheEntry { Id = item.Id, AccessTime = DateTime.UtcNow });
         }
 
-        public SmallFileCache(AmazonDrive a)
+        public SmallFilesCache(AmazonDrive a)
         {
             Amazon = a;
         }

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Azi.ACDDokanNet
 {
-    public class NativeMethods
+    public static class NativeMethods
     {
         [DllImport("kernel32.dll")]
         public static extern bool CreateSymbolicLink(string lpSymlinkFileName, string lpTargetFileName, SymbolicLink dwFlags);
@@ -19,7 +19,7 @@ namespace Azi.ACDDokanNet
         }
     }
 
-    public class SymbolicLink
+    public static class SymbolicLink
     {
         public static bool CreateFile(string TargetPath, string SymlinkPath)
         {
