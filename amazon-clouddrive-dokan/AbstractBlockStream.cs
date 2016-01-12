@@ -37,6 +37,8 @@ namespace Azi.ACDDokanNet
             // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
             Dispose(true);
         }
+
+        public abstract void SetLength(long len);
     }
 
 }

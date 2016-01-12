@@ -25,7 +25,7 @@ namespace Azi.ACDDokanNet
         {
             this.downloader = downloader;
 
-            writer = new FileStream(downloader.Path, FileMode.Open, FileAccess.ReadWrite);
+            writer = new FileStream(downloader.Path, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
         }
 
         int closed = 0;
@@ -134,6 +134,14 @@ namespace Azi.ACDDokanNet
         {
             writer.Flush();
         }
+        public override void SetLength(long len)
+        {
+            lock (fileLock)
+            {
+                writer.SetLength(len);
+            }
+        }
+
 
         #region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls

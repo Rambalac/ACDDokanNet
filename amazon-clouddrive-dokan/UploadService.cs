@@ -84,11 +84,11 @@ namespace Azi.ACDDokanNet
             var files = Directory.GetFiles(cachePath, "*.info");
             if (files.Length == 0) return;
             Log.Warn($"{files.Length} not uploaded files found. Resuming.");
-            foreach (var file in files)
+            foreach (var info in files.Select(f => new FileInfo(f)).OrderBy(f => f.CreationTime))
             {
-                var uploadinfo = JsonConvert.DeserializeObject<UploadInfo>(File.ReadAllText(file));
-                var fileinfo = new FileInfo(file);
-                var item = FSItem.MakeUploading(uploadinfo.path, Path.GetFileNameWithoutExtension(file), uploadinfo.parentId, fileinfo.Length);
+                var uploadinfo = JsonConvert.DeserializeObject<UploadInfo>(File.ReadAllText(info.FullName));
+                var fileinfo = new FileInfo(Path.Combine(info.DirectoryName, Path.GetFileNameWithoutExtension(info.Name)));
+                var item = FSItem.MakeUploading(uploadinfo.path, fileinfo.Name, uploadinfo.parentId, fileinfo.Length);
                 OnUploadResumed(item);
                 AddUpload(item);
             }
@@ -141,12 +141,13 @@ namespace Azi.ACDDokanNet
 
         private async Task Upload(UploadInfo item)
         {
+            var path = Path.Combine(cachePath, item.id);
             try
             {
-                var path = Path.Combine(cachePath, item.id);
                 if (item.length == 0)
                 {
                     Log.Warn("Zero Length file: " + item.path);
+                    File.Delete(path + ".info");
                     OnUploadFailed(item, FailReason.ZeroLength);
                     return;
                 }
@@ -155,15 +156,15 @@ namespace Azi.ACDDokanNet
                 AmazonNode node;
                 if (!item.overwrite)
                     node = await amazon.Files.UploadNew(item.parentId, Path.GetFileName(item.path),
-                        () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true));
+                        () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, true));
                 else
                     node = await amazon.Files.Overwrite(item.id,
-                        () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true));
+                        () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, true));
                 if (node != null)
                 {
-                    File.Delete(path + ".info");
                     OnUploadFinished(item, node);
                     Log.Trace("Finished upload: " + item.path + " id:" + node.id);
+                    File.Delete(path + ".info");
                     return;
                 }
                 else
@@ -209,6 +210,7 @@ namespace Azi.ACDDokanNet
         {
             var path = Path.Combine(cachePath, item.Id);
             var result = new NewFileBlockWriter(item, path);
+            result.SetLength(0);
             result.OnClose = () =>
             {
                 AddOverwrite(item);

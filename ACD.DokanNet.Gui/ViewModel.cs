@@ -21,6 +21,7 @@ namespace Azi.ACDDokanNet.Gui
             if (App != null)
             {
                 App.OnProviderStatisticsUpdated = ProviderStatisticsUpdated;
+                App.OnMountChanged = NotifyMount;
             }
         }
 

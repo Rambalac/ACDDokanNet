@@ -75,14 +75,22 @@ namespace Azi.ACDDokanNet
             };
 
             UploadService = new UploadService(2, amazon);
-            UploadService.OnUploadFailed = (item, reason) =>
+            UploadService.OnUploadFailed = (uploaditem, reason) =>
             {
                 Interlocked.Decrement(ref uploadingCount);
                 OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
 
-                if (reason == FailReason.ZeroLength) return;
+                var olditemPath = Path.Combine(UploadService.CachePath, uploaditem.id);
+                File.Delete(olditemPath);
 
-                itemsTreeCache.DeleteFile(item.path);
+                if (reason == FailReason.ZeroLength)
+                {
+                    var item = GetItem(uploaditem.path);
+                    item?.MakeNotUploading();
+                    return;
+                }
+
+                itemsTreeCache.DeleteFile(uploaditem.path);
             };
             UploadService.OnUploadFinished = (item, node) =>
               {
@@ -95,7 +103,7 @@ namespace Azi.ACDDokanNet
 
                   if (!File.Exists(newitemPath))
                   {
-                      SymbolicLink.CreateFile(GetRelativePath(olditemPath, Path.GetDirectoryName(newitemPath)), newitemPath);
+                      File.Move(olditemPath, newitemPath);
                       SmallFilesCache.AddExisting(newitem);
                   }
                   itemsTreeCache.Update(newitem);
@@ -147,6 +155,15 @@ namespace Azi.ACDDokanNet
             }
         }
 
+        private FSItem WaitForReal(FSItem item)
+        {
+            while (item.IsUploading)
+            {
+                Thread.Sleep(100);
+                item = GetItem(item.Path);
+            }
+            return item;
+        }
         private void DeleteItem(string filePath, FSItem item)
         {
             try
@@ -250,11 +267,13 @@ namespace Azi.ACDDokanNet
             }
 
             if (item == null) return null;
+            item = WaitForReal(item);
 
             if ((mode == FileMode.Create || mode == FileMode.Truncate) || item.Length > 0)
             {
                 item.Length = 0;
                 SmallFilesCache.Delete(item);
+                item.MakeUploading();
                 var file = UploadService.OpenTruncate(item);
                 Interlocked.Increment(ref uploadingCount);
                 OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
@@ -376,12 +395,15 @@ namespace Azi.ACDDokanNet
         {
             if (oldPath == newPath) return;
 
+            Log.Warn($"Move: {oldPath} to {newPath} replace:{replace}");
+
             var oldDir = Path.GetDirectoryName(oldPath);
             var oldName = Path.GetFileName(oldPath);
             var newDir = Path.GetDirectoryName(newPath);
             var newName = Path.GetFileName(newPath);
 
             var node = GetItem(oldPath);
+            node = WaitForReal(node);
             if (oldName != newName)
             {
                 node = FSItem.FromNode(Path.Combine(oldDir, newName), Amazon.Nodes.Rename(node.Id, newName).Result);

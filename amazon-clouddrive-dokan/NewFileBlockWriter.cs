@@ -19,7 +19,7 @@ namespace Azi.ACDDokanNet
         {
             this.Item = item;
 
-            writer = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite);
+            writer = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite);
         }
 
         int closed = 0;
@@ -59,6 +59,14 @@ namespace Azi.ACDDokanNet
         public override void Flush()
         {
             writer.Flush();
+        }
+
+        public override void SetLength(long len)
+        {
+            lock (fileLock)
+            {
+                writer.SetLength(len);
+            }
         }
 
         #region IDisposable Support

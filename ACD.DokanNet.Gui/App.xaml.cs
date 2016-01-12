@@ -21,6 +21,7 @@ namespace Azi.ACDDokanNet.Gui
         public bool IsMounted => mountedLetter != null;
 
         public FSProvider.StatisticsUpdated OnProviderStatisticsUpdated { get; set; }
+        public Action OnMountChanged;
 
         public long SmallFileSizeLimit
         {
@@ -258,6 +259,7 @@ namespace Azi.ACDDokanNet.Gui
                       mountedEvent.SetResult((char)mountedLetter);
                   };
 
+                  OnMountChanged?.Invoke();
                   try
                   {
                       cloudDrive.Mount(mountedLetter + ":\\");
@@ -285,6 +287,7 @@ namespace Azi.ACDDokanNet.Gui
                           mountedEvent.SetException(new InvalidOperationException("Could not find free letter"));
                       }
                   }
+                  OnMountChanged?.Invoke();
                   mounted = 0;
               }, TaskCreationOptions.LongRunning).Unwrap();
             return await mountedEvent.Task;

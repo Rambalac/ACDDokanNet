@@ -97,7 +97,7 @@ namespace Azi.ACDDokanNet
             {
                 var downloader = new Downloader(item, path);
                 if (!Downloaders.TryAdd(item.Path, downloader)) return Downloaders[item.Path];
-                var writer = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.Read, 4096, FileOptions.Asynchronous | FileOptions.SequentialScan);
+                var writer = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite, 4096, FileOptions.Asynchronous | FileOptions.SequentialScan);
                 if (writer.Length == item.Length)
                 {
                     writer.Close();
@@ -107,7 +107,7 @@ namespace Azi.ACDDokanNet
                 }
                 if (writer.Length > 0)
                 {
-                    Log.Warn($"File was not totally downloaded. Should be {item.Length} but was {writer.Length}: {path}");
+                    Log.Warn($"File was not totally downloaded before. Should be {item.Length} but was {writer.Length}: {path}");
                 }
 
                 downloader.Downloaded = writer.Length;
@@ -236,16 +236,24 @@ namespace Azi.ACDDokanNet
             {
 
                 int failed = 0;
-                foreach (var file in Directory.GetFiles(oldcachePath).ToList())
+                try
                 {
-                    try
+                    foreach (var file in Directory.GetFiles(oldcachePath).ToList())
                     {
-                        File.Delete(file);
+                        try
+                        {
+                            File.Delete(file);
+                        }
+                        catch (IOException)
+                        {
+                            failed++;
+                        }
                     }
-                    catch (IOException)
-                    {
-                        failed++;
-                    }
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    Log.Error("Cannot access folder: " + oldcachePath);
+                    return;
                 }
                 RecalculateTotalSize();
 
@@ -258,19 +266,27 @@ namespace Azi.ACDDokanNet
             if (cachePath == null) return;
             long t = 0;
             var newaccess = new ConcurrentDictionary<string, CacheEntry>(10, 1000);
-            foreach (var file in Directory.GetFiles(cachePath))
+            try
             {
-                try
+                foreach (var file in Directory.GetFiles(cachePath))
                 {
-                    var fi = new FileInfo(file);
-                    t += fi.Length;
-                    var id = Path.GetFileName(file);
-                    newaccess.TryAdd(id, new CacheEntry { Id = id, AccessTime = fi.LastAccessTimeUtc });
+                    try
+                    {
+                        var fi = new FileInfo(file);
+                        t += fi.Length;
+                        var id = Path.GetFileName(file);
+                        newaccess.TryAdd(id, new CacheEntry { Id = id, AccessTime = fi.LastAccessTimeUtc });
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error("Cannot access folder: " + cachePath);
+                        Log.Error(ex);
+                    }
                 }
-                catch (Exception ex)
-                {
-                    Log.Error(ex);
-                }
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return;
             }
             access = newaccess;
             TotalSize = t;

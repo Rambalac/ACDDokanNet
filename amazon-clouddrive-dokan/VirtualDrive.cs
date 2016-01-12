@@ -167,6 +167,8 @@ namespace Azi.ACDDokanNet
         {
             if (!provider.Exists(fileName)) return DokanResult.PathNotFound;
 
+            Log.Warn("Delete file:" + fileName);
+
             provider.DeleteFile(fileName);
             return DokanResult.Success;
         }
@@ -311,6 +313,8 @@ namespace Azi.ACDDokanNet
             try
             {
                 provider.MoveFile(oldName, newName, replace);
+                Log.Warn("Move file:" + oldName + " - " + newName);
+
                 return DokanResult.Success;
             }
             catch (Exception e)

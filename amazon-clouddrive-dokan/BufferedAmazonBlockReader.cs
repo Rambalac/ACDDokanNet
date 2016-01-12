@@ -122,6 +122,12 @@ namespace Azi.ACDDokanNet
             return count;
         }
 
+        public override void SetLength(long len)
+        {
+            throw new NotSupportedException();
+        }
+
+
         public override void Write(long position, byte[] buffer, int offset, int count, int timeout = 1000)
         {
             throw new NotSupportedException();

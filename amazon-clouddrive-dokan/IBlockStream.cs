@@ -19,6 +19,8 @@ namespace Azi.ACDDokanNet
         void Close();
         void Flush();
 
+        void SetLength(long len);
+
         Action OnClose { get; set; }
     }
 }

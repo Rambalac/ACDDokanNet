@@ -108,6 +108,12 @@ namespace Azi.ACDDokanNet
             throw new NotSupportedException();
         }
 
+        public override void SetLength(long len)
+        {
+            throw new NotSupportedException();
+        }
+
+
         public override void Flush()
         {
         }

@@ -111,9 +111,10 @@ namespace Azi.ACDDokanNet
             };
         }
 
-        internal static FSItem FromRoot(AmazonNode amazonNode)
+        public static FSItem FromRoot(AmazonNode amazonNode)
         {
             return FromNode("\\", amazonNode);
         }
+
     }
 }
