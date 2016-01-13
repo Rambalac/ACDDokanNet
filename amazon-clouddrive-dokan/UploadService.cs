@@ -153,7 +153,7 @@ namespace Azi.ACDDokanNet
             {
                 if (item.length == 0)
                 {
-                    Log.Warn("Zero Length file: " + item.path);
+                    Log.Trace("Zero Length file: " + item.path);
                     File.Delete(path + ".info");
                     OnUploadFailed(item, FailReason.ZeroLength);
                     return;

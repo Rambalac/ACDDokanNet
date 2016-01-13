@@ -405,7 +405,7 @@ namespace Azi.ACDDokanNet
         {
             if (oldPath == newPath) return;
 
-            Log.Warn($"Move: {oldPath} to {newPath} replace:{replace}");
+            Log.Trace($"Move: {oldPath} to {newPath} replace:{replace}");
 
             var oldDir = Path.GetDirectoryName(oldPath);
             var oldName = Path.GetFileName(oldPath);

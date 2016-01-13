@@ -182,7 +182,7 @@ namespace Azi.ACDDokanNet
         {
             if (!provider.Exists(fileName)) return DokanResult.PathNotFound;
 
-            Log.Warn("Delete file:" + fileName);
+            Log.Trace("Delete file:" + fileName);
 
             provider.DeleteFile(fileName);
             return DokanResult.Success;
@@ -263,7 +263,6 @@ namespace Azi.ACDDokanNet
                 }
 
                 fileInfo = new FileInformation();
-                Log.Warn(fileName);
                 return DokanResult.PathNotFound;
             }
             catch (Exception e)
@@ -328,7 +327,7 @@ namespace Azi.ACDDokanNet
             try
             {
                 provider.MoveFile(oldName, newName, replace);
-                Log.Warn("Move file:" + oldName + " - " + newName);
+                Log.Trace("Move file:" + oldName + " - " + newName);
 
                 return DokanResult.Success;
             }
@@ -412,7 +411,7 @@ namespace Azi.ACDDokanNet
 
         public NtStatus UnlockFile(string fileName, long offset, long length, DokanFileInfo info)
         {
-            Log.Warn(fileName);
+            Log.Trace(fileName);
             return DokanResult.Success;
         }
 
@@ -455,7 +454,7 @@ namespace Azi.ACDDokanNet
 
         public NtStatus FindStreams(string fileName, out IList<FileInformation> streams, DokanFileInfo info)
         {
-            Log.Warn(fileName);
+            Log.Trace(fileName);
             streams = new FileInformation[0];
             return DokanResult.NotImplemented;
         }
