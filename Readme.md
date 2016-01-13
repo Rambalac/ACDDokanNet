@@ -70,6 +70,11 @@ Catalog backup currently does not work due requirement for write already created
 
 News
 ----
+### 2016-01-13
+* Release 1.2.0
+* Implemented ReadWrite for files small enough to be downloaded in 30sec
+* Added ReadOnly option
+
 ### 2016-01-06
 * Release 1.1.0
 * Fixed crash on exit in Windows 7
