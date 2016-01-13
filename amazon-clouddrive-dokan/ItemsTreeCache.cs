@@ -164,7 +164,7 @@ namespace Azi.ACDDokanNet
             lok.EnterWriteLock();
             try
             {
-                if (pathToNode.ContainsKey(newitem.Path)) pathToNode[newitem.Path] = newitem;
+                pathToNode[newitem.Path] = newitem;
             }
             finally
             {

@@ -155,10 +155,12 @@ namespace Azi.ACDDokanNet
             }
         }
 
-        private FSItem WaitForReal(FSItem item)
+        private FSItem WaitForReal(FSItem item, int timeout)
         {
+            var timeouttime = DateTime.UtcNow.AddMilliseconds(timeout);
             while (item.IsUploading)
             {
+                if (DateTime.UtcNow > timeouttime) throw new TimeoutException();
                 Thread.Sleep(100);
                 item = GetItem(item.Path);
             }
@@ -225,37 +227,39 @@ namespace Azi.ACDDokanNet
             if (fileAccess == FileAccess.Read)
             {
                 if (item == null) return null;
+                item = WaitForReal(item, 25000);
 
-                if (!item.IsUploading)
-                {
-                    if (item.Length < SmallFileSizeLimit)
-                        return SmallFilesCache.OpenReadWithDownload(item);
+                Log.Trace($"Opening {filePath} for Read");
 
-                    var result = SmallFilesCache.OpenReadCachedOnly(item);
-                    if (result != null) return result;
+                if (item.Length < SmallFileSizeLimit)
+                    return SmallFilesCache.OpenReadWithDownload(item);
 
-                    Interlocked.Increment(ref downloadingCount);
-                    OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
-                    var buffered = new BufferedAmazonBlockReader(item, Amazon);
-                    buffered.OnClose = () =>
-                      {
-                          Interlocked.Decrement(ref downloadingCount);
-                          OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
-                      };
+                var result = SmallFilesCache.OpenReadCachedOnly(item);
+                if (result != null) return result;
 
-                    return buffered;
-                }
+                Interlocked.Increment(ref downloadingCount);
+                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+                var buffered = new BufferedAmazonBlockReader(item, Amazon);
+                buffered.OnClose = () =>
+                  {
+                      Interlocked.Decrement(ref downloadingCount);
+                      OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+                  };
 
-                return FileBlockReader.Open(Path.Combine(CachePath, UploadService.CachePath, item.Id), item.Length);
+                return buffered;
             }
 
-            if (mode == FileMode.CreateNew || ((mode == FileMode.Create || mode == FileMode.OpenOrCreate || mode == FileMode.Append) && (item == null || item.Length == 0)))
+            if (item == null || item.Length == 0)
             {
+#if TRACE
+                Log.Trace($"Creating {filePath} as New because mode:{mode} and {((item == null) ? "item is null" : "length is 0")}");
+#endif
+
                 var dir = Path.GetDirectoryName(filePath);
                 var name = Path.GetFileName(filePath);
                 var dirItem = GetItem(dir);
 
-                if (item == null) item = FSItem.MakeUploading(filePath, Guid.NewGuid().ToString(), dirItem.Id, 0);
+                item = FSItem.MakeUploading(filePath, Guid.NewGuid().ToString(), dirItem.Id, 0);
 
                 var file = UploadService.OpenNew(item);
                 Interlocked.Increment(ref uploadingCount);
@@ -267,10 +271,13 @@ namespace Azi.ACDDokanNet
             }
 
             if (item == null) return null;
-            item = WaitForReal(item);
+            item = WaitForReal(item, 25000);
 
-            if ((mode == FileMode.Create || mode == FileMode.Truncate) || item.Length > 0)
+            if ((mode == FileMode.Create || mode == FileMode.Truncate) && item.Length > 0)
             {
+#if TRACE
+                Log.Trace($"Opening {filePath} as Truncate because mode:{mode} and length {item.Length}");
+#endif
                 item.Length = 0;
                 SmallFilesCache.Delete(item);
                 item.MakeUploading();
@@ -283,6 +290,9 @@ namespace Azi.ACDDokanNet
 
             if (mode == FileMode.Open || mode == FileMode.Append || mode == FileMode.OpenOrCreate)
             {
+#if TRACE
+                Log.Trace($"Opening {filePath} as ReadWrite because mode:{mode} and length {item.Length}");
+#endif
                 if (item.Length < SmallFileSizeLimit)
                 {
                     var file = SmallFilesCache.OpenReadWrite(item);
@@ -402,12 +412,18 @@ namespace Azi.ACDDokanNet
             var newDir = Path.GetDirectoryName(newPath);
             var newName = Path.GetFileName(newPath);
 
-            var node = GetItem(oldPath);
-            node = WaitForReal(node);
+            var item = GetItem(oldPath);
+            item = WaitForReal(item, 25000);
             if (oldName != newName)
             {
-                node = FSItem.FromNode(Path.Combine(oldDir, newName), Amazon.Nodes.Rename(node.Id, newName).Result);
-                if (node == null) throw new InvalidOperationException("Can not rename");
+                if (item.Length > 0)
+                    item = FSItem.FromNode(Path.Combine(oldDir, newName), Amazon.Nodes.Rename(item.Id, newName).Result);
+                else
+                    item = new FSItem(item)
+                    {
+                        Path = Path.Combine(oldDir, newName)
+                    };
+                if (item == null) throw new InvalidOperationException("Can not rename");
             }
 
             if (oldDir != newDir)
@@ -415,14 +431,22 @@ namespace Azi.ACDDokanNet
                 var oldDirNodeTask = FetchNode(oldDir);
                 var newDirNodeTask = FetchNode(newDir);
                 Task.WaitAll(oldDirNodeTask, newDirNodeTask);
-                node = FSItem.FromNode(newPath, Amazon.Nodes.Move(node.Id, oldDirNodeTask.Result.Id, newDirNodeTask.Result.Id).Result);
-                if (node == null) throw new InvalidOperationException("Can not move");
+                if (item.Length > 0)
+                {
+                    item = FSItem.FromNode(newPath, Amazon.Nodes.Move(item.Id, oldDirNodeTask.Result.Id, newDirNodeTask.Result.Id).Result);
+                    if (item == null) throw new InvalidOperationException("Can not move");
+                }
+                else
+                    item = new FSItem(item)
+                    {
+                        Path = newPath
+                    };
             }
 
-            if (node.IsDir)
-                itemsTreeCache.MoveDir(oldPath, node);
+            if (item.IsDir)
+                itemsTreeCache.MoveDir(oldPath, item);
             else
-                itemsTreeCache.MoveFile(oldPath, node);
+                itemsTreeCache.MoveFile(oldPath, item);
         }
 
         #region IDisposable Support

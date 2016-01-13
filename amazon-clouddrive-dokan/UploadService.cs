@@ -103,13 +103,20 @@ namespace Azi.ACDDokanNet
             this.amazon = amazon;
         }
 
+        void WriteInfo(string path, UploadInfo info)
+        {
+            using (var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write))
+            using (var writer = new StreamWriter(file))
+                writer.Write(JsonConvert.SerializeObject(info));
+        }
+
         private void AddUpload(FSItem item)
         {
             var info = new UploadInfo(item);
 
-            uploads.Add(info);
             var path = Path.Combine(cachePath, item.Id);
-            File.WriteAllText(path + ".info", JsonConvert.SerializeObject(info));
+            WriteInfo(path + ".info", info);
+            uploads.Add(info);
         }
 
         public void AddOverwrite(FSItem item)
@@ -119,9 +126,9 @@ namespace Azi.ACDDokanNet
                 overwrite = true
             };
 
-            uploads.Add(info);
             var path = Path.Combine(cachePath, item.Id);
-            File.WriteAllText(path + ".info", JsonConvert.SerializeObject(info));
+            WriteInfo(path + ".info", info);
+            uploads.Add(info);
         }
 
 
@@ -160,18 +167,16 @@ namespace Azi.ACDDokanNet
                 else
                     node = await amazon.Files.Overwrite(item.id,
                         () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, true));
-                if (node != null)
-                {
-                    OnUploadFinished(item, node);
-                    Log.Trace("Finished upload: " + item.path + " id:" + node.id);
-                    File.Delete(path + ".info");
-                    return;
-                }
-                else
+                File.Delete(path + ".info");
+                if (node == null)
                 {
                     OnUploadFailed(item, FailReason.NoNode);
                     throw new NullReferenceException("File node is null: " + item.path);
                 }
+
+                OnUploadFinished(item, node);
+                Log.Trace("Finished upload: " + item.path + " id:" + node.id);
+                return;
             }
             catch (HttpWebException ex)
             {

@@ -76,12 +76,22 @@ namespace Azi.ACDDokanNet
                                                    FileAccess.GenericWrite;
         private const FileAccess DataReadAccess = FileAccess.ReadData | FileAccess.GenericExecute |
                                                    FileAccess.Execute;
+        string lastFilePath;
+
         public NtStatus CreateFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
         {
             try
             {
                 var res = _CreateFile(fileName, access, share, mode, options, attributes, info);
-                Log.Trace($"{fileName}\r\n  Access:[{access}]\r\n  Share:[{share}]\r\n  Mode:[{mode}]\r\n  Options:[{options}]\r\n  Attr:[{attributes}]\r\nStatus:{res}");
+#if TRACE
+                bool readWriteAttributes = (access & DataAccess) == 0;
+                if (!(readWriteAttributes || info.IsDirectory) || (res != DokanResult.Success && !(lastFilePath == fileName && res == DokanResult.FileNotFound)))
+                {
+                    if (!(info.Context is NewFileBlockWriter || info.Context is FileBlockReader || info.Context is SmallFileBlockReaderWriter || info.Context is BufferedAmazonBlockReader))
+                        Log.Trace($"{fileName}\r\n  Access:[{access}]\r\n  Share:[{share}]\r\n  Mode:[{mode}]\r\n  Options:[{options}]\r\n  Attr:[{attributes}]\r\nStatus:{res}");
+                    lastFilePath = fileName;
+                }
+#endif
                 return res;
             }
             catch (Exception e)
@@ -134,7 +144,7 @@ namespace Azi.ACDDokanNet
                     break;
             }
 
-            if ((access & (FileAccess.ReadAttributes | FileAccess.Delete | FileAccess.Synchronize)) != 0 && (access & DataAccess) == 0)
+            if (readWriteAttributes)
             {
                 info.Context = new object();
                 return DokanResult.Success;
@@ -144,9 +154,14 @@ namespace Azi.ACDDokanNet
 
         private NtStatus _OpenFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
         {
-            bool readAccess = (access & DataWriteAccess) == 0;
+            bool readAccess = (access & DataReadAccess) != 0;
+            bool writeAccess = (access & DataWriteAccess) != 0;
 
-            var result = provider.OpenFile(fileName, mode, readAccess ? System.IO.FileAccess.Read : System.IO.FileAccess.Write, share, options);
+            System.IO.FileAccess IOaccess = System.IO.FileAccess.Read;
+            if (!readAccess && writeAccess) IOaccess = System.IO.FileAccess.Write;
+            if (readAccess && writeAccess) IOaccess = System.IO.FileAccess.ReadWrite;
+
+            var result = provider.OpenFile(fileName, mode, IOaccess, share, options);
 
             if (result == null) return DokanResult.AccessDenied;
 
@@ -362,14 +377,19 @@ namespace Azi.ACDDokanNet
 
         public NtStatus SetAllocationSize(string fileName, long length, DokanFileInfo info)
         {
-            Log.Trace(fileName);
-            return DokanResult.NotImplemented;
+            //Log.Trace(fileName);
+            return DokanResult.Success;
         }
 
         public NtStatus SetEndOfFile(string fileName, long length, DokanFileInfo info)
         {
-            Log.Trace(fileName);
-            return DokanResult.NotImplemented;
+            //Log.Trace(fileName);
+
+            var file = info.Context as IBlockStream;
+            file.SetLength(length);
+            Log.Trace($"{fileName} to {length}");
+
+            return DokanResult.Success;
         }
 
         public NtStatus SetFileAttributes(string fileName, FileAttributes attributes, DokanFileInfo info)

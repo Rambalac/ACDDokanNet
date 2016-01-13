@@ -32,7 +32,7 @@ namespace Azi.ACDDokanNet
                 Item.Length = writer.Length;
                 writer.Close();
             }
-            Log.Trace("Closed file: " + Item.Path);
+            Log.Trace($"Closed New file: {Item.Path} of {Item.Length} bytes");
             base.Close();
         }
 
@@ -53,7 +53,7 @@ namespace Azi.ACDDokanNet
                 writer.Write(buffer, offset, count);
             }
             Item.Length = writer.Length;
-            Log.Trace("Write byte: " + count);
+            //Log.Trace("Write byte: " + count);
         }
 
         public override void Flush()
@@ -66,6 +66,7 @@ namespace Azi.ACDDokanNet
             lock (fileLock)
             {
                 writer.SetLength(len);
+                Item.Length = len;
             }
         }
 

@@ -25,7 +25,7 @@ namespace Azi.ACDDokanNet
         public virtual void Close()
         {
             if (Interlocked.CompareExchange(ref closed, 1, 0)!=0) return;
-            
+
             OnClose?.Invoke();
         }
 

@@ -46,7 +46,7 @@ namespace Azi.ACDDokanNet
                     file.Close();
                 }
 
-                Log.Trace("Closed file: " + downloader.Item.Path);
+                Log.Trace($"Closed ReadWrite file: {downloader.Item.Path} of {downloader.Item.Length} bytes");
                 base.Close();
                 if (written) OnChangedAndClosed(downloader.Item, downloader.Path);
             }
@@ -127,7 +127,7 @@ namespace Azi.ACDDokanNet
                 written = true;
             }
             downloader.Item.Length = writer.Length;
-            Log.Trace("Write bytes: " + count);
+            //Log.Trace("Write bytes: " + count);
         }
 
         public override void Flush()
@@ -139,6 +139,8 @@ namespace Azi.ACDDokanNet
             lock (fileLock)
             {
                 writer.SetLength(len);
+                downloader.Item.Length = len;
+                written = true;
             }
         }
 
