@@ -78,9 +78,11 @@ namespace Azi.ACDDokanNet.Gui
         }
 
         NotifyIcon notifyIcon;
+        int uploading = 0;
 
         public void ProviderStatisticsUpdated(int downloading, int uploading)
         {
+            this.uploading = uploading;
             OnProviderStatisticsUpdated?.Invoke(downloading, uploading);
         }
 
@@ -99,7 +101,7 @@ namespace Azi.ACDDokanNet.Gui
             // Initialize menuItem1
             menuItem.Index = 0;
             menuItem.Text = "E&xit";
-            menuItem.Click += menuItem_Click;
+            menuItem.Click += menuExit_Click;
 
             notifyIcon.Icon = System.Drawing.Icon.ExtractAssociatedIcon(
              System.Reflection.Assembly.GetEntryAssembly().ManifestModule.Name);
@@ -124,8 +126,10 @@ namespace Azi.ACDDokanNet.Gui
             MainWindow.Activate();
         }
 
-        private void menuItem_Click(object sender, EventArgs e)
+        private void menuExit_Click(object sender, EventArgs e)
         {
+            if (uploading > 0)
+                if (System.Windows.MessageBox.Show("Some files are not uploaded yet", "Are you sure?", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
             Shutdown();
         }
 
@@ -145,7 +149,7 @@ namespace Azi.ACDDokanNet.Gui
             SetupNotifyIcon();
 
             Task task;
-            if (GetAutorun()) task = Mount(Gui.Properties.Settings.Default.LastDriveLetter);
+            if (GetAutorun()) task = Mount(Gui.Properties.Settings.Default.LastDriveLetter, Gui.Properties.Settings.Default.ReadOnly);
 
 
             if (e.Args.Length > 0)
@@ -229,7 +233,7 @@ namespace Azi.ACDDokanNet.Gui
 
         Task mountTask;
         int mounted = 0;
-        internal async Task<char?> Mount(char driveLetter)
+        internal async Task<char?> Mount(char driveLetter, bool readOnly)
         {
             if (Interlocked.CompareExchange(ref mounted, 1, 0) != 0) return null;
 
@@ -262,7 +266,7 @@ namespace Azi.ACDDokanNet.Gui
                   OnMountChanged?.Invoke();
                   try
                   {
-                      cloudDrive.Mount(mountedLetter + ":\\");
+                      cloudDrive.Mount(mountedLetter + ":\\", readOnly);
                       mountedLetter = null;
                   }
                   catch (InvalidOperationException)
@@ -272,7 +276,7 @@ namespace Azi.ACDDokanNet.Gui
                           try
                           {
                               mountedLetter = letter;
-                              cloudDrive.Mount(mountedLetter + ":\\");
+                              cloudDrive.Mount(mountedLetter + ":\\", readOnly);
                               mountedLetter = null;
                               break;
                           }

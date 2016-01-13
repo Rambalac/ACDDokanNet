@@ -104,5 +104,17 @@ namespace Azi.ACDDokanNet.Gui.Properties {
                 this["SmallFilesCacheLimit"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool ReadOnly {
+            get {
+                return ((bool)(this["ReadOnly"]));
+            }
+            set {
+                this["ReadOnly"] = value;
+            }
+        }
     }
 }

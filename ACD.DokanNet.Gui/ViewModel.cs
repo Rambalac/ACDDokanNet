@@ -78,7 +78,7 @@ namespace Azi.ACDDokanNet.Gui
             NotifyMount();
             try
             {
-                var letter = await App.Mount(SelectedDriveLetter);
+                var letter = await App.Mount(SelectedDriveLetter, ReadOnly);
                 if (letter != null) SelectedDriveLetter = (char)letter;
             }
             finally
@@ -152,6 +152,12 @@ namespace Azi.ACDDokanNet.Gui
             {
                 App.SmallFilesCacheSize = value;
             }
+        }
+
+        public bool ReadOnly
+        {
+            get { return Properties.Settings.Default.ReadOnly; }
+            set { Properties.Settings.Default.ReadOnly=value; }
         }
 
     }

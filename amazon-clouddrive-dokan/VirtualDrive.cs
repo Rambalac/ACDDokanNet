@@ -62,6 +62,7 @@ namespace Azi.ACDDokanNet
 
         NtStatus _CreateDirectory(string fileName, DokanFileInfo info)
         {
+            if (ReadOnly) return DokanResult.AccessDenied;
             if (provider.Exists(fileName)) return DokanResult.AlreadyExists;
             provider.CreateDir(fileName);
             return DokanResult.Success;
@@ -157,6 +158,9 @@ namespace Azi.ACDDokanNet
             bool readAccess = (access & DataReadAccess) != 0;
             bool writeAccess = (access & DataWriteAccess) != 0;
 
+            if (writeAccess && ReadOnly) return DokanResult.AccessDenied;
+
+
             System.IO.FileAccess IOaccess = System.IO.FileAccess.Read;
             if (!readAccess && writeAccess) IOaccess = System.IO.FileAccess.Write;
             if (readAccess && writeAccess) IOaccess = System.IO.FileAccess.ReadWrite;
@@ -172,6 +176,8 @@ namespace Azi.ACDDokanNet
 
         public NtStatus DeleteDirectory(string fileName, DokanFileInfo info)
         {
+            if (ReadOnly) return DokanResult.AccessDenied;
+
             if (!provider.Exists(fileName)) return DokanResult.PathNotFound;
 
             provider.DeleteDir(fileName);
@@ -180,6 +186,8 @@ namespace Azi.ACDDokanNet
 
         public NtStatus DeleteFile(string fileName, DokanFileInfo info)
         {
+            if (ReadOnly) return DokanResult.AccessDenied;
+
             if (!provider.Exists(fileName)) return DokanResult.PathNotFound;
 
             Log.Trace("Delete file:" + fileName);
@@ -275,7 +283,7 @@ namespace Azi.ACDDokanNet
 
         private FileInformation MakeFileInformation(FSItem i)
         {
-            return new FileInformation
+            var result = new FileInformation
             {
                 Length = i.Length,
                 FileName = i.Name,
@@ -284,6 +292,8 @@ namespace Azi.ACDDokanNet
                 LastWriteTime = i.LastWriteTime,
                 CreationTime = i.CreationTime
             };
+            if (ReadOnly) result.Attributes |= FileAttributes.ReadOnly;
+            return result;
         }
 
         public NtStatus GetFileSecurity(string fileName, out FileSystemSecurity security, AccessControlSections sections, DokanFileInfo info)
@@ -304,6 +314,7 @@ namespace Azi.ACDDokanNet
                 FileSystemFeatures.SupportsRemoteStorage |
                 FileSystemFeatures.UnicodeOnDisk |
                 FileSystemFeatures.SequentialWriteOnce;
+            if (ReadOnly) features |= FileSystemFeatures.ReadOnlyVolume;
             fileSystemName = provider.FileSystemName;
             return DokanResult.Success;
         }
@@ -324,6 +335,7 @@ namespace Azi.ACDDokanNet
 
         public NtStatus MoveFile(string oldName, string newName, bool replace, DokanFileInfo info)
         {
+            if (ReadOnly) return DokanResult.AccessDenied;
             try
             {
                 provider.MoveFile(oldName, newName, replace);
@@ -376,12 +388,14 @@ namespace Azi.ACDDokanNet
 
         public NtStatus SetAllocationSize(string fileName, long length, DokanFileInfo info)
         {
+            if (ReadOnly) return DokanResult.AccessDenied;
             //Log.Trace(fileName);
             return DokanResult.Success;
         }
 
         public NtStatus SetEndOfFile(string fileName, long length, DokanFileInfo info)
         {
+            if (ReadOnly) return DokanResult.AccessDenied;
             //Log.Trace(fileName);
 
             var file = info.Context as IBlockStream;
@@ -393,18 +407,22 @@ namespace Azi.ACDDokanNet
 
         public NtStatus SetFileAttributes(string fileName, FileAttributes attributes, DokanFileInfo info)
         {
+            if (ReadOnly) return DokanResult.AccessDenied;
+
             Log.Trace(fileName);
             return DokanResult.Error;
         }
 
         public NtStatus SetFileSecurity(string fileName, FileSystemSecurity security, AccessControlSections sections, DokanFileInfo info)
         {
+            if (ReadOnly) return DokanResult.AccessDenied;
             Log.Trace(fileName);
             return DokanResult.NotImplemented;
         }
 
         public NtStatus SetFileTime(string fileName, DateTime? creationTime, DateTime? lastAccessTime, DateTime? lastWriteTime, DokanFileInfo info)
         {
+            if (ReadOnly) return DokanResult.AccessDenied;
             Log.Trace(fileName);
             return DokanResult.Error;
         }
@@ -422,6 +440,11 @@ namespace Azi.ACDDokanNet
 
         public NtStatus WriteFile(string fileName, byte[] buffer, out int bytesWritten, long offset, DokanFileInfo info)
         {
+            if (ReadOnly)
+            {
+                bytesWritten = 0;
+                return DokanResult.AccessDenied;
+            }
             try
             {
                 if (info.Context != null)
@@ -461,6 +484,8 @@ namespace Azi.ACDDokanNet
 
         public Action OnMount;
         internal Action OnUnmount;
+
+        public bool ReadOnly { get; internal set; }
 
         public NtStatus Mounted(DokanFileInfo info)
         {

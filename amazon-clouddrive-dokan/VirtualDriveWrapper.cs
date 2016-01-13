@@ -40,10 +40,11 @@ namespace Azi.ACDDokanNet
 
         public Action Mounted;
         public Action Unmounted;
-        public void Mount(string path)
+        public void Mount(string path, bool readOnly)
         {
             try
             {
+                virtualDrive.ReadOnly = readOnly;
 #if DEBUG
                 virtualDrive.Mount(path, DokanOptions.DebugMode | DokanOptions.FixedDrive, 0, 800, TimeSpan.FromSeconds(30));
 #else
