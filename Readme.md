@@ -26,6 +26,24 @@ Issues
 * Some applications can report some files cannot be opened. Still such files can be reopened later.
 * Sometimes Explorer thumbnails get broken.
 * There can be a conflict if you try to upload files with same name from different apps or web, only the first uploaded file will remain.
+* 
+
+Issues reporting
+----------------
+If you did not get your cloud mounted, sad to hear it. Here what you can do.
+* First thing to try - check for the latest version
+* If it does not help
+* Close app in System Tray
+* Run it again through "Run as Administrator"
+* Mount.
+* If still nothing
+  * Open Windows Event Viewer, go to Windows Logs - Application
+  * Filter by Event Source ACDDokan.NET.
+  * Check if events do no contain anything too private, events usually contain path to files, but there is no any account name or more over any password as application cannot get them. 
+  * If there are some really private messages select all and unselect bad, Save Selected Events...
+  * If nothing wrong Save Filtered Log File As...
+  * Go to https://github.com/Rambalac/ACDDokanNet/issues
+  * Create new issue and attach log file
 
 Notes
 -----
