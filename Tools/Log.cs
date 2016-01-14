@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Diagnostics.Eventing.Reader;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Security;
 
@@ -71,7 +73,7 @@ namespace Azi.Tools
             string message,
             EventLogEntryType type,
             int eventId = 0,
-            short category=0,
+            short category = 0,
             [CallerMemberName] string memberName = "",
             [CallerFilePath] string sourceFilePath = "",
             [CallerLineNumber] int sourceLineNumber = 0)
@@ -85,6 +87,16 @@ namespace Azi.Tools
                 //Just ignore
             }
 
+        }
+
+        readonly static string query = $"*[System[Provider[@Name = '{source}']]]";
+
+        public static void Export(string path)
+        {
+            using (var log = new EventLogSession())
+            {
+                log.ExportLogAndMessages("Application", PathType.LogName, query, path);
+            }
         }
 
 
