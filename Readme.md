@@ -37,10 +37,10 @@ If you did not get your cloud mounted, sad to hear it. Here what you can do.
 * Run it again through "Run as Administrator"
 * Mount.
 * If still nothing
-  * Open Windows Even Viewer, go to Windows Logs - Application
+  * Open Windows Event Viewer, go to Windows Logs - Application
   * Filter by Event Source ACDDokan.NET.
   * Check if events do no contain anything too private, events usually contain path to files, but there is no any account name or more over any password as application cannot get them. 
-  * If there are some really private message select all and unselect bad, Save Selected Events...
+  * If there are some really private messages select all and unselect bad, Save Selected Events...
   * If nothing wrong Save Filtered Log File As...
   * Go to https://github.com/Rambalac/ACDDokanNet/issues
   * Create new issue and attach log file
