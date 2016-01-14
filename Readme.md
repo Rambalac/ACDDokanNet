@@ -31,7 +31,7 @@ Issues
 Issues reporting
 ----------------
 If you did not get your cloud mounted, sad to hear it. Here what you can do.
-* First thing to try - check for latest version
+* First thing to try - check for the latest version
 * If it does not help
 * Close app in System Tray
 * Run it again through "Run as Administrator"
