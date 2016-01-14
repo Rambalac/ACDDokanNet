@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -159,6 +160,9 @@ namespace Azi.ACDDokanNet.Gui
             get { return Properties.Settings.Default.ReadOnly; }
             set { Properties.Settings.Default.ReadOnly=value; }
         }
+
+        public string Version => Assembly.GetEntryAssembly().GetName().Version.ToString();
+
 
     }
 }

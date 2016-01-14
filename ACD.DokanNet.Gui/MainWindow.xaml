@@ -73,6 +73,7 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <Label Content="Cache path" Padding="5,0,0,0" Grid.ColumnSpan="2" />
                     <Button x:Name="cacheDirButton" Content="Change dir" Click="ChangeCacheDir" Margin="0,0,5,0" Grid.Column="1" />
@@ -87,6 +88,9 @@
 
                     <Label Content="Read only" Grid.Row="4"/>
                     <CheckBox Grid.Row="4" VerticalAlignment="Center" IsChecked="{Binding ReadOnly}" IsEnabled="{Binding CanMount}" HorizontalAlignment="Center" Grid.Column="2"/>
+
+                    <Label Content="Version" Grid.Row="5"/>
+                    <TextBox IsReadOnly="True" Text="{Binding Version, Mode=OneTime}" Grid.Row="5" Grid.Column="2"/>
 
                 </Grid>
             </Expander>
