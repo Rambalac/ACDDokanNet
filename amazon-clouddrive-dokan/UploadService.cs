@@ -230,7 +230,14 @@ namespace Azi.ACDDokanNet
         {
             if (serviceTask == null) return;
             cancellation.Cancel();
-            serviceTask.Wait();
+            try
+            {
+                serviceTask.Wait();
+            }
+            catch (AggregateException e)
+            {
+                e.Handle(ce => ce is TaskCanceledException);
+            }
             serviceTask = null;
         }
 

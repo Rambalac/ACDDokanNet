@@ -48,7 +48,7 @@ namespace Azi.ACDDokanNet.Tests
             {
                 throw new InvalidOperationException("Authentication failed");
             }
-            if (Directory.Exists("TempCache")) Directory.Delete("TempCache", true);
+            DeleteDir("TempCache");
 
             provider = new FSProvider(amazon);
             provider.CachePath = "TempCache";
@@ -61,121 +61,184 @@ namespace Azi.ACDDokanNet.Tests
 
         public void Dispose()
         {
-            Directory.Delete(provider.CachePath, true);
             provider.DeleteDir("\\ACDDokanNetTest");
-        }
-    }
-    public class FSProviderTests : FSProviderTestsBase
-    {
-        [Fact]
-        public void FSProviderTest()
-        {
-            Assert.True(false, "This test needs an implementation");
-        }
-
-        [Fact]
-        public void DeleteFileTest()
-        {
-            Assert.True(false, "This test needs an implementation");
-        }
-
-        [Fact]
-        public void CreateDeleteExistsDirTest()
-        {
-            var dir = testdir + "DeleteTest";
-            provider.CreateDir(dir);
-
-            Assert.True(provider.Exists(dir));
-
-            provider.DeleteDir(dir);
-
-            Assert.False(provider.Exists(dir));
-        }
-
-        [Fact]
-        public void ClearSmallFilesCacheTest()
-        {
-            Assert.True(false, "This test needs an implementation");
-        }
-
-        [Fact]
-        public void ExistsTest()
-        {
-            Assert.True(false, "This test needs an implementation");
-        }
-
-        [Fact]
-        public void CreateDirTest()
-        {
-            Assert.True(false, "This test needs an implementation");
-        }
-
-        [Fact]
-        public void OpenFileReadWriteTest()
-        {
-            var path = testdir + "TestFile.txt";
-            using (var file = provider.OpenFile(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, FileOptions.None))
+            provider.Dispose();
+            try { DeleteDir(provider.CachePath); }
+            catch (UnauthorizedAccessException)
             {
-                file.Write(0, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, 0, 10);
+                //Ignore
+            }
+        }
+
+        private void DeleteDir(string path)
+        {
+            if (!Directory.Exists(path)) return;
+            foreach (string directory in Directory.GetDirectories(path))
+            {
+                DeleteDir(directory);
             }
 
-            while (provider.GetItem(path).IsUploading) Thread.Sleep(500);
-
-            var info = provider.GetItem(path);
-            Assert.Equal(10, info.Length);
-
-            var buf = new byte[10];
-            using (var file = provider.OpenFile(path, FileMode.Open, FileAccess.Read, FileShare.None, FileOptions.None))
+            try
             {
-                file.Read(0, buf, 0, 10);
+                Directory.Delete(path, true);
+            }
+            catch (IOException)
+            {
+                Thread.Sleep(100);
+                Directory.Delete(path, true);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                Thread.Sleep(100);
+                Directory.Delete(path, true);
+            }
+        }
+        public class FSProviderTests : FSProviderTestsBase
+        {
+            [Fact]
+            public void FSProviderTest()
+            {
+                Assert.True(false, "This test needs an implementation");
             }
 
-            Assert.Equal(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, buf);
-
-            using (var file = provider.OpenFile(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None, FileOptions.None))
+            [Fact]
+            public void DeleteFileTest()
             {
-                file.Write(9, new byte[] { 8, 7, 6, 5, 4, 3, 2, 1 }, 0, 8);
+                Assert.True(false, "This test needs an implementation");
             }
 
-            while (provider.GetItem(path).IsUploading) Thread.Sleep(500);
-
-            info = provider.GetItem(path);
-            Assert.Equal(17, info.Length);
-
-            buf = new byte[17];
-            using (var file = provider.OpenFile(path, FileMode.Open, FileAccess.Read, FileShare.None, FileOptions.None))
+            [Fact]
+            public void CreateDeleteExistsDirTest()
             {
-                file.Read(0, buf, 0, 17);
+                var dir = testdir + "DeleteTest";
+                provider.CreateDir(dir);
+
+                Assert.True(provider.Exists(dir));
+
+                provider.DeleteDir(dir);
+
+                Assert.False(provider.Exists(dir));
             }
 
-            Assert.Equal(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2, 1 }, buf);
+            [Fact]
+            public void ClearSmallFilesCacheTest()
+            {
+                Assert.True(false, "This test needs an implementation");
+            }
 
-            buf = new byte[17];
-            int red = amazon.Files.Download(info.Id, buf, 0, 0, 17).Result;
-        }
+            [Fact]
+            public void ExistsTest()
+            {
+                Assert.True(false, "This test needs an implementation");
+            }
 
-        [Fact]
-        public void GetDirItemsTest()
-        {
-            Assert.True(false, "This test needs an implementation");
-        }
+            [Fact]
+            public void CreateDirTest()
+            {
+                Assert.True(false, "This test needs an implementation");
+            }
 
-        [Fact]
-        public void GetItemTest()
-        {
-            Assert.True(false, "This test needs an implementation");
-        }
+            [Fact]
+            public void OpenFileReadWriteTest()
+            {
+                var path = testdir + "TestFile.txt";
+                using (var file = provider.OpenFile(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, FileOptions.None))
+                {
+                    file.Write(0, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, 0, 10);
+                }
 
-        [Fact]
-        public void MoveFileTest()
-        {
-            Assert.True(false, "This test needs an implementation");
-        }
+                while (provider.GetItem(path).IsUploading) Thread.Sleep(500);
 
-        [Fact]
-        public void DisposeTest()
-        {
-            Assert.True(false, "This test needs an implementation");
+                var info = provider.GetItem(path);
+                Assert.Equal(10, info.Length);
+
+                var buf = new byte[10];
+                using (var file = provider.OpenFile(path, FileMode.Open, FileAccess.Read, FileShare.None, FileOptions.None))
+                {
+                    file.Read(0, buf, 0, 10);
+                }
+
+                Assert.Equal(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, buf);
+
+                using (var file = provider.OpenFile(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None, FileOptions.None))
+                {
+                    file.Write(9, new byte[] { 8, 7, 6, 5, 4, 3, 2, 1 }, 0, 8);
+                }
+
+                while (provider.GetItem(path).IsUploading) Thread.Sleep(500);
+
+                info = provider.GetItem(path);
+                Assert.Equal(17, info.Length);
+
+                buf = new byte[17];
+                using (var file = provider.OpenFile(path, FileMode.Open, FileAccess.Read, FileShare.None, FileOptions.None))
+                {
+                    file.Read(0, buf, 0, 17);
+                }
+
+                Assert.Equal(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2, 1 }, buf);
+
+                Assert.True(Directory.GetFiles("TempCache\\Upload").Length == 0);
+
+                var buf2 = new byte[17];
+                int red = amazon.Files.Download(info.Id, buf2, 0, 0, 17).Result;
+
+                Assert.Equal(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2, 1 }, buf2);
+            }
+
+            [Fact]
+            public void OpenNewFileAndReadTest()
+            {
+                var path = testdir + "TestFile.txt";
+                using (var file = provider.OpenFile(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, FileOptions.None))
+                {
+                    file.Write(0, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, 0, 10);
+
+                    var buf = new byte[5];
+                    using (var reader = provider.OpenFile(path, FileMode.Open, FileAccess.Read, FileShare.None, FileOptions.None))
+                    {
+                        reader.Read(2, buf, 0, 5);
+                    }
+
+                    Assert.Equal(new byte[] { 3, 4, 5, 6, 7 }, buf);
+                }
+
+                while (provider.GetItem(path).IsUploading) Thread.Sleep(500);
+
+                Assert.True(Directory.GetFiles("TempCache\\Upload").Length == 0);
+
+                var info = provider.GetItem(path);
+                Assert.Equal(10, info.Length);
+
+                var buf2 = new byte[17];
+                int red = amazon.Files.Download(info.Id, buf2, 0, 0, 17).Result;
+
+                Assert.Equal(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2, 1 }, buf2);
+            }
+
+            [Fact]
+            public void GetDirItemsTest()
+            {
+                Assert.True(false, "This test needs an implementation");
+            }
+
+            [Fact]
+            public void GetItemTest()
+            {
+                Assert.True(false, "This test needs an implementation");
+            }
+
+            [Fact]
+            public void MoveFileTest()
+            {
+                Assert.True(false, "This test needs an implementation");
+            }
+
+            [Fact]
+            public void DisposeTest()
+            {
+                Assert.True(false, "This test needs an implementation");
+            }
         }
     }
 }

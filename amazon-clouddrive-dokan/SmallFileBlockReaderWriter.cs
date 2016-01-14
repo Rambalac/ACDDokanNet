@@ -113,6 +113,7 @@ namespace Azi.ACDDokanNet
             }
         }
 
+        long lastPosition = 0;
         bool written = false;
         public override void Write(long position, byte[] buffer, int offset, int count, int timeout = 1000)
         {
@@ -122,9 +123,12 @@ namespace Azi.ACDDokanNet
             }
             lock (fileLock)
             {
+                //if (lastPosition != position) Log.Warn($"Write Position in New file was changed from {lastPosition} to {position}");
+
                 writer.Position = position;
                 writer.Write(buffer, offset, count);
                 written = true;
+                lastPosition = writer.Position;
             }
             downloader.Item.Length = writer.Length;
             //Log.Trace("Write bytes: " + count);

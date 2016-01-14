@@ -71,7 +71,7 @@ namespace Azi.ACDDokanNet.Tests.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("%TEMP%\\ACDDokanNetCache")]
+        [global::System.Configuration.DefaultSettingValueAttribute("ACDDokanNetTest\\ACDDokanNetCache")]
         public string CacheFolder {
             get {
                 return ((string)(this["CacheFolder"]));
@@ -102,6 +102,18 @@ namespace Azi.ACDDokanNet.Tests.Properties {
             }
             set {
                 this["SmallFilesCacheLimit"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool ReadOnly {
+            get {
+                return ((bool)(this["ReadOnly"]));
+            }
+            set {
+                this["ReadOnly"] = value;
             }
         }
     }
