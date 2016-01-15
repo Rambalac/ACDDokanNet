@@ -66,6 +66,16 @@ namespace Azi.Tools
             [CallerFilePath] string sourceFilePath = "",
             [CallerLineNumber] int sourceLineNumber = 0)
         {
+            Info(message, eventId, category, memberName, sourceFilePath, sourceLineNumber);
+        }
+        public static void Info(
+            string message,
+            int eventId = 0,
+            short category = 0,
+            [CallerMemberName] string memberName = "",
+            [CallerFilePath] string sourceFilePath = "",
+            [CallerLineNumber] int sourceLineNumber = 0)
+        {
             WriteEntry(message, EventLogEntryType.Information, eventId, category, memberName, sourceFilePath, sourceLineNumber);
         }
 
@@ -98,7 +108,5 @@ namespace Azi.Tools
                 log.ExportLogAndMessages("Application", PathType.LogName, query, path);
             }
         }
-
-
     }
 }

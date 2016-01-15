@@ -77,7 +77,10 @@ namespace Azi.ACDDokanNet
                                                    FileAccess.GenericWrite;
         private const FileAccess DataReadAccess = FileAccess.ReadData | FileAccess.GenericExecute |
                                                    FileAccess.Execute;
+
+#if TRACE
         string lastFilePath;
+#endif
 
         public NtStatus CreateFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
         {

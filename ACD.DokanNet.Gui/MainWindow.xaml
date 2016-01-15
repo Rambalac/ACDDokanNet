@@ -60,7 +60,7 @@
 
                 </Grid>
             </GroupBox>
-            <Expander Header="Settings" Grid.Row="2" Padding="5,0,5,5">
+            <Expander Header="Options" Grid.Row="2" Padding="5,0,5,5">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition/>
@@ -68,6 +68,7 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
@@ -90,8 +91,17 @@
                     <CheckBox Grid.Row="4" VerticalAlignment="Center" IsChecked="{Binding ReadOnly}" IsEnabled="{Binding CanMount}" HorizontalAlignment="Center" Grid.Column="2"/>
 
                     <Label Content="Version" Grid.Row="5"/>
-                    <TextBox IsReadOnly="True" Text="{Binding Version, Mode=OneTime}" Grid.Row="5" Grid.Column="2"/>
+                    <TextBox IsReadOnly="True" Text="{Binding Version, Mode=OneTime}" MaxLines="1" Margin="0,0,0,5"  Grid.Row="5" Grid.Column="2"/>
 
+                    <Grid Grid.Row="6" Grid.ColumnSpan="3" HorizontalAlignment="Center">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="6.419" />
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Content="Export Log" Click="exportLog_Click"/>
+                        <Button Content="Open GitHub Issue" Grid.Column="2" Click="openIssue_Click"/>
+                    </Grid>
                 </Grid>
             </Expander>
 

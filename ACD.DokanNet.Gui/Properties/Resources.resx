@@ -117,6 +117,10 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="LogWarning" xml:space="preserve">
+    <value>Log file may contain some private information like folder and file names. But application does not know your email or Amazon Cloud Drive password.
+You can open log file in standard Windows Event Viewer just double clicking the file.</value>
+  </data>
   <data name="SmallFileSizeTooltip" xml:space="preserve">
     <value>Maximum size of files which will be cached whole on first request.</value>
   </data>

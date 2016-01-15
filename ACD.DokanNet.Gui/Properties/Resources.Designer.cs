@@ -61,6 +61,16 @@ namespace Azi.ACDDokanNet.Gui.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Log file may contain some private information like folder and file names. But application does not know your email or Amazon Cloud Drive password.
+        ///You can open log file in standard Windows Event Viewer just double clicking the file..
+        /// </summary>
+        public static string LogWarning {
+            get {
+                return ResourceManager.GetString("LogWarning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Maximum size of files which will be cached whole on first request..
         /// </summary>
         public static string SmallFileSizeTooltip {
