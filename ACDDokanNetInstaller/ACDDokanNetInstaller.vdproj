@@ -39,26 +39,26 @@
         }
         "Entry"
         {
-        "MsmKey" = "8:_71E89629C39B6E32CE97C1079549C394"
-        "OwnerKey" = "8:_53F41B713F854086BDCC162F04C2B52B"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_71E89629C39B6E32CE97C1079549C394"
+        "MsmKey" = "8:_75F3629D031C238A5A3080651A621FFD"
         "OwnerKey" = "8:_841307B971FF437FB4050A50EEB9DC8D"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
         {
-        "MsmKey" = "8:_78B99482D463918DAFA9F23425980ECB"
-        "OwnerKey" = "8:_E80B3DDB707983371B6385DD2DCF7780"
+        "MsmKey" = "8:_75F3629D031C238A5A3080651A621FFD"
+        "OwnerKey" = "8:_53F41B713F854086BDCC162F04C2B52B"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
         {
         "MsmKey" = "8:_78B99482D463918DAFA9F23425980ECB"
         "OwnerKey" = "8:_53F41B713F854086BDCC162F04C2B52B"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_78B99482D463918DAFA9F23425980ECB"
+        "OwnerKey" = "8:_75F3629D031C238A5A3080651A621FFD"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -94,43 +94,49 @@
         "Entry"
         {
         "MsmKey" = "8:_D2CE32D4F9359082A816DC942EAB9454"
-        "OwnerKey" = "8:_53F41B713F854086BDCC162F04C2B52B"
+        "OwnerKey" = "8:_75F3629D031C238A5A3080651A621FFD"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
         {
         "MsmKey" = "8:_D2CE32D4F9359082A816DC942EAB9454"
-        "OwnerKey" = "8:_E80B3DDB707983371B6385DD2DCF7780"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_E80B3DDB707983371B6385DD2DCF7780"
         "OwnerKey" = "8:_53F41B713F854086BDCC162F04C2B52B"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
         {
-        "MsmKey" = "8:_E80B3DDB707983371B6385DD2DCF7780"
+        "MsmKey" = "8:_F8C03544C09959EDA982A5FF316FD9B3"
         "OwnerKey" = "8:_841307B971FF437FB4050A50EEB9DC8D"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
         {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_841307B971FF437FB4050A50EEB9DC8D"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
+        "MsmKey" = "8:_F8C03544C09959EDA982A5FF316FD9B3"
         "OwnerKey" = "8:_53F41B713F854086BDCC162F04C2B52B"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
         {
         "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_71E89629C39B6E32CE97C1079549C394"
+        "OwnerKey" = "8:_841307B971FF437FB4050A50EEB9DC8D"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_F8C03544C09959EDA982A5FF316FD9B3"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_75F3629D031C238A5A3080651A621FFD"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_53F41B713F854086BDCC162F04C2B52B"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -143,12 +149,6 @@
         {
         "MsmKey" = "8:_UNDEFINED"
         "OwnerKey" = "8:_92A40DEE9B30A1675B1768674BB512C8"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_E80B3DDB707983371B6385DD2DCF7780"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -330,7 +330,7 @@
             {
             "AssemblyRegister" = "3:1"
             "AssemblyIsInGAC" = "11:FALSE"
-            "AssemblyAsmDisplayName" = "8:amazon-clouddrive-dokan, Version=1.1.1.0, Culture=neutral, processorArchitecture=MSIL"
+            "AssemblyAsmDisplayName" = "8:amazon-clouddrive-dokan, Version=1.2.0.27898, Culture=neutral, processorArchitecture=MSIL"
                 "ScatterAssemblies"
                 {
                     "_53F41B713F854086BDCC162F04C2B52B"
@@ -357,20 +357,20 @@
             "IsDependency" = "11:TRUE"
             "IsolateTo" = "8:"
             }
-            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_71E89629C39B6E32CE97C1079549C394"
+            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_75F3629D031C238A5A3080651A621FFD"
             {
             "AssemblyRegister" = "3:1"
             "AssemblyIsInGAC" = "11:FALSE"
-            "AssemblyAsmDisplayName" = "8:Tools, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL"
+            "AssemblyAsmDisplayName" = "8:AmazonCloudDriveApi, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL"
                 "ScatterAssemblies"
                 {
-                    "_71E89629C39B6E32CE97C1079549C394"
+                    "_75F3629D031C238A5A3080651A621FFD"
                     {
-                    "Name" = "8:Tools.dll"
+                    "Name" = "8:AmazonCloudDriveApi.dll"
                     "Attributes" = "3:512"
                     }
                 }
-            "SourcePath" = "8:Tools.dll"
+            "SourcePath" = "8:AmazonCloudDriveApi.dll"
             "TargetName" = "8:"
             "Tag" = "8:"
             "Folder" = "8:_BACA36414E1C4DC887DF0F110676394C"
@@ -481,15 +481,20 @@
             "IsDependency" = "11:TRUE"
             "IsolateTo" = "8:"
             }
-            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_E80B3DDB707983371B6385DD2DCF7780"
+            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_F8C03544C09959EDA982A5FF316FD9B3"
             {
             "AssemblyRegister" = "3:1"
             "AssemblyIsInGAC" = "11:FALSE"
-            "AssemblyAsmDisplayName" = "8:AmazonCloudDriveApi, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL"
+            "AssemblyAsmDisplayName" = "8:Tools, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL"
                 "ScatterAssemblies"
                 {
+                    "_F8C03544C09959EDA982A5FF316FD9B3"
+                    {
+                    "Name" = "8:Tools.dll"
+                    "Attributes" = "3:512"
+                    }
                 }
-            "SourcePath" = "8:AmazonCloudDriveApi.dll"
+            "SourcePath" = "8:Tools.dll"
             "TargetName" = "8:"
             "Tag" = "8:"
             "Folder" = "8:_BACA36414E1C4DC887DF0F110676394C"
@@ -586,13 +591,13 @@
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:ACDDokanNet"
         "ProductCode" = "8:{4C030ECD-419C-40CE-80FC-1C4DCF49576D}"
-        "PackageCode" = "8:{F58394CE-7B4E-4369-83F6-F9F3E67C3F2C}"
+        "PackageCode" = "8:{428CE0CE-C9B2-4B6B-9382-0DA62DED02A6}"
         "UpgradeCode" = "8:{8818562C-90F4-4776-A0AD-516460DB8E73}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
         "RemovePreviousVersions" = "11:TRUE"
         "DetectNewerInstalledVersion" = "11:TRUE"
-        "InstallAllUsers" = "11:FALSE"
+        "InstallAllUsers" = "11:TRUE"
         "ProductVersion" = "8:1.2.0"
         "Manufacturer" = "8:Rambalac"
         "ARPHELPTELEPHONE" = "8:"

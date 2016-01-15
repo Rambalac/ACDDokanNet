@@ -85,6 +85,10 @@ namespace Azi.ACDDokanNet.Gui
                     var letter = await App.Mount(SelectedDriveLetter, ReadOnly, cs);
                     if (letter != null) SelectedDriveLetter = (char)letter;
                 }
+                catch (TimeoutException)
+                {
+                    //Ignore if timeout
+                }
                 catch (OperationCanceledException)
                 {
                     //Ignore if aborted

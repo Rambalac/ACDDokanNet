@@ -2,6 +2,7 @@
 using Azi.Tools;
 using Microsoft.Win32;
 using System;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -148,6 +149,8 @@ namespace Azi.ACDDokanNet.Gui
 
         private void Application_Startup(object sender, StartupEventArgs e)
         {
+            Log.Info("Starting Version " + Assembly.GetEntryAssembly().GetName().Version.ToString());
+
             bool created;
             startedMutex = new Mutex(false, appName, out created);
             if (!created)
