@@ -68,5 +68,14 @@ namespace Azi.ACDDokanNet.Gui.Properties {
                 return ResourceManager.GetString("SmallFileSizeTooltip", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Please follow Amazon Cloud Drive login page in your browser and retrun here after it&apos;s complete..
+        /// </summary>
+        public static string WaitForRedirectMessage {
+            get {
+                return ResourceManager.GetString("WaitForRedirectMessage", resourceCulture);
+            }
+        }
     }
 }

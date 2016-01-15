@@ -58,7 +58,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="AmazonCloudDriveApi, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\AmazonCloudDriveApi.1.0.2\lib\net45\AmazonCloudDriveApi.dll</HintPath>
+      <HintPath>..\packages\AmazonCloudDriveApi.1.0.3\lib\net45\AmazonCloudDriveApi.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.WindowsAPICodePack, Version=1.1.0.0, Culture=neutral, processorArchitecture=MSIL">
@@ -96,6 +96,9 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="AmazonSecret.cs" />
+    <Compile Include="MountWaitBox.xaml.cs">
+      <DependentUpon>MountWaitBox.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -115,6 +118,10 @@
       <SubType>
       </SubType>
     </Compile>
+    <Page Include="MountWaitBox.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">
@@ -145,6 +152,10 @@
     <ProjectReference Include="..\amazon-clouddrive-dokan\amazon-clouddrive-dokan.csproj">
       <Project>{213aa535-db16-4cf9-b3f1-324ff9347f8d}</Project>
       <Name>amazon-clouddrive-dokan</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Tools\Tools.csproj">
+      <Project>{199cdb28-7472-41bd-bb1f-bf345451a68d}</Project>
+      <Name>Tools</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

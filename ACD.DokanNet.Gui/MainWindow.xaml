@@ -11,7 +11,7 @@
     <Window.DataContext>
         <local:ViewModel/>
     </Window.DataContext>
-    <Border Padding="5" >
+    <Border Padding="5">
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>

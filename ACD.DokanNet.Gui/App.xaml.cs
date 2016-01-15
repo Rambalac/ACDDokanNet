@@ -1,4 +1,5 @@
 ﻿using Azi.Amazon.CloudDrive;
+using Azi.Tools;
 using Microsoft.Win32;
 using System;
 using System.Runtime.InteropServices;
@@ -135,6 +136,16 @@ namespace Azi.ACDDokanNet.Gui
 
         Mutex startedMutex;
 
+        private async Task MountDefault()
+        {
+            var dlg = new MountWaitBox(MainWindow);
+            var cs = new System.Threading.CancellationTokenSource();
+            dlg.Cancellation = cs;
+            dlg.Show();
+            await Mount(Gui.Properties.Settings.Default.LastDriveLetter, Gui.Properties.Settings.Default.ReadOnly, cs.Token);
+            dlg.Close();
+        }
+
         private void Application_Startup(object sender, StartupEventArgs e)
         {
             bool created;
@@ -149,7 +160,7 @@ namespace Azi.ACDDokanNet.Gui
             SetupNotifyIcon();
 
             Task task;
-            if (GetAutorun()) task = Mount(Gui.Properties.Settings.Default.LastDriveLetter, Gui.Properties.Settings.Default.ReadOnly);
+            if (GetAutorun()) task = MountDefault();
 
 
             if (e.Args.Length > 0)
@@ -166,7 +177,7 @@ namespace Azi.ACDDokanNet.Gui
         VirtualDriveWrapper cloudDrive;
         FSProvider provider;
 
-        async Task<AmazonDrive> Authenticate()
+        async Task<AmazonDrive> Authenticate(CancellationToken cs)
         {
             var settings = Gui.Properties.Settings.Default;
             var amazon = new AmazonDrive(AmazonSecret.clientId, AmazonSecret.clientSecret);
@@ -185,7 +196,8 @@ namespace Azi.ACDDokanNet.Gui
                     settings.AuthRenewToken,
                     settings.AuthTokenExpiration)) return amazon;
             }
-            if (await amazon.SafeAuthenticationAsync(CloudDriveScope.ReadAll | CloudDriveScope.Write, TimeSpan.FromMinutes(10))) return amazon;
+            if (await amazon.SafeAuthenticationAsync(CloudDriveScope.ReadAll | CloudDriveScope.Write, TimeSpan.FromMinutes(10), cs)) return amazon;
+            cs.ThrowIfCancellationRequested();
             return null;
         }
 
@@ -233,7 +245,7 @@ namespace Azi.ACDDokanNet.Gui
 
         Task mountTask;
         int mounted = 0;
-        internal async Task<char?> Mount(char driveLetter, bool readOnly)
+        internal async Task<char?> Mount(char driveLetter, bool readOnly, CancellationToken cs)
         {
             if (Interlocked.CompareExchange(ref mounted, 1, 0) != 0) return null;
 
@@ -241,58 +253,68 @@ namespace Azi.ACDDokanNet.Gui
 
             mountTask = Task.Factory.StartNew(async () =>
               {
-                  lock (mountLock)
-                  {
-                      if (mountedLetter != null) return;
-                      mountedLetter = driveLetter;
-                  }
-                  var amazon = await Authenticate();
-                  if (amazon == null)
-                  {
-                      throw new InvalidOperationException("Authentication failed");
-                  }
-
-                  provider = new FSProvider(amazon);
-                  provider.CachePath = Environment.ExpandEnvironmentVariables(Gui.Properties.Settings.Default.CacheFolder);
-                  provider.SmallFilesCacheSize = Gui.Properties.Settings.Default.SmallFilesCacheLimit * (1 << 20);
-                  provider.SmallFileSizeLimit = Gui.Properties.Settings.Default.SmallFileSizeLimit * (1 << 20);
-                  provider.OnStatisticsUpdated = ProviderStatisticsUpdated;
-                  cloudDrive = new VirtualDriveWrapper(provider);
-                  cloudDrive.Mounted = () =>
-                  {
-                      mountedEvent.SetResult((char)mountedLetter);
-                  };
-
-                  OnMountChanged?.Invoke();
                   try
                   {
-                      cloudDrive.Mount(mountedLetter + ":\\", readOnly);
-                      mountedLetter = null;
-                  }
-                  catch (InvalidOperationException)
-                  {
-                      foreach (char letter in VirtualDriveWrapper.GetFreeDriveLettes())
+                      lock (mountLock)
                       {
-                          try
-                          {
-                              mountedLetter = letter;
-                              cloudDrive.Mount(mountedLetter + ":\\", readOnly);
-                              mountedLetter = null;
-                              break;
-                          }
-                          catch (InvalidOperationException)
-                          {
+                          if (mountedLetter != null) return;
+                          mountedLetter = driveLetter;
+                      }
+                      AmazonDrive amazon = await Authenticate(cs);
+                      if (amazon == null)
+                      {
+                          mountedEvent.SetException(new InvalidOperationException("Authentication failed"));
+                      }
 
+                      provider = new FSProvider(amazon);
+                      provider.CachePath = Environment.ExpandEnvironmentVariables(Gui.Properties.Settings.Default.CacheFolder);
+                      provider.SmallFilesCacheSize = Gui.Properties.Settings.Default.SmallFilesCacheLimit * (1 << 20);
+                      provider.SmallFileSizeLimit = Gui.Properties.Settings.Default.SmallFileSizeLimit * (1 << 20);
+                      provider.OnStatisticsUpdated = ProviderStatisticsUpdated;
+                      cloudDrive = new VirtualDriveWrapper(provider);
+                      cloudDrive.Mounted = () =>
+                      {
+                          mountedEvent.SetResult((char)mountedLetter);
+                      };
+
+                      OnMountChanged?.Invoke();
+                      try
+                      {
+                          cloudDrive.Mount(mountedLetter + ":\\", readOnly);
+                          mountedLetter = null;
+                      }
+                      catch (InvalidOperationException)
+                      {
+                          Log.Warn($"Drive letter {mountedLetter} is already used");
+                          foreach (char letter in VirtualDriveWrapper.GetFreeDriveLettes())
+                          {
+                              try
+                              {
+                                  mountedLetter = letter;
+                                  cloudDrive.Mount(mountedLetter + ":\\", readOnly);
+                                  mountedLetter = null;
+                                  break;
+                              }
+                              catch (InvalidOperationException)
+                              {
+                                  Log.Warn($"Drive letter {letter} is already used");
+                              }
+                          }
+                          if (mountedLetter != null)
+                          {
+                              mountedLetter = null;
+                              mountedEvent.SetException(new InvalidOperationException("Could not find free letter"));
                           }
                       }
-                      if (mountedLetter != null)
-                      {
-                          mountedLetter = null;
-                          mountedEvent.SetException(new InvalidOperationException("Could not find free letter"));
-                      }
+                      OnMountChanged?.Invoke();
+                      mounted = 0;
                   }
-                  OnMountChanged?.Invoke();
-                  mounted = 0;
+                  catch (Exception ex)
+                  {
+                      mountedLetter = null;
+                      mounted = 0;
+                      mountedEvent.SetException(ex);
+                  }
               }, TaskCreationOptions.LongRunning).Unwrap();
             return await mountedEvent.Task;
         }

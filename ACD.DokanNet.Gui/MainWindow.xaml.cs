@@ -29,7 +29,13 @@ namespace Azi.ACDDokanNet.Gui
 
         private async void mountButton_Click(object sender, RoutedEventArgs e)
         {
-            await Model.Mount();
+            var dlg = new MountWaitBox(this);
+            var cs = new System.Threading.CancellationTokenSource();
+            dlg.Cancellation = cs;
+            dlg.Show();
+            await Model.Mount(cs.Token);
+            dlg.Close();
+            Activate();
         }
 
         private async void unmountButton_Click(object sender, RoutedEventArgs e)

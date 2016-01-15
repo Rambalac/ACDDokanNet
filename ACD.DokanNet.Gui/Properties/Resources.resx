@@ -120,4 +120,7 @@
   <data name="SmallFileSizeTooltip" xml:space="preserve">
     <value>Maximum size of files which will be cached whole on first request.</value>
   </data>
+  <data name="WaitForRedirectMessage" xml:space="preserve">
+    <value>Please follow Amazon Cloud Drive login page in your browser and retrun here after it's complete.</value>
+  </data>
 </root>
