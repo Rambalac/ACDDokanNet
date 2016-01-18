@@ -127,4 +127,8 @@ You can open log file in standard Windows Event Viewer just double clicking the 
   <data name="WaitForRedirectMessage" xml:space="preserve">
     <value>Please follow Amazon Cloud Drive login page in your browser and retrun here after it's complete.</value>
   </data>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="app_all" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\app_all.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
 </root>

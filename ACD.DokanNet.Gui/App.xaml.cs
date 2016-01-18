@@ -81,10 +81,12 @@ namespace Azi.ACDDokanNet.Gui
 
         NotifyIcon notifyIcon;
         int uploading = 0;
+        int downloading = 0;
 
         public void ProviderStatisticsUpdated(int downloading, int uploading)
         {
             this.uploading = uploading;
+            this.downloading = downloading;
             OnProviderStatisticsUpdated?.Invoke(downloading, uploading);
         }
 
@@ -93,33 +95,27 @@ namespace Azi.ACDDokanNet.Gui
             var components = new System.ComponentModel.Container();
             notifyIcon = new NotifyIcon(components);
 
-            var contextMenu = new ContextMenu();
-            var menuItem = new MenuItem();
+            var contextMenu = new ContextMenu(
+                        new MenuItem[] {
+                            new MenuItem("&Settings", (s,e)=>OpenSettings()),
+                            new MenuItem("-"),
+                            new MenuItem("E&xit", (s,e)=>menuExit_Click())
+                        });
 
-            // Initialize contextMenu1
-            contextMenu.MenuItems.AddRange(
-                        new MenuItem[] { menuItem });
 
-            // Initialize menuItem1
-            menuItem.Index = 0;
-            menuItem.Text = "E&xit";
-            menuItem.Click += menuExit_Click;
-
-            notifyIcon.Icon = System.Drawing.Icon.ExtractAssociatedIcon(
-             System.Reflection.Assembly.GetEntryAssembly().ManifestModule.Name);
-
-            // The ContextMenu property sets the menu that will
-            // appear when the systray icon is right clicked.
+            notifyIcon.Icon = Gui.Properties.Resources.app_all;
             notifyIcon.ContextMenu = contextMenu;
 
-            // The Text property sets the text that will be displayed,
-            // in a tooltip, when the mouse hovers over the systray icon.
-            notifyIcon.Text = "Amazon Cloud Drive Dokan.NET Settings";
+            notifyIcon.Text = $"Amazon Cloud Drive Dokan.NET driver settings.";
             notifyIcon.Visible = true;
 
-            // Handle the DoubleClick event to activate the form.
-            notifyIcon.DoubleClick += (sender, e) => OpenSettings();
+            notifyIcon.MouseClick += (sender, e) => { if (e.Button == MouseButtons.Left) ShowBalloon(); };
+        }
 
+        private void ShowBalloon()
+        {
+            notifyIcon.ShowBalloonTip(5000, "State",
+                $"Downloading: {downloading}\r\nUploading: {uploading}", ToolTipIcon.None);
         }
 
         void OpenSettings()
@@ -128,7 +124,7 @@ namespace Azi.ACDDokanNet.Gui
             MainWindow.Activate();
         }
 
-        private void menuExit_Click(object sender, EventArgs e)
+        private void menuExit_Click()
         {
             if (uploading > 0)
                 if (System.Windows.MessageBox.Show("Some files are not uploaded yet", "Are you sure?", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
@@ -161,6 +157,11 @@ namespace Azi.ACDDokanNet.Gui
 
             MainWindow = new MainWindow();
             SetupNotifyIcon();
+
+            MainWindow.Closing += (s2, e2) =>
+            {
+                notifyIcon.ShowBalloonTip(5000, "", "Settings window is still accessible from here.\r\nTo close application totally click here with right button and select Exit.", ToolTipIcon.None);
+            };
 
             Task task;
             if (GetAutorun()) task = MountDefault();

@@ -56,6 +56,9 @@
   <PropertyGroup>
     <AssemblyOriginatorKeyFile>ACDDokanNet.pfx</AssemblyOriginatorKeyFile>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>app_all.ico</ApplicationIcon>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="AmazonCloudDriveApi, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\AmazonCloudDriveApi.1.0.3\lib\net45\AmazonCloudDriveApi.dll</HintPath>
@@ -169,6 +172,15 @@
       <ProductName>.NET Framework 3.5 SP1</ProductName>
       <Install>false</Install>
     </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="images\cd_icon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="images\app_all.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="app_all.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

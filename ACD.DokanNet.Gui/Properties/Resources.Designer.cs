@@ -61,6 +61,16 @@ namespace Azi.ACDDokanNet.Gui.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
+        public static System.Drawing.Icon app_all {
+            get {
+                object obj = ResourceManager.GetObject("app_all", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Log file may contain some private information like folder and file names. But application does not know your email or Amazon Cloud Drive password.
         ///You can open log file in standard Windows Event Viewer just double clicking the file..
         /// </summary>
