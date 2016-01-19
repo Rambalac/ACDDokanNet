@@ -146,6 +146,13 @@ namespace Azi.ACDDokanNet.Gui
         private void Application_Startup(object sender, StartupEventArgs e)
         {
             Log.Info("Starting Version " + Assembly.GetEntryAssembly().GetName().Version.ToString());
+            if (Gui.Properties.Settings.Default.NeedUpgrade)
+            {
+                Gui.Properties.Settings.Default.Upgrade();
+                Gui.Properties.Settings.Default.NeedUpgrade = false;
+                Gui.Properties.Settings.Default.Save();
+            }
+
 
             bool created;
             startedMutex = new Mutex(false, appName, out created);

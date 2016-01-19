@@ -88,8 +88,8 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         <Label Content="Cache path" Padding="5,0,0,0" Grid.ColumnSpan="2" />
-                        <Button x:Name="cacheDirButton" Content="Change dir" Click="ChangeCacheDir" Margin="0,0,5,0" Grid.Column="1" />
-                        <Button x:Name="cacheClearButton" Content="Clear Cache" Click="ClearSmallFilesCache" Margin="0,0,0,0" Grid.Column="2" />
+                        <Button x:Name="cacheDirButton" Content="Change dir" IsEnabled="{Binding CanMount}" Click="ChangeCacheDir" Margin="0,0,5,0" Grid.Column="1" />
+                        <Button x:Name="cacheClearButton" Content="Clear Cache" IsEnabled="{Binding CanMount}" Click="ClearSmallFilesCache" Margin="0,0,0,0" Grid.Column="2" />
                         <TextBox IsReadOnly="True" Text="{Binding CacheFolder}" Grid.Row="1" MaxLines="1" Margin="0,5,0,0" Grid.ColumnSpan="3" />
 
                         <Label Content="Small files size, Mb" Grid.Row="2" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}" Grid.ColumnSpan="2" Padding="5,5,5,0"/>
