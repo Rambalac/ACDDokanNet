@@ -101,16 +101,15 @@ namespace Azi.ACDDokanNet.Gui
             MessageBox.Show(Properties.Resources.LogWarning);
 
             Log.Info("Version " + Model.Version);
-            using (var dlg = new CommonOpenFileDialog
+            using (var dlg = new CommonSaveFileDialog
             {
                 Title = "Export Log",
                 DefaultExtension=".evtx",
                 DefaultFileName="ACDDokanNetLog.evtx",
                 AddToMostRecentlyUsedList = false,
-                AllowNonFileSystemItems = false,
                 EnsureValidNames = true,
-                Multiselect = false,
-                ShowPlacesList = true
+                ShowPlacesList = true,
+                RestoreDirectory=true,
             })
             {
                 if (dlg.ShowDialog() == CommonFileDialogResult.Ok)
