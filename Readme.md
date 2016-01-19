@@ -7,7 +7,7 @@ Not just in Windows Explorer, but in any application.
 
 ![Sample](/images/Amazon Cloud Drive as real drive.png)
 
-Login is done via default browser, so application itself can not get your login and password, 
+Login is done via default web browser, so application itself can not get your login and password, 
 and if you already logged into Amazon Cloud Drive you don't need to enter anything, just click a button.
 
 Pros
@@ -20,30 +20,34 @@ Pros
 
 Issues
 ------
-* Disk caching is done only for files with size less 20Mb. Big files are partially cached in memory and random access can be slow. Common video files are big and require random access to play. It's very unlikely you can play any video directly, but you can copy it to real drive first.
-* Only new files can be written. To overwrite delete first.
-* Files cannot be opened for Read and Write simultaneously except new files.
+* Disk caching is done only for files with size less 20Mb. This can be changed, but be careful, Windows will try open all files you see in explorer. Big files are partially cached in memory and random access can be slow. Common video files are big and require random access to play. It's very unlikely you can play any video directly, but you can copy it to real drive first.
+* Files cannot be opened for Read and Write if size is bigger than cached file size.
 * Some applications can report some files cannot be opened. Still such files can be reopened later.
 * Sometimes Explorer thumbnails get broken.
 * There can be a conflict if you try to upload files with same name from different apps or web, only the first uploaded file will remain.
-* 
 
 Issues reporting
 ----------------
-If you did not get your cloud mounted, sad to hear it. Here what you can do.
+If you did not get your cloud mounted or have other reason, sad to hear it. Here what you can do.
 * First thing to try - check for the latest version
 * If it does not help
   * Close app in System Tray
   * Run it again through "Run as Administrator"
-  * Mount.
-  * If still nothing
-    * Open Windows Event Viewer, go to Windows Logs - Application
-    * Filter by Event Source ACDDokan.NET.
-    * Check if events do no contain anything too private, events usually contain path to files, but there is no any account name or more over any password as application cannot get them. 
-    * If there are some really private messages select all and unselect bad, Save Selected Events...
-    * If nothing wrong Save Filtered Log File As...
-    * Go to https://github.com/Rambalac/ACDDokanNet/issues
-    * Create new issue and attach log file
+  * Mount and try to repeat your problem.
+  * Go to Options section
+  * Click Export Log, select location and file name, Save
+  * Click Open GitHub issue, fallow GitHub instruction to create Issue and attach exported log.
+ 
+* If you have problems preventing to open settings windows in "Run as Administrator"
+  * Open Windows Event Viewer, go to Windows Logs - Application
+  * Filter by Event Source ACDDokan.NET.
+  * Check if events do no contain anything too private, events usually contain path to files, but there is no any account name or more over any password as application cannot get them. 
+  * If there are some really private messages select all and unselect bad, Save Selected Events...
+  * If nothing wrong Save Filtered Log File As...
+  * Go to https://github.com/Rambalac/ACDDokanNet/issues
+  * Create new issue and attach log file
+
+
 
 Notes
 -----
@@ -82,12 +86,16 @@ There can be issues with thumbnails, refresh to fix.
 #### Lightroom 4
 Keep catalog on real drive. 
 
-Browsing and editing generally works. There can be some glitches with some files. Open file in develop mode, if you see an error switch to another file and after few seconds switch back, repeat if needed.
+Browsing and editing generally works. There can be some glitches with some files. Open file in develop mode, if you see an error then switch to another file and after few seconds switch back, repeat if needed.
 
 Catalog backup currently does not work due requirement for write already created files.
 
 News
 ----
+### 2016-01-19
+* Release 1.4.0
+* Implemented access check. Only mounter and SYSTEM accounts can access drive.
+
 ### 2016-01-13
 * Release 1.2.0
 * Implemented ReadWrite for files small enough to be downloaded in 30sec
