@@ -104,8 +104,12 @@ namespace Azi.ACDDokanNet
                   if (!File.Exists(newitemPath))
                   {
                       File.Move(olditemPath, newitemPath);
-                      SmallFilesCache.AddExisting(newitem);
                   }
+                  else
+                  {
+                      File.Delete(olditemPath);
+                  }
+                  SmallFilesCache.AddExisting(newitem);
                   itemsTreeCache.Update(newitem);
               };
             UploadService.OnUploadResumed = item =>

@@ -3,7 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Azi.ACDDokanNet.Gui
@@ -71,15 +73,26 @@ namespace Azi.ACDDokanNet.Gui
         }
 
         bool mounting = false;
-        internal async Task Mount()
+        internal async Task Mount(CancellationToken cs)
         {
             if (App == null) throw new NullReferenceException();
             mounting = true;
             NotifyMount();
             try
             {
-                var letter = await App.Mount(SelectedDriveLetter, ReadOnly);
-                if (letter != null) SelectedDriveLetter = (char)letter;
+                try
+                {
+                    var letter = await App.Mount(SelectedDriveLetter, ReadOnly, cs);
+                    if (letter != null) SelectedDriveLetter = (char)letter;
+                }
+                catch (TimeoutException)
+                {
+                    //Ignore if timeout
+                }
+                catch (OperationCanceledException)
+                {
+                    //Ignore if aborted
+                }
             }
             finally
             {
@@ -157,8 +170,11 @@ namespace Azi.ACDDokanNet.Gui
         public bool ReadOnly
         {
             get { return Properties.Settings.Default.ReadOnly; }
-            set { Properties.Settings.Default.ReadOnly=value; }
+            set { Properties.Settings.Default.ReadOnly = value; }
         }
+
+        public string Version => Assembly.GetEntryAssembly().GetName().Version.ToString();
+
 
     }
 }

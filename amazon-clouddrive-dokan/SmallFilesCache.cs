@@ -331,7 +331,7 @@ namespace Azi.ACDDokanNet
         public FileBlockReader OpenReadCachedOnly(FSItem item)
         {
             var path = Path.Combine(cachePath, item.Id);
-
+            if (!File.Exists(path)) return null;
             CacheEntry entry;
             if (access.TryGetValue(item.Id, out entry)) entry.AccessTime = DateTime.UtcNow;
 

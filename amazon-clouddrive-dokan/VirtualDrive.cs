@@ -9,12 +9,14 @@ using Azi.Tools;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
+using System.Security.Principal;
 
 namespace Azi.ACDDokanNet
 {
 
     internal class VirtualDrive : IDokanOperations
     {
+        string creator = WindowsIdentity.GetCurrent().Name;
         FSProvider provider;
         public VirtualDrive(FSProvider provider)
         {
@@ -77,7 +79,10 @@ namespace Azi.ACDDokanNet
                                                    FileAccess.GenericWrite;
         private const FileAccess DataReadAccess = FileAccess.ReadData | FileAccess.GenericExecute |
                                                    FileAccess.Execute;
+
+#if TRACE
         string lastFilePath;
+#endif
 
         public NtStatus CreateFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
         {
@@ -104,6 +109,11 @@ namespace Azi.ACDDokanNet
 
         public NtStatus _CreateFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
         {
+            if (!HasAccess(info))
+            {
+                return DokanResult.AccessDenied;
+            }
+
             if (info.IsDirectory)
             {
                 if (mode == FileMode.CreateNew) return _CreateDirectory(fileName, info);
@@ -153,6 +163,15 @@ namespace Azi.ACDDokanNet
             return _OpenFile(fileName, access, share, mode, options, attributes, info);
         }
 
+        private bool HasAccess(DokanFileInfo info)
+        {
+            var watch = Stopwatch.StartNew();
+            var identity = Processes.GetProcessOwner(info.ProcessId);
+            if (identity == "NT AUTHORITY\\SYSTEM" || identity == creator) return true;
+            Log.Warn($"User {identity} has no access to Amazon Cloud Drive on drive {MountPath}\r\nCreator User is {creator} - Identity User is {identity}");
+            return false;
+        }
+
         private NtStatus _OpenFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
         {
             bool readAccess = (access & DataReadAccess) != 0;
@@ -198,6 +217,12 @@ namespace Azi.ACDDokanNet
 
         public NtStatus FindFiles(string fileName, out IList<FileInformation> files, DokanFileInfo info)
         {
+            if (!HasAccess(info))
+            {
+                files = null;
+                return DokanResult.AccessDenied;
+            }
+
             try
             {
                 var items = provider.GetDirItems(fileName).Result;
@@ -260,6 +285,12 @@ namespace Azi.ACDDokanNet
 
         public NtStatus GetFileInformation(string fileName, out FileInformation fileInfo, DokanFileInfo info)
         {
+            if (!HasAccess(info))
+            {
+                fileInfo = new FileInformation();
+                return DokanResult.AccessDenied;
+            }
+
             try
             {
                 var item = provider.GetItem(fileName);
@@ -300,8 +331,22 @@ namespace Azi.ACDDokanNet
 
         {
             Log.Trace(fileName);
-            security = null;
-            return DokanResult.NotImplemented;
+
+            var identity = WindowsIdentity.GetCurrent().Owner;
+            FileSystemSecurity result = (info.IsDirectory)
+                ? (FileSystemSecurity)new DirectorySecurity()
+                : (FileSystemSecurity)new FileSecurity();
+            if (sections.HasFlag(AccessControlSections.Access))
+            {
+                result.SetAccessRule(new FileSystemAccessRule(identity, FileSystemRights.FullControl, AccessControlType.Allow));
+                result.SetAccessRuleProtection(false, true);
+            }
+            if (sections.HasFlag(AccessControlSections.Owner))
+            {
+                result.SetOwner(identity);
+            }
+            security = result;
+            return DokanResult.Success;
         }
 
         public NtStatus GetVolumeInformation(out string volumeLabel, out FileSystemFeatures features, out string fileSystemName, DokanFileInfo info)
@@ -335,6 +380,11 @@ namespace Azi.ACDDokanNet
 
         public NtStatus MoveFile(string oldName, string newName, bool replace, DokanFileInfo info)
         {
+            if (!HasAccess(info))
+            {
+                return DokanResult.AccessDenied;
+            }
+
             if (ReadOnly) return DokanResult.AccessDenied;
             try
             {
@@ -484,6 +534,7 @@ namespace Azi.ACDDokanNet
 
         public Action OnMount;
         internal Action OnUnmount;
+        internal string MountPath;
 
         public bool ReadOnly { get; internal set; }
 

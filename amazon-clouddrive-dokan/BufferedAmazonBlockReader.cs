@@ -68,6 +68,8 @@ namespace Azi.ACDDokanNet
 
         private Block DownloadBlock(long block)
         {
+            if (lastBlock != block) Log.Warn($"Buffered Read block changed from {lastBlock} to {block}");
+            lastBlock = block + 1;
             var pos = block * blockSize;
             var count = pos + blockSize <= item.Length ? blockSize : (int)(item.Length - pos);
             if (count == 0) return new Block(block, new byte[0]);
@@ -87,6 +89,8 @@ namespace Azi.ACDDokanNet
             }
             return new Block(block, result);
         }
+
+        long lastBlock = 0;
 
         public override int Read(long position, byte[] buffer, int offset, int count, int timeout = 1000)
         {

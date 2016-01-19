@@ -132,20 +132,6 @@ namespace Azi.ACDDokanNet
         }
 
 
-        private string CalcMD5(string path)
-        {
-            using (var md5 = MD5.Create())
-            {
-                using (var stream = File.OpenRead(CachePath))
-                {
-                    var bytes = md5.ComputeHash(stream);
-                    return BitConverter.ToString(bytes).Replace("-", "").ToLowerInvariant();
-                }
-            }
-        }
-
-
-
         private async Task Upload(UploadInfo item)
         {
             var path = Path.Combine(cachePath, item.id);
@@ -230,7 +216,14 @@ namespace Azi.ACDDokanNet
         {
             if (serviceTask == null) return;
             cancellation.Cancel();
-            serviceTask.Wait();
+            try
+            {
+                serviceTask.Wait();
+            }
+            catch (AggregateException e)
+            {
+                e.Handle(ce => ce is TaskCanceledException);
+            }
             serviceTask = null;
         }
 

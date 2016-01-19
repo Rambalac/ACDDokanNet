@@ -8,10 +8,13 @@
         x:Class="Azi.ACDDokanNet.Gui.MainWindow"
         mc:Ignorable="d"
         Title="ACD Dokan.Net Settings" ResizeMode="NoResize" SizeToContent="WidthAndHeight" Closing="Window_Closing">
+    <Window.Resources>
+
+    </Window.Resources>
     <Window.DataContext>
         <local:ViewModel/>
     </Window.DataContext>
-    <Border Padding="5" >
+    <Border Padding="5">
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
@@ -60,36 +63,59 @@
 
                 </Grid>
             </GroupBox>
-            <Expander Header="Settings" Grid.Row="2" Padding="5,0,5,5">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-                    <Label Content="Cache path" Padding="5,0,0,0" Grid.ColumnSpan="2" />
-                    <Button x:Name="cacheDirButton" Content="Change dir" Click="ChangeCacheDir" Margin="0,0,5,0" Grid.Column="1" />
-                    <Button x:Name="cacheClearButton" Content="Clear Cache" Click="ClearSmallFilesCache" Margin="0,0,0,0" Grid.Column="2" />
-                    <TextBox IsReadOnly="True" Text="{Binding CacheFolder}" Grid.Row="1" MaxLines="1" Margin="0,5,0,0" Grid.ColumnSpan="3" />
+            <Border BorderThickness="1" Grid.Row="2" BorderBrush="#FFD5DFE5" CornerRadius="3" Margin="1.5,15,1.5,0" Padding="5">
+                <Expander Header="Options" Margin="0,-18,0,0" Background="White">
+                    <Expander.Clip>
+                        <GeometryGroup>
+                            <RectangleGeometry Rect="0 0 2000 2000"/>
+                            <RectangleGeometry Rect="70 0 2000 20"/>
+                        </GeometryGroup>
+                    </Expander.Clip>
 
-                    <Label Content="Small files size, Mb" Grid.Row="2" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}" Grid.ColumnSpan="2" Padding="5,5,5,0"/>
-                    <TextBox Text="{Binding SmallFileSizeLimit}" Grid.Row="2" Grid.Column="2" MaxLines="1" Margin="0,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
+                    <Grid Margin="0,5,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Label Content="Cache path" Padding="5,0,0,0" Grid.ColumnSpan="2" />
+                        <Button x:Name="cacheDirButton" Content="Change dir" IsEnabled="{Binding CanMount}" Click="ChangeCacheDir" Margin="0,0,5,0" Grid.Column="1" />
+                        <Button x:Name="cacheClearButton" Content="Clear Cache" IsEnabled="{Binding CanMount}" Click="ClearSmallFilesCache" Margin="0,0,0,0" Grid.Column="2" />
+                        <TextBox IsReadOnly="True" Text="{Binding CacheFolder}" Grid.Row="1" MaxLines="1" Margin="0,5,0,0" Grid.ColumnSpan="3" />
 
-                    <Label Content="Small files cache, Mb" Grid.Row="3" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}" Grid.ColumnSpan="2" Padding="5,5,5,0"/>
-                    <TextBox Text="{Binding SmallFilesCacheSize}" Grid.Row="3" Grid.Column="2" MaxLines="1" Margin="0,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
+                        <Label Content="Small files size, Mb" Grid.Row="2" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}" Grid.ColumnSpan="2" Padding="5,5,5,0"/>
+                        <TextBox Text="{Binding SmallFileSizeLimit}" Grid.Row="2" Grid.Column="2" MaxLines="1" Margin="0,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
 
-                    <Label Content="Read only" Grid.Row="4"/>
-                    <CheckBox Grid.Row="4" VerticalAlignment="Center" IsChecked="{Binding ReadOnly}" IsEnabled="{Binding CanMount}" HorizontalAlignment="Center" Grid.Column="2"/>
+                        <Label Content="Small files cache, Mb" Grid.Row="3" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}" Grid.ColumnSpan="2" Padding="5,5,5,0"/>
+                        <TextBox Text="{Binding SmallFilesCacheSize}" Grid.Row="3" Grid.Column="2" MaxLines="1" Margin="0,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
 
-                </Grid>
+                        <Label Content="Read only" Grid.Row="4"/>
+                        <CheckBox Grid.Row="4" VerticalAlignment="Center" IsChecked="{Binding ReadOnly}" IsEnabled="{Binding CanMount}" HorizontalAlignment="Center" Grid.Column="2"/>
+
+                        <Label Content="Version" Grid.Row="5"/>
+                        <TextBox IsReadOnly="True" Text="{Binding Version, Mode=OneTime}" MaxLines="1" Margin="0,0,0,5"  Grid.Row="5" Grid.Column="2"/>
+
+                        <Grid Grid.Row="6" Grid.ColumnSpan="3" HorizontalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="6.419" />
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Button Content="Export Log" Click="exportLog_Click"/>
+                            <Button Content="Open GitHub Issue" Grid.Column="2" Click="openIssue_Click"/>
+                        </Grid>
+                    </Grid>
             </Expander>
+            </Border>
 
         </Grid>
     </Border>

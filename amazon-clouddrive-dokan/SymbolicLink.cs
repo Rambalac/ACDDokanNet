@@ -10,7 +10,15 @@ namespace Azi.ACDDokanNet
     public static class NativeMethods
     {
         [DllImport("kernel32.dll")]
-        public static extern bool CreateSymbolicLink(string lpSymlinkFileName, string lpTargetFileName, SymbolicLink dwFlags);
+        internal static extern bool CreateSymbolicLink(string lpSymlinkFileName, string lpTargetFileName, SymbolicLink dwFlags);
+
+        [DllImport("Kernel32.dll", CharSet = CharSet.Unicode)]
+        internal static extern bool CreateHardLink(
+          string lpFileName,
+          string lpExistingFileName,
+          IntPtr lpSecurityAttributes
+          );
+
 
         public enum SymbolicLink
         {
@@ -19,6 +27,13 @@ namespace Azi.ACDDokanNet
         }
     }
 
+    public static class HardLink
+    {
+        public static bool Create(string TargetPath, string HardLinkPath)
+        {
+            return NativeMethods.CreateHardLink(HardLinkPath, TargetPath, IntPtr.Zero);
+        }
+    }
     public static class SymbolicLink
     {
         public static bool CreateFile(string TargetPath, string SymlinkPath)

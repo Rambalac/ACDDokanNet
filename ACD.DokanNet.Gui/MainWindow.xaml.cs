@@ -1,6 +1,8 @@
-﻿using Microsoft.WindowsAPICodePack.Dialogs;
+﻿using Azi.Tools;
+using Microsoft.WindowsAPICodePack.Dialogs;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -29,7 +31,13 @@ namespace Azi.ACDDokanNet.Gui
 
         private async void mountButton_Click(object sender, RoutedEventArgs e)
         {
-            await Model.Mount();
+            var dlg = new MountWaitBox(this);
+            var cs = new System.Threading.CancellationTokenSource();
+            dlg.Cancellation = cs;
+            dlg.Show();
+            await Model.Mount(cs.Token);
+            dlg.Close();
+            Activate();
         }
 
         private async void unmountButton_Click(object sender, RoutedEventArgs e)
@@ -40,25 +48,27 @@ namespace Azi.ACDDokanNet.Gui
         private void ChangeCacheDir(object sender, RoutedEventArgs e)
         {
             var path = Environment.ExpandEnvironmentVariables(Model.CacheFolder);
-            var dlg = new CommonOpenFileDialog();
-            dlg.Title = "Select Cache Folder";
-            dlg.IsFolderPicker = true;
-            dlg.InitialDirectory = path;
-
-            dlg.AddToMostRecentlyUsedList = false;
-            dlg.AllowNonFileSystemItems = false;
-            dlg.DefaultDirectory = path;
-            dlg.EnsureFileExists = true;
-            dlg.EnsurePathExists = true;
-            dlg.EnsureReadOnly = false;
-            dlg.EnsureValidNames = true;
-            dlg.Multiselect = false;
-            dlg.ShowPlacesList = true;
-
-            if (dlg.ShowDialog() == CommonFileDialogResult.Ok)
+            using (var dlg = new CommonOpenFileDialog
             {
-                Model.CacheFolder = dlg.FileName;
-                // Do something with selected folder string
+                Title = "Select Cache Folder",
+                IsFolderPicker = true,
+                InitialDirectory = path,
+
+                AddToMostRecentlyUsedList = false,
+                AllowNonFileSystemItems = false,
+                DefaultDirectory = path,
+                EnsureFileExists = true,
+                EnsurePathExists = true,
+                EnsureReadOnly = false,
+                EnsureValidNames = true,
+                Multiselect = false,
+                ShowPlacesList = true
+            })
+            {
+                if (dlg.ShowDialog() == CommonFileDialogResult.Ok)
+                {
+                    Model.CacheFolder = dlg.FileName;
+                }
             }
         }
 
@@ -84,6 +94,34 @@ namespace Azi.ACDDokanNet.Gui
         {
             e.Cancel = true;
             Hide();
+        }
+
+        private void exportLog_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show(Properties.Resources.LogWarning);
+
+            Log.Info("Version " + Model.Version);
+            using (var dlg = new CommonSaveFileDialog
+            {
+                Title = "Export Log",
+                DefaultExtension=".evtx",
+                DefaultFileName="ACDDokanNetLog.evtx",
+                AddToMostRecentlyUsedList = false,
+                EnsureValidNames = true,
+                ShowPlacesList = true,
+                RestoreDirectory=true,
+            })
+            {
+                if (dlg.ShowDialog() == CommonFileDialogResult.Ok)
+                {
+                    Log.Export(dlg.FileName);
+                }
+            }
+        }
+
+        private void openIssue_Click(object sender, RoutedEventArgs e)
+        {
+            Process.Start("https://github.com/Rambalac/AmazonCloudDriveApi/issues/new");
         }
     }
 }
