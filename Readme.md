@@ -36,7 +36,7 @@ If you did not get your cloud mounted or have other reason, sad to hear it. Here
   * Mount and try to repeat your problem.
   * Go to Options section
   * Click Export Log, select location and file name, Save
-  * Click Open GitHub issue, fallow GitHub instruction to create Issue and attach exported log.
+  * Click Open GitHub issue, follow GitHub instruction to create Issue and attach exported log.
  
 * If you have problems preventing to open settings windows in "Run as Administrator"
   * Open Windows Event Viewer, go to Windows Logs - Application
