@@ -21,6 +21,7 @@ namespace Azi.ACDDokanNet.Gui
         public new static App Current => Application.Current as App;
 
         public bool IsMounted => mountedLetter != null;
+        public char? MountedLetter => mountedLetter;
 
         public FSProvider.StatisticsUpdated OnProviderStatisticsUpdated { get; set; }
         public Action OnMountChanged;
@@ -128,19 +129,17 @@ namespace Azi.ACDDokanNet.Gui
         {
             if (uploading > 0)
                 if (System.Windows.MessageBox.Show("Some files are not uploaded yet", "Are you sure?", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
+            shuttingdown = true;
             Shutdown();
         }
 
         Mutex startedMutex;
+        bool shuttingdown = false;
 
-        private async Task MountDefault()
+        private void MountDefault()
         {
-            var dlg = new MountWaitBox(MainWindow);
-            var cs = new System.Threading.CancellationTokenSource();
-            dlg.Cancellation = cs;
-            dlg.Show();
-            await Mount(Gui.Properties.Settings.Default.LastDriveLetter, Gui.Properties.Settings.Default.ReadOnly, cs.Token);
-            dlg.Close();
+            var cs = new CancellationTokenSource();
+            Task task = Mount(Gui.Properties.Settings.Default.LastDriveLetter, Gui.Properties.Settings.Default.ReadOnly, cs.Token, false);
         }
 
         private void Application_Startup(object sender, StartupEventArgs e)
@@ -167,11 +166,11 @@ namespace Azi.ACDDokanNet.Gui
 
             MainWindow.Closing += (s2, e2) =>
             {
-                notifyIcon.ShowBalloonTip(5000, "", "Settings window is still accessible from here.\r\nTo close application totally click here with right button and select Exit.", ToolTipIcon.None);
+                if (!shuttingdown)
+                    notifyIcon.ShowBalloonTip(5000, "", "Settings window is still accessible from here.\r\nTo close application totally click here with right button and select Exit.", ToolTipIcon.None);
             };
 
-            Task task;
-            if (GetAutorun()) task = MountDefault();
+            if (GetAutorun()) MountDefault();
 
 
             if (e.Args.Length > 0)
@@ -188,7 +187,7 @@ namespace Azi.ACDDokanNet.Gui
         VirtualDriveWrapper cloudDrive;
         FSProvider provider;
 
-        async Task<AmazonDrive> Authenticate(CancellationToken cs)
+        async Task<AmazonDrive> Authenticate(CancellationToken cs, bool interactiveAuth = true)
         {
             var settings = Gui.Properties.Settings.Default;
             var amazon = new AmazonDrive(AmazonSecret.clientId, AmazonSecret.clientSecret);
@@ -207,7 +206,8 @@ namespace Azi.ACDDokanNet.Gui
                     settings.AuthRenewToken,
                     settings.AuthTokenExpiration)) return amazon;
             }
-            if (await amazon.SafeAuthenticationAsync(CloudDriveScope.ReadAll | CloudDriveScope.Write, TimeSpan.FromMinutes(10), cs)) return amazon;
+            if (interactiveAuth)
+                if (await amazon.SafeAuthenticationAsync(CloudDriveScope.ReadAll | CloudDriveScope.Write, TimeSpan.FromMinutes(10), cs)) return amazon;
             cs.ThrowIfCancellationRequested();
             return null;
         }
@@ -233,7 +233,11 @@ namespace Azi.ACDDokanNet.Gui
             using (var rk = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true))
             {
                 if (isChecked)
-                    rk.SetValue(appName, System.Reflection.Assembly.GetExecutingAssembly().CodeBase + " /mount");
+                {
+                    var uri = new Uri(Assembly.GetExecutingAssembly().CodeBase);
+                    var path = uri.LocalPath + Uri.UnescapeDataString(uri.Fragment).Replace("/", "\\");
+                    rk.SetValue(appName, $"\"{path}\" /mount");
+                }
                 else
                     rk.DeleteValue(appName, false);
             }
@@ -256,7 +260,7 @@ namespace Azi.ACDDokanNet.Gui
 
         Task mountTask;
         int mounted = 0;
-        internal async Task<char?> Mount(char driveLetter, bool readOnly, CancellationToken cs)
+        internal async Task<char?> Mount(char driveLetter, bool readOnly, CancellationToken cs, bool interactiveAuth = true)
         {
             if (Interlocked.CompareExchange(ref mounted, 1, 0) != 0) return null;
 
@@ -271,10 +275,12 @@ namespace Azi.ACDDokanNet.Gui
                           if (mountedLetter != null) return;
                           mountedLetter = driveLetter;
                       }
-                      AmazonDrive amazon = await Authenticate(cs);
+                      AmazonDrive amazon = await Authenticate(cs, interactiveAuth);
                       if (amazon == null)
                       {
+                          Log.Error("Authentication failed");
                           mountedEvent.SetException(new InvalidOperationException("Authentication failed"));
+                          return;
                       }
 
                       provider = new FSProvider(amazon);
@@ -303,7 +309,6 @@ namespace Azi.ACDDokanNet.Gui
                               {
                                   mountedLetter = letter;
                                   cloudDrive.Mount(mountedLetter + ":\\", readOnly);
-                                  mountedLetter = null;
                                   break;
                               }
                               catch (InvalidOperationException)
@@ -313,18 +318,20 @@ namespace Azi.ACDDokanNet.Gui
                           }
                           if (mountedLetter != null)
                           {
-                              mountedLetter = null;
+                              Log.Error("Could not find free letter");
                               mountedEvent.SetException(new InvalidOperationException("Could not find free letter"));
                           }
                       }
-                      OnMountChanged?.Invoke();
-                      mounted = 0;
                   }
                   catch (Exception ex)
                   {
+                      mountedEvent.SetException(ex);
+                  }
+                  finally
+                  {
                       mountedLetter = null;
                       mounted = 0;
-                      mountedEvent.SetException(ex);
+                      OnMountChanged?.Invoke();
                   }
               }, TaskCreationOptions.LongRunning).Unwrap();
             return await mountedEvent.Task;
