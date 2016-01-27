@@ -7,7 +7,8 @@
         xmlns:local="clr-namespace:Azi.ACDDokanNet.Gui"
         mc:Ignorable="d"
         AllowsTransparency="True" 
-        Title="MountWaitBox" SizeToContent="WidthAndHeight" WindowStartupLocation="CenterOwner" WindowStyle="None" ResizeMode="NoResize" Topmost="True">
+        Title="MountWaitBox" SizeToContent="WidthAndHeight" WindowStartupLocation="CenterOwner" WindowStyle="None" ResizeMode="NoResize" Topmost="True"
+        MouseDown="Window_MouseDown">
     <Window.Background>
         <SolidColorBrush Opacity="0" Color="White"/>
     </Window.Background>
