@@ -49,8 +49,8 @@ namespace Azi.ACDDokanNet
                 virtualDrive.Mount(path, DokanOptions.DebugMode | DokanOptions.FixedDrive, 0, 800, TimeSpan.FromSeconds(30));
 #else
                 virtualDrive.Mount(path, DokanOptions.FixedDrive,0, 800, TimeSpan.FromSeconds(30));
-                virtualDrive.MountPath = path;
 #endif
+                virtualDrive.MountPath = path;
             }
             catch (DokanException e)
             {

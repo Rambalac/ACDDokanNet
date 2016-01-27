@@ -297,6 +297,7 @@ namespace Azi.ACDDokanNet.Gui
                       catch (InvalidOperationException)
                       {
                           Log.Warn($"Drive letter {mountedLetter} is already used");
+                          Exception lastException = null;
                           foreach (char letter in VirtualDriveWrapper.GetFreeDriveLettes())
                           {
                               try
@@ -306,15 +307,18 @@ namespace Azi.ACDDokanNet.Gui
                                   mountedLetter = null;
                                   break;
                               }
-                              catch (InvalidOperationException)
+                              catch (InvalidOperationException ex)
                               {
+                                  lastException = ex;
                                   Log.Warn($"Drive letter {letter} is already used");
                               }
                           }
                           if (mountedLetter != null)
                           {
                               mountedLetter = null;
-                              mountedEvent.SetException(new InvalidOperationException("Could not find free letter"));
+                              var message = "Could not find free letter";
+                              if (lastException != null && lastException.InnerException != null) message = lastException.InnerException.Message;
+                              mountedEvent.SetException(new InvalidOperationException(message));
                           }
                       }
                       OnMountChanged?.Invoke();

@@ -35,7 +35,12 @@ namespace Azi.ACDDokanNet.Gui
             var cs = new System.Threading.CancellationTokenSource();
             dlg.Cancellation = cs;
             dlg.Show();
-            await Model.Mount(cs.Token);
+            try {
+                await Model.Mount(cs.Token);
+            } catch (Exception ex)
+            {
+                MessageBox.Show(this, ex.Message);
+            }
             dlg.Close();
             Activate();
         }
@@ -109,12 +114,18 @@ namespace Azi.ACDDokanNet.Gui
                 AddToMostRecentlyUsedList = false,
                 EnsureValidNames = true,
                 ShowPlacesList = true,
-                RestoreDirectory=true,
+                RestoreDirectory=true
             })
             {
                 if (dlg.ShowDialog() == CommonFileDialogResult.Ok)
                 {
-                    Log.Export(dlg.FileName);
+                    try {
+                        Log.Export(dlg.FileName);
+                    }catch(Exception ex)
+                    {
+                        Log.Error(ex);
+                        MessageBox.Show(this, ex.Message);
+                    }
                 }
             }
         }
