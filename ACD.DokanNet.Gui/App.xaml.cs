@@ -321,11 +321,7 @@ namespace Azi.ACDDokanNet.Gui
                           if (mountedLetter != null)
                           {
                               var message = "Could not find free letter";
-                              if (lastException != null)
-                              {
-                                  Log.Error("Could not find free letter", lastException);
-                                  if (lastException.InnerException != null) message = lastException.InnerException.Message;
-                              }
+                              if (lastException != null && lastException.InnerException != null) message = lastException.InnerException.Message;
                               mountedEvent.SetException(new InvalidOperationException(message));
                           }
                       }
