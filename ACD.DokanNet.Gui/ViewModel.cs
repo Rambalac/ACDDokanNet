@@ -17,13 +17,22 @@ namespace Azi.ACDDokanNet.Gui
         public event PropertyChangedEventHandler PropertyChanged;
 
         public IList<char> DriveLetters => VirtualDriveWrapper.GetFreeDriveLettes();
+        private Timer refreshTimer;
+
+        private void RefreshLetters(object state)
+        {
+            if (!CanMount) return;
+            OnPropertyChanged(nameof(DriveLetters));
+        }
 
         public ViewModel()
         {
+
             if (App != null)
             {
                 App.OnProviderStatisticsUpdated = ProviderStatisticsUpdated;
                 App.OnMountChanged = NotifyMount;
+                refreshTimer = new Timer(RefreshLetters, null, 1000, 1000);
             }
         }
 
@@ -67,7 +76,7 @@ namespace Azi.ACDDokanNet.Gui
             }
         }
 
-        void OnPropertyChanged(string name)
+        internal void OnPropertyChanged(string name)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
@@ -106,7 +115,8 @@ namespace Azi.ACDDokanNet.Gui
         {
             if (App == null) throw new NullReferenceException();
             unmounting = true;
-            NotifyMount(); try
+            NotifyMount();
+            try
             {
                 await App.Unmount();
             }
