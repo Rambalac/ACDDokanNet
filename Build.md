@@ -15,3 +15,5 @@ namespace Azi.ACDDokanNet.Gui
     }
 }
 ```
+
+This file is already ignored on commit, just in case.
