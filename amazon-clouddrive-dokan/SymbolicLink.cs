@@ -19,7 +19,6 @@ namespace Azi.ACDDokanNet
           IntPtr lpSecurityAttributes
           );
 
-
         public enum SymbolicLink
         {
             File = 0,
@@ -34,12 +33,14 @@ namespace Azi.ACDDokanNet
             return NativeMethods.CreateHardLink(HardLinkPath, TargetPath, IntPtr.Zero);
         }
     }
+
     public static class SymbolicLink
     {
         public static bool CreateFile(string TargetPath, string SymlinkPath)
         {
             return NativeMethods.CreateSymbolicLink(SymlinkPath, TargetPath, NativeMethods.SymbolicLink.File);
         }
+
         public static bool CreateDir(string TargetPath, string SymlinkPath)
         {
             return NativeMethods.CreateSymbolicLink(SymlinkPath, TargetPath, NativeMethods.SymbolicLink.Directory);

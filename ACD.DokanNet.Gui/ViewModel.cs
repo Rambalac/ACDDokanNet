@@ -17,11 +17,16 @@ namespace Azi.ACDDokanNet.Gui
         public event PropertyChangedEventHandler PropertyChanged;
 
         public IList<char> DriveLetters => VirtualDriveWrapper.GetFreeDriveLettes();
+
         private Timer refreshTimer;
 
         private void RefreshLetters(object state)
         {
-            if (!CanMount) return;
+            if (!CanMount)
+            {
+                return;
+            }
+
             OnPropertyChanged(nameof(DriveLetters));
         }
 
@@ -55,9 +60,14 @@ namespace Azi.ACDDokanNet.Gui
             {
                 var saved = Properties.Settings.Default.LastDriveLetter;
                 var free = VirtualDriveWrapper.GetFreeDriveLettes();
-                if (!free.Any() || free.Contains(saved)) return saved;
+                if (!free.Any() || free.Contains(saved))
+                {
+                    return saved;
+                }
+
                 return free[0];
             }
+
             set
             {
                 Properties.Settings.Default.LastDriveLetter = value;
@@ -69,6 +79,7 @@ namespace Azi.ACDDokanNet.Gui
         public string CacheFolder
         {
             get { return Properties.Settings.Default.CacheFolder; }
+
             set
             {
                 App.SmallFileCacheFolder = value;
@@ -81,10 +92,15 @@ namespace Azi.ACDDokanNet.Gui
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
 
-        bool mounting = false;
+        private bool mounting = false;
+
         internal async Task Mount(CancellationToken cs)
         {
-            if (App == null) throw new NullReferenceException();
+            if (App == null)
+            {
+                throw new NullReferenceException();
+            }
+
             mounting = true;
             NotifyMount();
             try
@@ -92,15 +108,18 @@ namespace Azi.ACDDokanNet.Gui
                 try
                 {
                     var letter = await App.Mount(SelectedDriveLetter, ReadOnly, cs);
-                    if (letter != null) SelectedDriveLetter = (char)letter;
+                    if (letter != null)
+                    {
+                        SelectedDriveLetter = (char)letter;
+                    }
                 }
                 catch (TimeoutException)
                 {
-                    //Ignore if timeout
+                    // Ignore if timeout
                 }
                 catch (OperationCanceledException)
                 {
-                    //Ignore if aborted
+                    // Ignore if aborted
                 }
             }
             finally
@@ -110,10 +129,15 @@ namespace Azi.ACDDokanNet.Gui
             }
         }
 
-        bool unmounting = false;
+        private bool unmounting = false;
+
         internal async Task Unmount()
         {
-            if (App == null) throw new NullReferenceException();
+            if (App == null)
+            {
+                throw new NullReferenceException();
+            }
+
             unmounting = true;
             NotifyMount();
             try
@@ -136,9 +160,11 @@ namespace Azi.ACDDokanNet.Gui
         }
 
         public bool CanMount => (!mounting) && !(App?.IsMounted ?? false) && DriveLetters.Contains(SelectedDriveLetter);
+
         public bool CanUnmount => (!unmounting) && (App?.IsMounted ?? false);
 
         public bool IsMounted => !mounting && !unmounting && (App?.IsMounted ?? false);
+
         public bool IsUnmounted => !unmounting && !mounting && !(App?.IsMounted ?? false);
 
         private void ProviderStatisticsUpdated(int downloading, int uploading)
@@ -148,7 +174,9 @@ namespace Azi.ACDDokanNet.Gui
             OnPropertyChanged(nameof(UploadingFilesCount));
             OnPropertyChanged(nameof(DownloadingFilesCount));
         }
+
         public int UploadingFilesCount { get; private set; }
+
         public int DownloadingFilesCount { get; private set; }
 
         public long SmallFileSizeLimit
@@ -184,7 +212,5 @@ namespace Azi.ACDDokanNet.Gui
         }
 
         public string Version => Assembly.GetEntryAssembly().GetName().Version.ToString();
-
-
     }
 }

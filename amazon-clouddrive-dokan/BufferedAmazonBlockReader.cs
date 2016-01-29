@@ -13,22 +13,13 @@ namespace Azi.ACDDokanNet
 {
     public class BufferedAmazonBlockReader : AbstractBlockStream
     {
-        class Block
-        {
-            public readonly long N;
-            public DateTime access = DateTime.UtcNow;
-            public readonly byte[] Data;
-            public Block(long n, byte[] d)
-            {
-                N = n;
-                Data = d;
-            }
-        }
-        AmazonDrive amazon;
+        private const int BlockSize = 4 * 1024 * 1024;
+        private const int KeepLastBlocks = 5;
+
+        private readonly ConcurrentDictionary<long, Block> blocks = new ConcurrentDictionary<long, Block>(5, KeepLastBlocks * 5);
+        private AmazonDrive amazon;
         private FSItem item;
-        const int blockSize = 4 * 1024 * 1024;
-        const int keepLastBlocks = 5;
-        ConcurrentDictionary<long, Block> blocks = new ConcurrentDictionary<long, Block>(5, keepLastBlocks * 5);
+        private long lastBlock = 0;
 
         public BufferedAmazonBlockReader(FSItem item, AmazonDrive amazon)
         {
@@ -40,68 +31,23 @@ namespace Azi.ACDDokanNet
         {
         }
 
-        private byte[][] GetBlocks(long v1, long v2)
-        {
-            var result = new byte[v2 - v1 + 1][];
-            var tasks = new List<Task>();
-            for (long block = v1; block <= v2; block++)
-            {
-                long blockcopy = block;
-                tasks.Add(Task.Run(() =>
-                {
-                    var b = blocks.GetOrAdd(blockcopy, DownloadBlock);
-                    b.access = DateTime.UtcNow;
-
-                    while (blocks.Count > keepLastBlocks)
-                    {
-                        var del = blocks.Values.Aggregate((curMin, x) => (curMin == null || (x.access < curMin.access)) ? x : curMin);
-                        Block remove;
-                        blocks.TryRemove(del.N, out remove);
-                    }
-
-                    result[blockcopy - v1] = b.Data;
-                }));
-            }
-            Task.WhenAll(tasks).Wait();
-            return result;
-        }
-
-        private Block DownloadBlock(long block)
-        {
-            if (lastBlock != block) Log.Warn($"Buffered Read block changed from {lastBlock} to {block}");
-            lastBlock = block + 1;
-            var pos = block * blockSize;
-            var count = pos + blockSize <= item.Length ? blockSize : (int)(item.Length - pos);
-            if (count == 0) return new Block(block, new byte[0]);
-            var result = new byte[count];
-            int offset = 0;
-            int left = count;
-            while (left > 0)
-            {
-                int red = amazon.Files.Download(item.Id, result, offset, pos, left).Result;
-                if (red == 0)
-                {
-                    Log.Error("Download 0");
-                    throw new InvalidOperationException("Download 0");
-                }
-                offset += red;
-                left -= red;
-            }
-            return new Block(block, result);
-        }
-
-        long lastBlock = 0;
-
         public override int Read(long position, byte[] buffer, int offset, int count, int timeout = 1000)
         {
-            if (position >= item.Length) return 0;
-            if (position + count > item.Length) count = (int)(item.Length - position);
+            if (position >= item.Length)
+            {
+                return 0;
+            }
 
-            var bs = position / blockSize;
-            var be = (position + count - 1) / blockSize;
+            if (position + count > item.Length)
+            {
+                count = (int)(item.Length - position);
+            }
+
+            var bs = position / BlockSize;
+            var be = (position + count - 1) / BlockSize;
             var blocks = GetBlocks(bs, be);
-            var bspos = bs * blockSize;
-            var bepos = (be + 1) * blockSize - 1;
+            var bspos = bs * BlockSize;
+            var bepos = ((be + 1) * BlockSize) - 1;
             if (bs == be)
             {
                 Array.Copy(blocks[0], position - bspos, buffer, offset, count);
@@ -131,7 +77,6 @@ namespace Azi.ACDDokanNet
             throw new NotSupportedException();
         }
 
-
         public override void Write(long position, byte[] buffer, int offset, int count, int timeout = 1000)
         {
             throw new NotSupportedException();
@@ -139,7 +84,67 @@ namespace Azi.ACDDokanNet
 
         protected override void Dispose(bool disposing)
         {
+        }
 
+        private Block DownloadBlock(long block)
+        {
+            if (lastBlock != block)
+            {
+                Log.Warn($"Buffered Read block changed from {lastBlock} to {block}");
+            }
+
+            lastBlock = block + 1;
+            var pos = block * BlockSize;
+            var count = pos + BlockSize <= item.Length ? BlockSize : (int)(item.Length - pos);
+            if (count == 0)
+            {
+                return new Block(block, new byte[0]);
+            }
+
+            var result = new byte[count];
+            int offset = 0;
+            int left = count;
+            while (left > 0)
+            {
+                int red = amazon.Files.Download(item.Id, result, offset, pos, left).Result;
+                if (red == 0)
+                {
+                    Log.Error("Download 0");
+                    throw new InvalidOperationException("Download 0");
+                }
+
+                offset += red;
+                left -= red;
+            }
+
+            return new Block(block, result);
+        }
+
+        private byte[][] GetBlocks(long v1, long v2)
+        {
+            var result = new byte[v2 - v1 + 1][];
+            var tasks = new List<Task>();
+            for (long block = v1; block <= v2; block++)
+            {
+                long blockcopy = block;
+                tasks.Add(Task.Run(() =>
+                {
+                    var b = blocks.GetOrAdd(blockcopy, DownloadBlock);
+                    b.Access = DateTime.UtcNow;
+
+                    while (blocks.Count > KeepLastBlocks)
+                    {
+                        var del = blocks.Values.Aggregate((curMin, x) => (curMin == null || (x.Access < curMin.Access)) ? x : curMin);
+                        Block remove;
+                        blocks.TryRemove(del.N, out remove);
+                    }
+
+                    result[blockcopy - v1] = b.Data;
+                }));
+            }
+
+            Task.WhenAll(tasks).Wait();
+            return result;
         }
     }
 }

@@ -23,7 +23,8 @@ namespace Azi.ACDDokanNet.Gui
     /// </summary>
     public partial class MainWindow : Window
     {
-        ViewModel Model => (ViewModel)DataContext;
+        private ViewModel Model => (ViewModel)DataContext;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -41,6 +42,7 @@ namespace Azi.ACDDokanNet.Gui
             {
                 MessageBox.Show(this, ex.Message);
             }
+
             dlg.Close();
             Activate();
         }
@@ -109,12 +111,12 @@ namespace Azi.ACDDokanNet.Gui
             using (var dlg = new CommonSaveFileDialog
             {
                 Title = "Export Log",
-                DefaultExtension=".evtx",
-                DefaultFileName="ACDDokanNetLog.evtx",
+                DefaultExtension = ".evtx",
+                DefaultFileName = "ACDDokanNetLog.evtx",
                 AddToMostRecentlyUsedList = false,
                 EnsureValidNames = true,
                 ShowPlacesList = true,
-                RestoreDirectory=true
+                RestoreDirectory = true
             })
             {
                 if (dlg.ShowDialog() == CommonFileDialogResult.Ok)

@@ -9,18 +9,18 @@ namespace Azi.Tools
 {
     public static class Log
     {
-        const string source = "ACDDokan.Net";
+        private const string Source = "ACDDokan.Net";
 
         static Log()
         {
-            //try
-            //{
+            // try
+            // {
             //    EventLog.CreateEventSource(source, "Application");
-            //}
-            //catch (SecurityException)
-            //{
+            // }
+            // catch (SecurityException)
+            // {
             //    //Just ignore
-            //}
+            // }
         }
 
         public static void Error(
@@ -68,6 +68,7 @@ namespace Azi.Tools
         {
             Info(message, eventId, category, memberName, sourceFilePath, sourceLineNumber);
         }
+
         public static void Info(
             string message,
             int eventId = 0,
@@ -90,22 +91,21 @@ namespace Azi.Tools
         {
             try
             {
-                EventLog.WriteEntry(source, $"{memberName}: {message}\r\n\r\n{sourceFilePath}: {sourceLineNumber}", type, eventId, category);
+                EventLog.WriteEntry(Source, $"{memberName}: {message}\r\n\r\n{sourceFilePath}: {sourceLineNumber}", type, eventId, category);
             }
             catch (SecurityException)
             {
-                //Just ignore
+                // Just ignore
             }
-
         }
 
-        readonly static string query = $"*[System[Provider[@Name = '{source}']]]";
+        private static readonly string Query = $"*[System[Provider[@Name = '{Source}']]]";
 
         public static void Export(string path)
         {
             using (var log = new EventLogSession())
             {
-                log.ExportLogAndMessages("Application", PathType.LogName, query, path);
+                log.ExportLogAndMessages("Application", PathType.LogName, Query, path);
             }
         }
     }

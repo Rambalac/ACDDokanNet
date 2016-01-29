@@ -14,19 +14,36 @@ namespace Azi.ACDDokanNet
 {
     public class Downloader
     {
-        public readonly FSItem Item;
-        public readonly string Path;
         private Task task;
+        private long downloaded = 0;
+
+        public Downloader(FSItem item, string path)
+        {
+            Item = item;
+            Path = path;
+        }
+
+        public FSItem Item { get; private set; }
+
+        public string Path { get; private set; }
+
         public Task Task
         {
-            get { return task; }
+            get
+            {
+                return task;
+            }
+
             set
             {
-                if (task != null) throw new InvalidOperationException("Cannot reset task");
+                if (task != null)
+                {
+                    throw new InvalidOperationException("Cannot reset task");
+                }
+
                 task = value;
             }
         }
-        private long downloaded = 0;
 
         public long Downloaded
         {
@@ -41,16 +58,6 @@ namespace Azi.ACDDokanNet
             }
         }
 
-        public bool WaitToTheEnd(int timeout)
-        {
-            return Task.Wait(timeout);
-        }
-
-        public Downloader(FSItem item, string path)
-        {
-            Item = item;
-            Path = path;
-        }
         public static Downloader CreateCompleted(FSItem item, string path, long length)
         {
             return new Downloader(item, path)
@@ -58,6 +65,11 @@ namespace Azi.ACDDokanNet
                 Task = Task.FromResult<bool>(true),
                 Downloaded = length
             };
+        }
+
+        public bool WaitToTheEnd(int timeout)
+        {
+            return Task.Wait(timeout);
         }
     }
 }

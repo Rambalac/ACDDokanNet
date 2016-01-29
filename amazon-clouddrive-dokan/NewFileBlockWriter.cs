@@ -22,16 +22,21 @@ namespace Azi.ACDDokanNet
             writer = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite);
         }
 
-        int closed = 0;
+        private int closed = 0;
+
         public override void Close()
         {
-            if (Interlocked.CompareExchange(ref closed, 1, 0) == 1) return;
+            if (Interlocked.CompareExchange(ref closed, 1, 0) == 1)
+            {
+                return;
+            }
 
             lock (fileLock)
             {
                 Item.Length = writer.Length;
                 writer.Close();
             }
+
             Log.Trace($"Closed New file: {Item.Path} of {Item.Length} bytes");
             base.Close();
         }
@@ -45,19 +50,20 @@ namespace Azi.ACDDokanNet
             }
         }
 
-        long lastPosition = 0;
+        private long lastPosition = 0;
 
         public override void Write(long position, byte[] buffer, int offset, int count, int timeout = 1000)
         {
             lock (fileLock)
             {
-                //if (lastPosition != position) Log.Warn($"Write Position in New file was changed from {lastPosition} to {position}");
+                // if (lastPosition != position) Log.Warn($"Write Position in New file was changed from {lastPosition} to {position}");
                 writer.Position = position;
                 writer.Write(buffer, offset, count);
                 lastPosition = writer.Position;
             }
+
             Item.Length = writer.Length;
-            //Log.Trace("Write byte: " + count);
+            // Log.Trace("Write byte: " + count);
         }
 
         public override void Flush()

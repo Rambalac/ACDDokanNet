@@ -15,12 +15,12 @@ namespace Azi.ACDDokanNet
 
     public class SmallFilesCache
     {
-        class CacheEntry : IDisposable
+        private class CacheEntry : IDisposable
         {
             public string Id;
 
-            readonly ReaderWriterLockSlim lk = new ReaderWriterLockSlim();
-            DateTime accessTime;
+            private readonly ReaderWriterLockSlim lk = new ReaderWriterLockSlim();
+            private DateTime accessTime;
 
             public DateTime AccessTime
             {
@@ -59,33 +59,44 @@ namespace Azi.ACDDokanNet
             }
         }
 
-        ConcurrentDictionary<string, CacheEntry> access = new ConcurrentDictionary<string, CacheEntry>(10, 1000);
+        private ConcurrentDictionary<string, CacheEntry> access = new ConcurrentDictionary<string, CacheEntry>(10, 1000);
 
-        static ConcurrentDictionary<AmazonDrive, SmallFilesCache> Instances = new ConcurrentDictionary<AmazonDrive, SmallFilesCache>(10, 3);
-        static ConcurrentDictionary<string, Downloader> Downloaders = new ConcurrentDictionary<string, Downloader>(10, 3);
+        private static ConcurrentDictionary<AmazonDrive, SmallFilesCache> Instances = new ConcurrentDictionary<AmazonDrive, SmallFilesCache>(10, 3);
+        private static ConcurrentDictionary<string, Downloader> Downloaders = new ConcurrentDictionary<string, Downloader>(10, 3);
 
-        readonly AmazonDrive Amazon;
+        private readonly AmazonDrive Amazon;
         private static string cachePath = null;
+
         public string CachePath
         {
             get { return cachePath; }
+
             set
             {
-                if (cachePath == value) return;
+                if (cachePath == value)
+                {
+                    return;
+                }
+
                 bool wasNull = (cachePath == null);
                 try
                 {
                     if (cachePath != null)
+                    {
                         Directory.Delete(cachePath, true);
+                    }
                 }
                 catch (Exception)
                 {
                     Log.Warn("Can not delete old cache: " + cachePath);
                 }
+
                 cachePath = Path.Combine(value, "SmallFiles");
                 Directory.CreateDirectory(cachePath);
-                if (wasNull) Task.Run(() => RecalculateTotalSize());
-
+                if (wasNull)
+                {
+                    Task.Run(() => RecalculateTotalSize());
+                }
             }
         }
 
@@ -96,7 +107,11 @@ namespace Azi.ACDDokanNet
             try
             {
                 var downloader = new Downloader(item, path);
-                if (!Downloaders.TryAdd(item.Path, downloader)) return Downloaders[item.Path];
+                if (!Downloaders.TryAdd(item.Path, downloader))
+                {
+                    return Downloaders[item.Path];
+                }
+
                 var writer = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite, 4096, FileOptions.Asynchronous | FileOptions.SequentialScan);
                 if (writer.Length == item.Length)
                 {
@@ -105,6 +120,7 @@ namespace Azi.ACDDokanNet
                     Downloaders.TryRemove(item.Path, out removed);
                     return Downloader.CreateCompleted(item, path, item.Length);
                 }
+
                 if (writer.Length > 0)
                 {
                     Log.Warn($"File was not totally downloaded before. Should be {item.Length} but was {writer.Length}: {path}");
@@ -143,7 +159,10 @@ namespace Azi.ACDDokanNet
                             if (partial)
                             {
                                 contentRange = response.Headers.GetContentRange();
-                                if (contentRange.From != writer.Length) throw new InvalidOperationException("Content range does not match request");
+                                if (contentRange.From != writer.Length)
+                                {
+                                    throw new InvalidOperationException("Content range does not match request");
+                                }
                             }
                             using (var stream = response.GetResponseStream())
                             {
@@ -151,20 +170,31 @@ namespace Azi.ACDDokanNet
                                 do
                                 {
                                     red = await stream.ReadAsync(buf, 0, buf.Length);
-                                    if (writer.Length == 0) Log.Trace("Got first part: " + item.Id + " in " + start.ElapsedMilliseconds);
+                                    if (writer.Length == 0)
+                                    {
+                                        Log.Trace("Got first part: " + item.Id + " in " + start.ElapsedMilliseconds);
+                                    }
+
                                     writer.Write(buf, 0, red);
                                     downloader.Downloaded = writer.Length;
                                 } while (red > 0);
                             }
                         });
-                        if (writer.Length < item.Length) await Task.Delay(500);
+                        if (writer.Length < item.Length)
+                        {
+                            await Task.Delay(500);
+                        }
                     }
+
                     Log.Trace("Finished download: " + item.Id);
                     OnDownloaded?.Invoke(item.Id);
 
                     access.TryAdd(item.Id, new CacheEntry { Id = item.Id, AccessTime = DateTime.UtcNow, Length = item.Length });
                     TotalSize += item.Length;
-                    if (TotalSize > CacheSize) StartClear(TotalSize - CacheSize);
+                    if (TotalSize > CacheSize)
+                    {
+                        StartClear(TotalSize - CacheSize);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -178,21 +208,27 @@ namespace Azi.ACDDokanNet
                 }
         }
 
-        long totalSize = 0;
+        private long totalSize = 0;
+
         public long TotalSize
         {
             get { return Interlocked.Read(ref totalSize); }
+
             set
             {
                 Interlocked.Exchange(ref totalSize, value);
             }
         }
 
+        private bool cleaning = false;
 
-        bool cleaning = false;
         internal void StartClear(long size)
         {
-            if (cleaning) return;
+            if (cleaning)
+            {
+                return;
+            }
+
             cleaning = true;
             Task.Run(() =>
             {
@@ -212,7 +248,7 @@ namespace Azi.ACDDokanNet
                         }
                         catch (IOException)
                         {
-                            //Skip if failed
+                            // Skip if failed
                         }
                         catch (Exception ex)
                         {
@@ -257,13 +293,20 @@ namespace Azi.ACDDokanNet
                 }
                 RecalculateTotalSize();
 
-                if (failed > 0) throw new InvalidOperationException("Can not delete all cached files. Some files are still in use.");
+                if (failed > 0)
+                {
+                    throw new InvalidOperationException("Can not delete all cached files. Some files are still in use.");
+                }
             });
         }
 
         private void RecalculateTotalSize()
         {
-            if (cachePath == null) return;
+            if (cachePath == null)
+            {
+                return;
+            }
+
             long t = 0;
             var newaccess = new ConcurrentDictionary<string, CacheEntry>(10, 1000);
             try
@@ -288,6 +331,7 @@ namespace Azi.ACDDokanNet
             {
                 return;
             }
+
             access = newaccess;
             TotalSize = t;
         }
@@ -304,7 +348,10 @@ namespace Azi.ACDDokanNet
             var downloader = StartDownload(item, path);
 
             CacheEntry entry;
-            if (access.TryGetValue(item.Id, out entry)) entry.AccessTime = DateTime.UtcNow;
+            if (access.TryGetValue(item.Id, out entry))
+            {
+                entry.AccessTime = DateTime.UtcNow;
+            }
 
             Log.Trace("Opened ReadWrite cached: " + item.Id);
             return new SmallFileBlockReaderWriter(downloader);
@@ -331,9 +378,16 @@ namespace Azi.ACDDokanNet
         public FileBlockReader OpenReadCachedOnly(FSItem item)
         {
             var path = Path.Combine(cachePath, item.Id);
-            if (!File.Exists(path)) return null;
+            if (!File.Exists(path))
+            {
+                return null;
+            }
+
             CacheEntry entry;
-            if (access.TryGetValue(item.Id, out entry)) entry.AccessTime = DateTime.UtcNow;
+            if (access.TryGetValue(item.Id, out entry))
+            {
+                entry.AccessTime = DateTime.UtcNow;
+            }
 
             Log.Trace("Opened cached: " + item.Id);
             return FileBlockReader.Open(path, item.Length);

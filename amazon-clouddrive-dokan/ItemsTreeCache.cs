@@ -9,16 +9,16 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-
 namespace Azi.ACDDokanNet
 {
 
     public class ItemsTreeCache : IDisposable
     {
-        class DirItem
+        private class DirItem
         {
             public readonly DateTime ExpirationTime;
             public readonly HashSet<string> Items;
+
             public DirItem(IList<string> items, int expirationSeconds)
             {
                 Items = new HashSet<string>(items);
@@ -34,14 +34,17 @@ namespace Azi.ACDDokanNet
         public int DirItemsExpirationSeconds = 60;
         public int FSItemsExpirationSeconds = 5 * 60;
 
-
         public FSItem GetItem(string filePath)
         {
             lok.EnterUpgradeableReadLock();
             FSItem item;
             try
             {
-                if (!pathToNode.TryGetValue(filePath, out item)) return null;
+                if (!pathToNode.TryGetValue(filePath, out item))
+                {
+                    return null;
+                }
+
                 if (!item.IsUploading && item.IsExpired(FSItemsExpirationSeconds))
                 {
                     lok.EnterWriteLock();
@@ -55,6 +58,7 @@ namespace Azi.ACDDokanNet
                         lok.ExitWriteLock();
                     }
                 }
+
                 return item;
             }
             finally
@@ -62,14 +66,23 @@ namespace Azi.ACDDokanNet
                 lok.ExitUpgradeableReadLock();
             }
         }
+
         public IEnumerable<string> GetDir(string filePath)
         {
             DirItem item;
             lok.EnterUpgradeableReadLock();
             try
             {
-                if (!pathToDirItem.TryGetValue(filePath, out item)) return null;
-                if (!item.IsExpired) return item.Items;
+                if (!pathToDirItem.TryGetValue(filePath, out item))
+                {
+                    return null;
+                }
+
+                if (!item.IsExpired)
+                {
+                    return item.Items;
+                }
+
                 lok.EnterWriteLock();
                 try
                 {
@@ -85,7 +98,6 @@ namespace Azi.ACDDokanNet
             {
                 lok.ExitUpgradeableReadLock();
             }
-
         }
 
         public void AddItemOnly(FSItem item)
@@ -108,7 +120,10 @@ namespace Azi.ACDDokanNet
             {
                 pathToNode[item.Path] = item;
                 DirItem dirItem;
-                if (pathToDirItem.TryGetValue(item.Dir, out dirItem)) dirItem.Items.Add(item.Path);
+                if (pathToDirItem.TryGetValue(item.Dir, out dirItem))
+                {
+                    dirItem.Items.Add(item.Path);
+                }
             }
             finally
             {
@@ -123,7 +138,9 @@ namespace Azi.ACDDokanNet
             {
                 pathToDirItem[folderPath] = new DirItem(items.Select(i => i.Path).ToList(), DirItemsExpirationSeconds);
                 foreach (var item in items)
+                {
                     pathToNode[item.Path] = item;
+                }
             }
             finally
             {
@@ -183,11 +200,12 @@ namespace Azi.ACDDokanNet
                 {
                     dirItem.Items.Remove(filePath);
                 }
+
                 pathToNode.Remove(filePath);
             }
             finally
             {
-                //Log.Warn("File deleted: " + filePath);
+                // Log.Warn("File deleted: " + filePath);
                 lok.ExitWriteLock();
             }
         }

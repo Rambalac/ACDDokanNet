@@ -33,13 +33,21 @@ namespace Azi.ACDDokanNet.Tests
                 if (await amazon.Authentication(
                     settings.AuthToken,
                     settings.AuthRenewToken,
-                    settings.AuthTokenExpiration)) return amazon;
+                    settings.AuthTokenExpiration))
+                {
+                    return amazon;
+                }
             }
-            if (await amazon.SafeAuthenticationAsync(CloudDriveScope.ReadAll | CloudDriveScope.Write, TimeSpan.FromMinutes(10))) return amazon;
+
+            if (await amazon.SafeAuthenticationAsync(CloudDriveScope.ReadAll | CloudDriveScope.Write, TimeSpan.FromMinutes(10)))
+            {
+                return amazon;
+            }
+
             return null;
         }
 
-        protected const string testdir = "\\ACDDokanNetTest\\";
+        protected const string Testdir = "\\ACDDokanNetTest\\";
 
         protected FSProviderTestsBase()
         {
@@ -48,6 +56,7 @@ namespace Azi.ACDDokanNet.Tests
             {
                 throw new InvalidOperationException("Authentication failed");
             }
+
             DeleteDir("TempCache");
 
             provider = new FSProvider(amazon);
@@ -66,13 +75,17 @@ namespace Azi.ACDDokanNet.Tests
             try { DeleteDir(provider.CachePath); }
             catch (UnauthorizedAccessException)
             {
-                //Ignore
+                // Ignore
             }
         }
 
         private void DeleteDir(string path)
         {
-            if (!Directory.Exists(path)) return;
+            if (!Directory.Exists(path))
+            {
+                return;
+            }
+
             foreach (string directory in Directory.GetDirectories(path))
             {
                 DeleteDir(directory);
@@ -93,6 +106,7 @@ namespace Azi.ACDDokanNet.Tests
                 Directory.Delete(path, true);
             }
         }
+
         public class FSProviderTests : FSProviderTestsBase
         {
             [Fact]
@@ -110,7 +124,7 @@ namespace Azi.ACDDokanNet.Tests
             [Fact]
             public void CreateDeleteExistsDirTest()
             {
-                var dir = testdir + "DeleteTest";
+                var dir = Testdir + "DeleteTest";
                 provider.CreateDir(dir);
 
                 Assert.True(provider.Exists(dir));
@@ -141,13 +155,16 @@ namespace Azi.ACDDokanNet.Tests
             [Fact]
             public void OpenFileReadWriteTest()
             {
-                var path = testdir + "TestFile.txt";
+                var path = Testdir + "TestFile.txt";
                 using (var file = provider.OpenFile(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, FileOptions.None))
                 {
                     file.Write(0, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, 0, 10);
                 }
 
-                while (provider.GetItem(path).IsUploading) Thread.Sleep(500);
+                while (provider.GetItem(path).IsUploading)
+                {
+                    Thread.Sleep(500);
+                }
 
                 var info = provider.GetItem(path);
                 Assert.Equal(10, info.Length);
@@ -165,7 +182,10 @@ namespace Azi.ACDDokanNet.Tests
                     file.Write(9, new byte[] { 8, 7, 6, 5, 4, 3, 2, 1 }, 0, 8);
                 }
 
-                while (provider.GetItem(path).IsUploading) Thread.Sleep(500);
+                while (provider.GetItem(path).IsUploading)
+                {
+                    Thread.Sleep(500);
+                }
 
                 info = provider.GetItem(path);
                 Assert.Equal(17, info.Length);
@@ -189,7 +209,7 @@ namespace Azi.ACDDokanNet.Tests
             [Fact]
             public void OpenNewFileAndReadTest()
             {
-                var path = testdir + "TestFile.txt";
+                var path = Testdir + "TestFile.txt";
                 using (var file = provider.OpenFile(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, FileOptions.None))
                 {
                     file.Write(0, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, 0, 10);
@@ -203,7 +223,10 @@ namespace Azi.ACDDokanNet.Tests
                     Assert.Equal(new byte[] { 3, 4, 5, 6, 7 }, buf);
                 }
 
-                while (provider.GetItem(path).IsUploading) Thread.Sleep(500);
+                while (provider.GetItem(path).IsUploading)
+                {
+                    Thread.Sleep(500);
+                }
 
                 Assert.True(Directory.GetFiles("TempCache\\Upload").Length == 0);
 

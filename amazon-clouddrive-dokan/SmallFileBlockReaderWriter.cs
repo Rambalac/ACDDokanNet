@@ -28,12 +28,16 @@ namespace Azi.ACDDokanNet
             writer = new FileStream(downloader.Path, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
         }
 
-        int closed = 0;
+        private int closed = 0;
+
         public override void Close()
         {
             lock (closeLock)
             {
-                if (Interlocked.CompareExchange(ref closed, 1, 0) == 1) return;
+                if (Interlocked.CompareExchange(ref closed, 1, 0) == 1)
+                {
+                    return;
+                }
 
                 lock (fileLock)
                 {
@@ -48,19 +52,33 @@ namespace Azi.ACDDokanNet
 
                 Log.Trace($"Closed ReadWrite file: {downloader.Item.Path} of {downloader.Item.Length} bytes");
                 base.Close();
-                if (written) OnChangedAndClosed(downloader.Item, downloader.Path);
+                if (written)
+                {
+                    OnChangedAndClosed(downloader.Item, downloader.Path);
+                }
             }
         }
 
         private FileStream GetReader()
         {
-            if (closed == 1) throw new IOException("File is alredy closed");
+            if (closed == 1)
+            {
+                throw new IOException("File is alredy closed");
+            }
 
             FileStream result;
-            if (readers.TryTake(out result)) return result;
+            if (readers.TryTake(out result))
+            {
+                return result;
+            }
+
             lock (closeLock)
             {
-                if (closed == 1) throw new IOException("File is already closed");
+                if (closed == 1)
+                {
+                    throw new IOException("File is already closed");
+                }
+
                 return new FileStream(downloader.Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             }
         }
@@ -70,23 +88,32 @@ namespace Azi.ACDDokanNet
             lock (closeLock)
             {
                 if (closed != 1)
+                {
                     readers.Add(file);
+                }
                 else
+                {
                     file.Close();
+                }
             }
         }
 
-        const int waitForFile = 50;
+        private const int WaitForFile = 50;
 
         public override int Read(long position, byte[] buffer, int offset, int count, int timeout)
         {
-            if (count == 0 || downloader.Item.Length == 0) return 0;
+            if (count == 0 || downloader.Item.Length == 0)
+            {
+                return 0;
+            }
+
             var timeouttime = DateTime.UtcNow.AddMilliseconds(timeout);
             if (!downloader.WaitToTheEnd(timeout))
             {
                 Log.Error("File is too big to be downloaded in time for ReadWrite: " + downloader.Item.Path);
                 throw new TimeoutException();
             }
+
             int red;
             var file = GetReader();
             int totalred = 0;
@@ -101,9 +128,13 @@ namespace Azi.ACDDokanNet
                     count -= red;
                     if (file.Position < downloader.Item.Length && red == 0)
                     {
-                        Thread.Sleep(waitForFile);
+                        Thread.Sleep(WaitForFile);
                     }
-                    if (DateTime.UtcNow > timeouttime) throw new TimeoutException();
+
+                    if (DateTime.UtcNow > timeouttime)
+                    {
+                        throw new TimeoutException();
+                    }
                 } while (file.Position < downloader.Item.Length && count > 0);
                 return totalred;
             }
@@ -113,31 +144,38 @@ namespace Azi.ACDDokanNet
             }
         }
 
-        long lastPosition = 0;
-        bool written = false;
+        private long lastPosition = 0;
+        private bool written = false;
+
         public override void Write(long position, byte[] buffer, int offset, int count, int timeout = 1000)
         {
             if (position < downloader.Item.Length)
             {
-                if (!downloader.WaitToTheEnd(timeout)) throw new TimeoutException();
+                if (!downloader.WaitToTheEnd(timeout))
+                {
+                    throw new TimeoutException();
+                }
             }
+
             lock (fileLock)
             {
-                //if (lastPosition != position) Log.Warn($"Write Position in New file was changed from {lastPosition} to {position}");
+                // if (lastPosition != position) Log.Warn($"Write Position in New file was changed from {lastPosition} to {position}");
 
                 writer.Position = position;
                 writer.Write(buffer, offset, count);
                 written = true;
                 lastPosition = writer.Position;
             }
+
             downloader.Item.Length = writer.Length;
-            //Log.Trace("Write bytes: " + count);
+            // Log.Trace("Write bytes: " + count);
         }
 
         public override void Flush()
         {
             writer.Flush();
         }
+
         public override void SetLength(long len)
         {
             lock (fileLock)
@@ -147,7 +185,6 @@ namespace Azi.ACDDokanNet
                 written = true;
             }
         }
-
 
         #region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls

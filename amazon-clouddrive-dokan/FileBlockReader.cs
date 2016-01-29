@@ -30,10 +30,18 @@ namespace Azi.ACDDokanNet
         private FileStream GetFile()
         {
             FileStream result;
-            if (files.TryTake(out result)) return result;
+            if (files.TryTake(out result))
+            {
+                return result;
+            }
+
             lock (closeLock)
             {
-                if (closed == 1) throw new IOException("File is already closed");
+                if (closed == 1)
+                {
+                    throw new IOException("File is already closed");
+                }
+
                 return new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             }
         }
@@ -43,9 +51,13 @@ namespace Azi.ACDDokanNet
             lock (closeLock)
             {
                 if (closed != 1)
+                {
                     files.Add(file);
+                }
                 else
+                {
                     file.Close();
+                }
             }
         }
 
@@ -57,10 +69,14 @@ namespace Azi.ACDDokanNet
             return result;
         }
 
-        int closed = 0;
+        private int closed = 0;
+
         public override void Close()
         {
-            if (Interlocked.CompareExchange(ref closed, 1, 0) == 1) return;
+            if (Interlocked.CompareExchange(ref closed, 1, 0) == 1)
+            {
+                return;
+            }
 
             Log.Trace(Path.GetFileName(filePath));
 
@@ -68,14 +84,19 @@ namespace Azi.ACDDokanNet
             {
                 file.Close();
             }
+
             base.Close();
         }
 
-        const int waitForFile = 50;
+        private const int WaitForFile = 50;
 
         public override int Read(long position, byte[] buffer, int offset, int count, int timeout)
         {
-            if (count == 0 || expectedLength == 0) return 0;
+            if (count == 0 || expectedLength == 0)
+            {
+                return 0;
+            }
+
             var timeouttime = DateTime.UtcNow.AddMilliseconds(timeout);
             int red;
             var file = GetFile();
@@ -91,9 +112,13 @@ namespace Azi.ACDDokanNet
                     count -= red;
                     if (file.Position < expectedLength && red == 0)
                     {
-                        Thread.Sleep(waitForFile);
+                        Thread.Sleep(WaitForFile);
                     }
-                    if (DateTime.UtcNow > timeouttime) throw new TimeoutException();
+
+                    if (DateTime.UtcNow > timeouttime)
+                    {
+                        throw new TimeoutException();
+                    }
                 } while (file.Position < expectedLength && count > 0);
                 return totalred;
             }
@@ -112,7 +137,6 @@ namespace Azi.ACDDokanNet
         {
             throw new NotSupportedException();
         }
-
 
         public override void Flush()
         {

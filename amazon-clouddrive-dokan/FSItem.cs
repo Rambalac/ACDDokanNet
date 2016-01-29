@@ -13,10 +13,13 @@ namespace Azi.ACDDokanNet
 
         // To replacement to cache files in path that does not exist
         public bool NotExistingDummy { get; private set; } = false;
+
         public string Path { get; internal set; }
 
         public ConcurrentBag<string> ParentIds { get; private set; }
+
         public string Id { get; internal set; }
+
         public bool IsDir { get; internal set; }
 
         private long length;
@@ -27,6 +30,7 @@ namespace Azi.ACDDokanNet
             {
                 return Interlocked.Read(ref length);
             }
+
             internal set
             {
                 Interlocked.Exchange(ref length, value);
@@ -34,15 +38,17 @@ namespace Azi.ACDDokanNet
         }
 
         public string Dir => System.IO.Path.GetDirectoryName(Path);
+
         public string Name => System.IO.Path.GetFileName(Path);
 
         public DateTime LastAccessTime { get; internal set; }
+
         public DateTime LastWriteTime { get; internal set; }
+
         public DateTime CreationTime { get; internal set; }
 
         private FSItem()
         {
-
         }
 
         public FSItem(FSItem item)
@@ -115,6 +121,5 @@ namespace Azi.ACDDokanNet
         {
             return FromNode("\\", amazonNode);
         }
-
     }
 }

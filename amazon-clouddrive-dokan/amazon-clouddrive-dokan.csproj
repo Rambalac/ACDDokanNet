@@ -71,11 +71,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AbstractBlockStream.cs" />
+    <Compile Include="Block.cs" />
     <Compile Include="BufferedAmazonBlockReader.cs" />
     <Compile Include="Downloader.cs" />
     <Compile Include="FileBlockReader.cs" />
     <Compile Include="FSItem.cs" />
     <Compile Include="FSProvider.cs" />
+    <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="IBlockStream.cs" />
     <Compile Include="ItemsTreeCache.cs" />
     <Compile Include="NewFileBlockWriter.cs" />
@@ -101,6 +103,11 @@
       <Project>{199cdb28-7472-41bd-bb1f-bf345451a68d}</Project>
       <Name>Tools</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Analyzer Include="..\packages\StyleCop.Analyzers.1.0.0\analyzers\dotnet\cs\Newtonsoft.Json.dll" />
+    <Analyzer Include="..\packages\StyleCop.Analyzers.1.0.0\analyzers\dotnet\cs\StyleCop.Analyzers.CodeFixes.dll" />
+    <Analyzer Include="..\packages\StyleCop.Analyzers.1.0.0\analyzers\dotnet\cs\StyleCop.Analyzers.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

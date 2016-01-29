@@ -11,45 +11,57 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-
 namespace Azi.ACDDokanNet
 {
     public class FSProvider : IDisposable
     {
-        static readonly AmazonNodeKind[] fsItemKinds = { AmazonNodeKind.FILE, AmazonNodeKind.FOLDER };
+        private static readonly AmazonNodeKind[] FsItemKinds = { AmazonNodeKind.FILE, AmazonNodeKind.FOLDER };
 
         internal readonly AmazonDrive Amazon;
-        readonly ItemsTreeCache itemsTreeCache = new ItemsTreeCache();
+        private readonly ItemsTreeCache itemsTreeCache = new ItemsTreeCache();
+
         internal SmallFilesCache SmallFilesCache { get; private set; }
+
         internal UploadService UploadService { get; private set; }
 
         public long SmallFileSizeLimit { get; set; } = 20 * 1024 * 1024;
 
-        string cachePath;
+        private string cachePath;
+
         public string CachePath
         {
             get
             {
                 return cachePath;
             }
+
             set
             {
                 var val = Path.GetFullPath(value);
-                if (cachePath == val) return;
-                if (cachePath != null) SmallFilesCache.Clear().Wait();
+                if (cachePath == val)
+                {
+                    return;
+                }
+
+                if (cachePath != null)
+                {
+                    SmallFilesCache.Clear().Wait();
+                }
+
                 cachePath = val;
                 SmallFilesCache.CachePath = val;
                 UploadService.CachePath = val;
             }
         }
 
-        string GetRelativePath(string filepath, string relativeto)
+        private string GetRelativePath(string filepath, string relativeto)
         {
             var pathUri = new Uri(filepath);
             if (!relativeto.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.InvariantCulture))
             {
                 relativeto += Path.DirectorySeparatorChar;
             }
+
             var relativetoUri = new Uri(relativeto);
             return Uri.UnescapeDataString(relativetoUri.MakeRelativeUri(pathUri).ToString().Replace('/', Path.DirectorySeparatorChar));
         }
@@ -109,6 +121,7 @@ namespace Azi.ACDDokanNet
                   {
                       File.Delete(olditemPath);
                   }
+
                   SmallFilesCache.AddExisting(newitem);
                   itemsTreeCache.Update(newitem);
               };
@@ -122,12 +135,16 @@ namespace Azi.ACDDokanNet
         }
 
         public delegate void StatisticsUpdated(int downloading, int uploading);
+
         public StatisticsUpdated OnStatisticsUpdated { get; set; }
 
         public int downloadingCount = 0;
         public int uploadingCount = 0;
+
         public long AvailableFreeSpace => Amazon.Account.GetQuota().Result.available;
+
         public long TotalSize => Amazon.Account.GetQuota().Result.quota;
+
         public long TotalFreeSpace => Amazon.Account.GetQuota().Result.available;
 
         public long TotalUsedSpace => Amazon.Account.GetUsage().Result.total.total.bytes;
@@ -142,6 +159,7 @@ namespace Azi.ACDDokanNet
             {
                 return SmallFilesCache.CacheSize;
             }
+
             set
             {
                 SmallFilesCache.CacheSize = value;
@@ -153,7 +171,11 @@ namespace Azi.ACDDokanNet
             var item = GetItem(filePath);
             if (item != null)
             {
-                if (item.IsDir) throw new InvalidOperationException("Not file");
+                if (item.IsDir)
+                {
+                    throw new InvalidOperationException("Not file");
+                }
+
                 DeleteItem(filePath, item);
                 itemsTreeCache.DeleteFile(filePath);
             }
@@ -164,12 +186,18 @@ namespace Azi.ACDDokanNet
             var timeouttime = DateTime.UtcNow.AddMilliseconds(timeout);
             while (item.IsUploading)
             {
-                if (DateTime.UtcNow > timeouttime) throw new TimeoutException();
+                if (DateTime.UtcNow > timeouttime)
+                {
+                    throw new TimeoutException();
+                }
+
                 Thread.Sleep(100);
                 item = GetItem(item.Path);
             }
+
             return item;
         }
+
         private void DeleteItem(string filePath, FSItem item)
         {
             try
@@ -188,9 +216,11 @@ namespace Azi.ACDDokanNet
             catch (AggregateException ex)
             {
                 var webex = ex.InnerException as HttpWebException;
-                if (webex == null || (webex.StatusCode != HttpStatusCode.NotFound && webex.StatusCode != HttpStatusCode.Conflict)) throw ex.InnerException;
+                if (webex == null || (webex.StatusCode != HttpStatusCode.NotFound && webex.StatusCode != HttpStatusCode.Conflict))
+                {
+                    throw ex.InnerException;
+                }
             }
-
         }
 
         public void DeleteDir(string filePath)
@@ -198,7 +228,11 @@ namespace Azi.ACDDokanNet
             var item = GetItem(filePath);
             if (item != null)
             {
-                if (!item.IsDir) throw new InvalidOperationException("Not dir");
+                if (!item.IsDir)
+                {
+                    throw new InvalidOperationException("Not dir");
+                }
+
                 DeleteItem(filePath, item);
                 itemsTreeCache.DeleteDir(filePath);
             }
@@ -230,16 +264,25 @@ namespace Azi.ACDDokanNet
             var item = GetItem(filePath);
             if (fileAccess == FileAccess.Read)
             {
-                if (item == null) return null;
+                if (item == null)
+                {
+                    return null;
+                }
+
                 item = WaitForReal(item, 25000);
 
                 Log.Trace($"Opening {filePath} for Read");
 
                 if (item.Length < SmallFileSizeLimit)
+                {
                     return SmallFilesCache.OpenReadWithDownload(item);
+                }
 
                 var result = SmallFilesCache.OpenReadCachedOnly(item);
-                if (result != null) return result;
+                if (result != null)
+                {
+                    return result;
+                }
 
                 Interlocked.Increment(ref downloadingCount);
                 OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
@@ -274,7 +317,11 @@ namespace Azi.ACDDokanNet
                 return file;
             }
 
-            if (item == null) return null;
+            if (item == null)
+            {
+                return null;
+            }
+
             item = WaitForReal(item, 25000);
 
             if ((mode == FileMode.Create || mode == FileMode.Truncate) && item.Length > 0)
@@ -312,7 +359,10 @@ namespace Azi.ACDDokanNet
                             var olditemPath = Path.Combine(SmallFilesCache.CachePath, item.Id);
                             var newitemPath = Path.Combine(UploadService.CachePath, item.Id);
 
-                            if (File.Exists(newitemPath)) File.Delete(newitemPath);
+                            if (File.Exists(newitemPath))
+                            {
+                                File.Delete(newitemPath);
+                            }
 
                             SymbolicLink.CreateFile(GetRelativePath(olditemPath, Path.GetDirectoryName(newitemPath)), newitemPath);
                             SmallFilesCache.AddExisting(it);
@@ -323,8 +373,10 @@ namespace Azi.ACDDokanNet
 
                     return file;
                 }
+
                 Log.Warn("File is too big for ReadWrite: " + filePath);
             }
+
             return null;
         }
 
@@ -333,7 +385,7 @@ namespace Azi.ACDDokanNet
             var cached = itemsTreeCache.GetDir(folderPath);
             if (cached != null)
             {
-                //Log.Warn("Got cached dir:\r\n  " + string.Join("\r\n  ", cached));
+                // Log.Warn("Got cached dir:\r\n  " + string.Join("\r\n  ", cached));
                 return (await Task.WhenAll(cached.Select(i => FetchNode(i)))).Where(i => i != null).ToList();
             }
 
@@ -341,15 +393,23 @@ namespace Azi.ACDDokanNet
             var nodes = await Amazon.Nodes.GetChildren(folderNode?.Id);
             var items = new List<FSItem>(nodes.Count);
             var curdir = folderPath;
-            if (curdir == "\\") curdir = "";
-            foreach (var node in nodes.Where(n => fsItemKinds.Contains(n.kind)))
+            if (curdir == "\\")
             {
-                if (node.status != AmazonNodeStatus.AVAILABLE) continue;
+                curdir = "";
+            }
+
+            foreach (var node in nodes.Where(n => FsItemKinds.Contains(n.kind)))
+            {
+                if (node.status != AmazonNodeStatus.AVAILABLE)
+                {
+                    continue;
+                }
+
                 var path = curdir + "\\" + node.name;
                 items.Add(FSItem.FromNode(path, node));
             }
 
-            //Log.Warn("Got real dir:\r\n  " + string.Join("\r\n  ", items.Select(i => i.Path)));
+            // Log.Warn("Got real dir:\r\n  " + string.Join("\r\n  ", items.Select(i => i.Path)));
 
             itemsTreeCache.AddDirItems(folderPath, items);
             return items;
@@ -362,15 +422,20 @@ namespace Azi.ACDDokanNet
 
         private async Task<FSItem> FetchNode(string itemPath)
         {
-            if (itemPath == "\\" || itemPath == "") return FSItem.FromRoot(await Amazon.Nodes.GetRoot());
+            if (itemPath == "\\" || itemPath == "")
+            {
+                return FSItem.FromRoot(await Amazon.Nodes.GetRoot());
+            }
+
             var cached = itemsTreeCache.GetItem(itemPath);
             if (cached != null)
             {
                 if (cached.NotExistingDummy)
                 {
-                    //Log.Warn("NonExisting path from cache: " + itemPath);
+                    // Log.Warn("NonExisting path from cache: " + itemPath);
                     return null;
                 }
+
                 return cached;
             }
 
@@ -381,33 +446,48 @@ namespace Azi.ACDDokanNet
             {
                 folders.AddFirst(Path.GetFileName(curpath));
                 curpath = Path.GetDirectoryName(curpath);
-                if (curpath == "\\" || string.IsNullOrEmpty(curpath)) break;
+                if (curpath == "\\" || string.IsNullOrEmpty(curpath))
+                {
+                    break;
+                }
+
                 item = itemsTreeCache.GetItem(curpath);
             } while (item == null);
-            if (item == null) item = FSItem.FromRoot(await Amazon.Nodes.GetRoot());
+            if (item == null)
+            {
+                item = FSItem.FromRoot(await Amazon.Nodes.GetRoot());
+            }
+
             foreach (var name in folders)
             {
-                if (curpath == "\\") curpath = "";
+                if (curpath == "\\")
+                {
+                    curpath = "";
+                }
+
                 curpath = curpath + "\\" + name;
 
                 var newnode = await Amazon.Nodes.GetChild(item.Id, name);
                 if (newnode == null || newnode.status != AmazonNodeStatus.AVAILABLE)
                 {
                     itemsTreeCache.AddItemOnly(FSItem.MakeNotExistingDummy(curpath));
-                    //Log.Error("NonExisting path from server: " + itemPath);
+                    // Log.Error("NonExisting path from server: " + itemPath);
                     return null;
                 }
-
 
                 item = FSItem.FromNode(curpath, newnode);
                 itemsTreeCache.Add(item);
             }
+
             return item;
         }
 
         public void MoveFile(string oldPath, string newPath, bool replace)
         {
-            if (oldPath == newPath) return;
+            if (oldPath == newPath)
+            {
+                return;
+            }
 
             Log.Trace($"Move: {oldPath} to {newPath} replace:{replace}");
 
@@ -421,13 +501,18 @@ namespace Azi.ACDDokanNet
             if (oldName != newName)
             {
                 if (item.Length > 0)
+                {
                     item = FSItem.FromNode(Path.Combine(oldDir, newName), Amazon.Nodes.Rename(item.Id, newName).Result);
+                }
                 else
                     item = new FSItem(item)
                     {
                         Path = Path.Combine(oldDir, newName)
                     };
-                if (item == null) throw new InvalidOperationException("Can not rename");
+                if (item == null)
+                {
+                    throw new InvalidOperationException("Can not rename");
+                }
             }
 
             if (oldDir != newDir)
@@ -438,7 +523,10 @@ namespace Azi.ACDDokanNet
                 if (item.Length > 0)
                 {
                     item = FSItem.FromNode(newPath, Amazon.Nodes.Move(item.Id, oldDirNodeTask.Result.Id, newDirNodeTask.Result.Id).Result);
-                    if (item == null) throw new InvalidOperationException("Can not move");
+                    if (item == null)
+                    {
+                        throw new InvalidOperationException("Can not move");
+                    }
                 }
                 else
                     item = new FSItem(item)
@@ -448,9 +536,13 @@ namespace Azi.ACDDokanNet
             }
 
             if (item.IsDir)
+            {
                 itemsTreeCache.MoveDir(oldPath, item);
+            }
             else
+            {
                 itemsTreeCache.MoveFile(oldPath, item);
+            }
         }
 
         #region IDisposable Support
@@ -488,7 +580,6 @@ namespace Azi.ACDDokanNet
             // GC.SuppressFinalize(this);
         }
         #endregion
-
 
     }
 }

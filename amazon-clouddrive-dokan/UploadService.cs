@@ -44,17 +44,17 @@ namespace Azi.ACDDokanNet
         }
 
         public const string UploadFolder = "Upload";
-        const int reuploadDelay = 5000;
+        private const int ReuploadDelay = 5000;
         private string cachePath;
 
-
-        readonly SemaphoreSlim uploadLimitSemaphore;
-        readonly BlockingCollection<UploadInfo> uploads = new BlockingCollection<UploadInfo>();
-        readonly CancellationTokenSource cancellation = new CancellationTokenSource();
-        readonly AmazonDrive amazon;
-        readonly int uploadLimit;
+        private readonly SemaphoreSlim uploadLimitSemaphore;
+        private readonly BlockingCollection<UploadInfo> uploads = new BlockingCollection<UploadInfo>();
+        private readonly CancellationTokenSource cancellation = new CancellationTokenSource();
+        private readonly AmazonDrive amazon;
+        private readonly int uploadLimit;
 
         public delegate void OnUploadFinishedDelegate(UploadInfo item, AmazonNode amazonNode);
+
         public delegate void OnUploadFailedDelegate(UploadInfo item, FailReason reason);
 
         public OnUploadFinishedDelegate OnUploadFinished;
@@ -71,7 +71,11 @@ namespace Azi.ACDDokanNet
             set
             {
                 var newpath = Path.Combine(value, UploadFolder);
-                if (cachePath == newpath) return;
+                if (cachePath == newpath)
+                {
+                    return;
+                }
+
                 Log.Trace($"Cache path changed from {cachePath} to {newpath}");
                 cachePath = newpath;
                 Directory.CreateDirectory(cachePath);
@@ -82,7 +86,11 @@ namespace Azi.ACDDokanNet
         private void CheckOldUploads()
         {
             var files = Directory.GetFiles(cachePath, "*.info");
-            if (files.Length == 0) return;
+            if (files.Length == 0)
+            {
+                return;
+            }
+
             Log.Warn($"{files.Length} not uploaded files found. Resuming.");
             foreach (var info in files.Select(f => new FileInfo(f)).OrderBy(f => f.CreationTime))
             {
@@ -94,8 +102,6 @@ namespace Azi.ACDDokanNet
             }
         }
 
-
-
         public UploadService(int limit, AmazonDrive amazon)
         {
             uploadLimit = limit;
@@ -103,11 +109,13 @@ namespace Azi.ACDDokanNet
             this.amazon = amazon;
         }
 
-        void WriteInfo(string path, UploadInfo info)
+        private void WriteInfo(string path, UploadInfo info)
         {
             using (var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write))
             using (var writer = new StreamWriter(file))
+            {
                 writer.Write(JsonConvert.SerializeObject(info));
+            }
         }
 
         private void AddUpload(FSItem item)
@@ -130,7 +138,6 @@ namespace Azi.ACDDokanNet
             WriteInfo(path + ".info", info);
             uploads.Add(info);
         }
-
 
         private async Task Upload(UploadInfo item)
         {
@@ -171,6 +178,7 @@ namespace Azi.ACDDokanNet
                     Log.Error($"Upload conflict: {item.path}\r\n{ex}");
                     return;
                 }
+
                 throw;
             }
             catch (Exception ex)
@@ -181,7 +189,8 @@ namespace Azi.ACDDokanNet
             {
                 uploadLimitSemaphore.Release();
             }
-            await Task.Delay(reuploadDelay);
+
+            await Task.Delay(ReuploadDelay);
             uploads.Add(item);
         }
 
@@ -210,11 +219,15 @@ namespace Azi.ACDDokanNet
             return result;
         }
 
-        Task serviceTask;
+        private Task serviceTask;
 
         public void Stop()
         {
-            if (serviceTask == null) return;
+            if (serviceTask == null)
+            {
+                return;
+            }
+
             cancellation.Cancel();
             try
             {
@@ -224,12 +237,17 @@ namespace Azi.ACDDokanNet
             {
                 e.Handle(ce => ce is TaskCanceledException);
             }
+
             serviceTask = null;
         }
 
         public void Start()
         {
-            if (serviceTask != null) return;
+            if (serviceTask != null)
+            {
+                return;
+            }
+
             serviceTask = Task.Factory.StartNew(() => UploadTask(), cancellation.Token, TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
 
@@ -239,16 +257,27 @@ namespace Azi.ACDDokanNet
             while (uploads.TryTake(out upload, -1, cancellation.Token))
             {
                 var uploadCopy = upload;
-                if (!uploadLimitSemaphore.Wait(-1, cancellation.Token)) return;
+                if (!uploadLimitSemaphore.Wait(-1, cancellation.Token))
+                {
+                    return;
+                }
+
                 Task.Run(async () => await Upload(uploadCopy));
             }
-
         }
 
         public void WaitForUploadsFnish()
         {
-            while (uploads.Count > 0) Thread.Sleep(100);
-            for (int i = 0; i < uploadLimit; i++) uploadLimitSemaphore.Wait();
+            while (uploads.Count > 0)
+            {
+                Thread.Sleep(100);
+            }
+
+            for (int i = 0; i < uploadLimit; i++)
+            {
+                uploadLimitSemaphore.Wait();
+            }
+
             return;
         }
 

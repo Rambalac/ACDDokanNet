@@ -13,7 +13,7 @@ namespace Azi.ACDDokanNet
 {
     public class VirtualDriveWrapper
     {
-        readonly VirtualDrive virtualDrive;
+        private readonly VirtualDrive virtualDrive;
 
         public static IList<char> GetFreeDriveLettes()
         {
@@ -40,6 +40,7 @@ namespace Azi.ACDDokanNet
 
         public Action Mounted;
         public Action Unmounted;
+
         public void Mount(string path, bool readOnly)
         {
             try

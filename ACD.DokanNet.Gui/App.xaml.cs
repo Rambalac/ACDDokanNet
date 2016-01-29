@@ -21,9 +21,11 @@ namespace Azi.ACDDokanNet.Gui
         public new static App Current => Application.Current as App;
 
         public bool IsMounted => mountedLetter != null;
+
         public char? MountedLetter => mountedLetter;
 
         public FSProvider.StatisticsUpdated OnProviderStatisticsUpdated { get; set; }
+
         public Action OnMountChanged;
 
         public long SmallFileSizeLimit
@@ -36,7 +38,10 @@ namespace Azi.ACDDokanNet.Gui
             set
             {
                 if (provider != null)
+                {
                     provider.SmallFileSizeLimit = value * (1 << 20);
+                }
+
                 Gui.Properties.Settings.Default.SmallFileSizeLimit = value;
                 Gui.Properties.Settings.Default.Save();
             }
@@ -52,7 +57,10 @@ namespace Azi.ACDDokanNet.Gui
             set
             {
                 if (provider != null)
+                {
                     provider.CachePath = Environment.ExpandEnvironmentVariables(value);
+                }
+
                 Gui.Properties.Settings.Default.CacheFolder = value;
                 Gui.Properties.Settings.Default.Save();
             }
@@ -68,21 +76,22 @@ namespace Azi.ACDDokanNet.Gui
             set
             {
                 if (provider != null)
+                {
                     provider.SmallFilesCacheSize = value * (1 << 20);
+                }
+
                 Gui.Properties.Settings.Default.SmallFilesCacheLimit = value;
                 Gui.Properties.Settings.Default.Save();
             }
         }
 
-
-        void ProcessArgs(string[] args)
+        private void ProcessArgs(string[] args)
         {
-
         }
 
-        NotifyIcon notifyIcon;
-        int uploading = 0;
-        int downloading = 0;
+        private NotifyIcon notifyIcon;
+        private int uploading = 0;
+        private int downloading = 0;
 
         public void ProviderStatisticsUpdated(int downloading, int uploading)
         {
@@ -91,18 +100,17 @@ namespace Azi.ACDDokanNet.Gui
             OnProviderStatisticsUpdated?.Invoke(downloading, uploading);
         }
 
-        void SetupNotifyIcon()
+        private void SetupNotifyIcon()
         {
             var components = new System.ComponentModel.Container();
             notifyIcon = new NotifyIcon(components);
 
             var contextMenu = new ContextMenu(
                         new MenuItem[] {
-                            new MenuItem("&Settings", (s,e)=>OpenSettings()),
+                            new MenuItem("&Settings", (s,e) => OpenSettings()),
                             new MenuItem("-"),
-                            new MenuItem("E&xit", (s,e)=>menuExit_Click())
+                            new MenuItem("E&xit", (s,e) => menuExit_Click())
                         });
-
 
             notifyIcon.Icon = Gui.Properties.Resources.app_all;
             notifyIcon.ContextMenu = contextMenu;
@@ -110,7 +118,7 @@ namespace Azi.ACDDokanNet.Gui
             notifyIcon.Text = $"Amazon Cloud Drive Dokan.NET driver settings.";
             notifyIcon.Visible = true;
 
-            notifyIcon.MouseClick += (sender, e) => { if (e.Button == MouseButtons.Left) ShowBalloon(); };
+            notifyIcon.MouseClick += (sender, e) => { if (e.Button == MouseButtons.Left) { ShowBalloon(); } };
         }
 
         private void ShowBalloon()
@@ -119,7 +127,7 @@ namespace Azi.ACDDokanNet.Gui
                 $"Downloading: {downloading}\r\nUploading: {uploading}", ToolTipIcon.None);
         }
 
-        void OpenSettings()
+        private void OpenSettings()
         {
             MainWindow.Show();
             MainWindow.Activate();
@@ -128,13 +136,19 @@ namespace Azi.ACDDokanNet.Gui
         private void menuExit_Click()
         {
             if (uploading > 0)
-                if (System.Windows.MessageBox.Show("Some files are not uploaded yet", "Are you sure?", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
+            {
+                if (System.Windows.MessageBox.Show("Some files are not uploaded yet", "Are you sure?", MessageBoxButton.YesNo) != MessageBoxResult.Yes)
+                {
+                    return;
+                }
+            }
+
             shuttingdown = true;
             Shutdown();
         }
 
-        Mutex startedMutex;
-        bool shuttingdown = false;
+        private Mutex startedMutex;
+        private bool shuttingdown = false;
 
         private void MountDefault()
         {
@@ -152,9 +166,8 @@ namespace Azi.ACDDokanNet.Gui
                 Gui.Properties.Settings.Default.Save();
             }
 
-
             bool created;
-            startedMutex = new Mutex(false, appName, out created);
+            startedMutex = new Mutex(false, AppName, out created);
             if (!created)
             {
                 Shutdown();
@@ -167,11 +180,15 @@ namespace Azi.ACDDokanNet.Gui
             MainWindow.Closing += (s2, e2) =>
             {
                 if (!shuttingdown)
+                {
                     notifyIcon.ShowBalloonTip(5000, "", "Settings window is still accessible from here.\r\nTo close application totally click here with right button and select Exit.", ToolTipIcon.None);
+                }
             };
 
-            if (GetAutorun()) MountDefault();
-
+            if (GetAutorun())
+            {
+                MountDefault();
+            }
 
             if (e.Args.Length > 0)
             {
@@ -182,12 +199,12 @@ namespace Azi.ACDDokanNet.Gui
             MainWindow.Show();
         }
 
-        static char? mountedLetter = null;
-        object mountLock = new object();
-        VirtualDriveWrapper cloudDrive;
-        FSProvider provider;
+        private static char? mountedLetter = null;
+        private object mountLock = new object();
+        private VirtualDriveWrapper cloudDrive;
+        private FSProvider provider;
 
-        async Task<AmazonDrive> Authenticate(CancellationToken cs, bool interactiveAuth = true)
+        private async Task<AmazonDrive> Authenticate(CancellationToken cs, bool interactiveAuth = true)
         {
             var settings = Gui.Properties.Settings.Default;
             var amazon = new AmazonDrive(AmazonSecret.clientId, AmazonSecret.clientSecret);
@@ -204,10 +221,20 @@ namespace Azi.ACDDokanNet.Gui
                 if (await amazon.Authentication(
                     settings.AuthToken,
                     settings.AuthRenewToken,
-                    settings.AuthTokenExpiration)) return amazon;
+                    settings.AuthTokenExpiration))
+                {
+                    return amazon;
+                }
             }
+
             if (interactiveAuth)
-                if (await amazon.SafeAuthenticationAsync(CloudDriveScope.ReadAll | CloudDriveScope.Write, TimeSpan.FromMinutes(10), cs)) return amazon;
+            {
+                if (await amazon.SafeAuthenticationAsync(CloudDriveScope.ReadAll | CloudDriveScope.Write, TimeSpan.FromMinutes(10), cs))
+                {
+                    return amazon;
+                }
+            }
+
             cs.ThrowIfCancellationRequested();
             return null;
         }
@@ -223,10 +250,13 @@ namespace Azi.ACDDokanNet.Gui
 
         internal void ClearCache()
         {
-            if (provider != null) provider.ClearSmallFilesCache();
+            if (provider != null)
+            {
+                provider.ClearSmallFilesCache();
+            }
         }
 
-        const string appName = "ACDDokanNet";
+        private const string AppName = "ACDDokanNet";
 
         internal void SetAutorun(bool isChecked)
         {
@@ -236,10 +266,10 @@ namespace Azi.ACDDokanNet.Gui
                 {
                     var uri = new Uri(Assembly.GetExecutingAssembly().CodeBase);
                     var path = uri.LocalPath + Uri.UnescapeDataString(uri.Fragment).Replace("/", "\\");
-                    rk.SetValue(appName, $"\"{path}\" /mount");
+                    rk.SetValue(AppName, $"\"{path}\" /mount");
                 }
                 else
-                    rk.DeleteValue(appName, false);
+                    rk.DeleteValue(AppName, false);
             }
         }
 
@@ -247,22 +277,30 @@ namespace Azi.ACDDokanNet.Gui
         {
             using (var rk = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true))
             {
-                return rk.GetValue(appName) != null;
+                return rk.GetValue(AppName) != null;
             }
         }
+
         internal async Task Unmount()
         {
-            if (mounted == 0) return;
+            if (mounted == 0)
+            {
+                return;
+            }
+
             VirtualDriveWrapper.Unmount((char)mountedLetter);
             await mountTask;
         }
 
+        private Task mountTask;
+        private int mounted = 0;
 
-        Task mountTask;
-        int mounted = 0;
         internal async Task<char?> Mount(char driveLetter, bool readOnly, CancellationToken cs, bool interactiveAuth = true)
         {
-            if (Interlocked.CompareExchange(ref mounted, 1, 0) != 0) return null;
+            if (Interlocked.CompareExchange(ref mounted, 1, 0) != 0)
+            {
+                return null;
+            }
 
             var mountedEvent = new TaskCompletionSource<char>();
 
@@ -272,7 +310,11 @@ namespace Azi.ACDDokanNet.Gui
                   {
                       lock (mountLock)
                       {
-                          if (mountedLetter != null) return;
+                          if (mountedLetter != null)
+                          {
+                              return;
+                          }
+
                           mountedLetter = driveLetter;
                       }
                       AmazonDrive amazon = await Authenticate(cs, interactiveAuth);
@@ -321,7 +363,11 @@ namespace Azi.ACDDokanNet.Gui
                           if (mountedLetter != null)
                           {
                               var message = "Could not find free letter";
-                              if (lastException != null && lastException.InnerException != null) message = lastException.InnerException.Message;
+                              if (lastException != null && lastException.InnerException != null)
+                              {
+                                  message = lastException.InnerException.Message;
+                              }
+
                               mountedEvent.SetException(new InvalidOperationException(message));
                           }
                       }
@@ -342,8 +388,16 @@ namespace Azi.ACDDokanNet.Gui
 
         private void Application_Exit(object sender, ExitEventArgs e)
         {
-            if (notifyIcon != null) notifyIcon.Dispose();
-            if (mounted == 0) return;
+            if (notifyIcon != null)
+            {
+                notifyIcon.Dispose();
+            }
+
+            if (mounted == 0)
+            {
+                return;
+            }
+
             VirtualDriveWrapper.Unmount((char)mountedLetter);
             mountTask.Wait();
         }

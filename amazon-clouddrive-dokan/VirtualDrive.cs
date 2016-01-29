@@ -16,8 +16,9 @@ namespace Azi.ACDDokanNet
 
     internal class VirtualDrive : IDokanOperations
     {
-        string creator = WindowsIdentity.GetCurrent().Name;
-        FSProvider provider;
+        private string creator = WindowsIdentity.GetCurrent().Name;
+        private FSProvider provider;
+
         public VirtualDrive(FSProvider provider)
         {
             this.provider = provider;
@@ -30,14 +31,22 @@ namespace Azi.ACDDokanNet
                 if (info.Context != null)
                 {
                     var str = info.Context as IBlockStream;
-                    if (str != null) str.Close();
+                    if (str != null)
+                    {
+                        str.Close();
+                    }
                 }
+
                 if (info.DeleteOnClose)
                 {
                     if (info.IsDirectory)
+                    {
                         provider.DeleteDir(fileName);
+                    }
                     else
+                    {
                         provider.DeleteFile(fileName);
+                    }
                 }
             }
             catch (Exception e)
@@ -53,7 +62,10 @@ namespace Azi.ACDDokanNet
                 if (info.Context != null)
                 {
                     var str = info.Context as IBlockStream;
-                    if (str != null) str.Close();
+                    if (str != null)
+                    {
+                        str.Close();
+                    }
                 }
             }
             catch (Exception e)
@@ -62,10 +74,18 @@ namespace Azi.ACDDokanNet
             }
         }
 
-        NtStatus _CreateDirectory(string fileName, DokanFileInfo info)
+        private NtStatus _CreateDirectory(string fileName, DokanFileInfo info)
         {
-            if (ReadOnly) return DokanResult.AccessDenied;
-            if (provider.Exists(fileName)) return DokanResult.AlreadyExists;
+            if (ReadOnly)
+            {
+                return DokanResult.AccessDenied;
+            }
+
+            if (provider.Exists(fileName))
+            {
+                return DokanResult.AlreadyExists;
+            }
+
             provider.CreateDir(fileName);
             return DokanResult.Success;
         }
@@ -77,6 +97,7 @@ namespace Azi.ACDDokanNet
         private const FileAccess DataWriteAccess = FileAccess.WriteData | FileAccess.AppendData |
                                                    FileAccess.Delete |
                                                    FileAccess.GenericWrite;
+
         private const FileAccess DataReadAccess = FileAccess.ReadData | FileAccess.GenericExecute |
                                                    FileAccess.Execute;
 
@@ -116,14 +137,22 @@ namespace Azi.ACDDokanNet
 
             if (info.IsDirectory)
             {
-                if (mode == FileMode.CreateNew) return _CreateDirectory(fileName, info);
-                if (mode == FileMode.Open && !provider.Exists(fileName)) return DokanResult.PathNotFound;
+                if (mode == FileMode.CreateNew)
+                {
+                    return _CreateDirectory(fileName, info);
+                }
+
+                if (mode == FileMode.Open && !provider.Exists(fileName))
+                {
+                    return DokanResult.PathNotFound;
+                }
 
                 if (access == FileAccess.Synchronize)
                 {
                     info.Context = new object();
                     return DokanResult.Success;
                 }
+
                 info.Context = new object();
                 return DokanResult.Success;
             }
@@ -134,7 +163,11 @@ namespace Azi.ACDDokanNet
             switch (mode)
             {
                 case FileMode.Open:
-                    if (item == null) return DokanResult.FileNotFound;
+                    if (item == null)
+                    {
+                        return DokanResult.FileNotFound;
+                    }
+
                     if (item.IsDir)
                     // check if driver only wants to read attributes, security info, or open directory
                     {
@@ -144,14 +177,23 @@ namespace Azi.ACDDokanNet
 
                         return DokanResult.Success;
                     }
+
                     break;
 
                 case FileMode.CreateNew:
-                    if (item != null) return DokanResult.FileExists;
+                    if (item != null)
+                    {
+                        return DokanResult.FileExists;
+                    }
+
                     break;
 
                 case FileMode.Truncate:
-                    if (item == null) return DokanResult.FileNotFound;
+                    if (item == null)
+                    {
+                        return DokanResult.FileNotFound;
+                    }
+
                     break;
             }
 
@@ -160,6 +202,7 @@ namespace Azi.ACDDokanNet
                 info.Context = new object();
                 return DokanResult.Success;
             }
+
             return _OpenFile(fileName, access, share, mode, options, attributes, info);
         }
 
@@ -167,7 +210,11 @@ namespace Azi.ACDDokanNet
         {
             var watch = Stopwatch.StartNew();
             var identity = Processes.GetProcessOwner(info.ProcessId);
-            if (identity == "NT AUTHORITY\\SYSTEM" || identity == creator) return true;
+            if (identity == "NT AUTHORITY\\SYSTEM" || identity == creator)
+            {
+                return true;
+            }
+
             Log.Warn($"User {identity} has no access to Amazon Cloud Drive on drive {MountPath}\r\nCreator User is {creator} - Identity User is {identity}");
             return false;
         }
@@ -177,27 +224,44 @@ namespace Azi.ACDDokanNet
             bool readAccess = (access & DataReadAccess) != 0;
             bool writeAccess = (access & DataWriteAccess) != 0;
 
-            if (writeAccess && ReadOnly) return DokanResult.AccessDenied;
-
+            if (writeAccess && ReadOnly)
+            {
+                return DokanResult.AccessDenied;
+            }
 
             System.IO.FileAccess IOaccess = System.IO.FileAccess.Read;
-            if (!readAccess && writeAccess) IOaccess = System.IO.FileAccess.Write;
-            if (readAccess && writeAccess) IOaccess = System.IO.FileAccess.ReadWrite;
+            if (!readAccess && writeAccess)
+            {
+                IOaccess = System.IO.FileAccess.Write;
+            }
+
+            if (readAccess && writeAccess)
+            {
+                IOaccess = System.IO.FileAccess.ReadWrite;
+            }
 
             var result = provider.OpenFile(fileName, mode, IOaccess, share, options);
 
-            if (result == null) return DokanResult.AccessDenied;
+            if (result == null)
+            {
+                return DokanResult.AccessDenied;
+            }
 
             info.Context = result;
             return DokanResult.Success;
         }
 
-
         public NtStatus DeleteDirectory(string fileName, DokanFileInfo info)
         {
-            if (ReadOnly) return DokanResult.AccessDenied;
+            if (ReadOnly)
+            {
+                return DokanResult.AccessDenied;
+            }
 
-            if (!provider.Exists(fileName)) return DokanResult.PathNotFound;
+            if (!provider.Exists(fileName))
+            {
+                return DokanResult.PathNotFound;
+            }
 
             provider.DeleteDir(fileName);
             return DokanResult.Success;
@@ -205,9 +269,15 @@ namespace Azi.ACDDokanNet
 
         public NtStatus DeleteFile(string fileName, DokanFileInfo info)
         {
-            if (ReadOnly) return DokanResult.AccessDenied;
+            if (ReadOnly)
+            {
+                return DokanResult.AccessDenied;
+            }
 
-            if (!provider.Exists(fileName)) return DokanResult.PathNotFound;
+            if (!provider.Exists(fileName))
+            {
+                return DokanResult.PathNotFound;
+            }
 
             Log.Trace("Delete file:" + fileName);
 
@@ -254,6 +324,7 @@ namespace Azi.ACDDokanNet
                 {
                     (info.Context as IBlockStream)?.Flush();
                 }
+
                 return DokanResult.Success;
             }
             catch (Exception e)
@@ -323,7 +394,11 @@ namespace Azi.ACDDokanNet
                 LastWriteTime = i.LastWriteTime,
                 CreationTime = i.CreationTime
             };
-            if (ReadOnly) result.Attributes |= FileAttributes.ReadOnly;
+            if (ReadOnly)
+            {
+                result.Attributes |= FileAttributes.ReadOnly;
+            }
+
             return result;
         }
 
@@ -341,10 +416,12 @@ namespace Azi.ACDDokanNet
                 result.SetAccessRule(new FileSystemAccessRule(identity, FileSystemRights.FullControl, AccessControlType.Allow));
                 result.SetAccessRuleProtection(false, true);
             }
+
             if (sections.HasFlag(AccessControlSections.Owner))
             {
                 result.SetOwner(identity);
             }
+
             security = result;
             return DokanResult.Success;
         }
@@ -359,7 +436,11 @@ namespace Azi.ACDDokanNet
                 FileSystemFeatures.SupportsRemoteStorage |
                 FileSystemFeatures.UnicodeOnDisk |
                 FileSystemFeatures.SequentialWriteOnce;
-            if (ReadOnly) features |= FileSystemFeatures.ReadOnlyVolume;
+            if (ReadOnly)
+            {
+                features |= FileSystemFeatures.ReadOnlyVolume;
+            }
+
             fileSystemName = provider.FileSystemName;
             return DokanResult.Success;
         }
@@ -385,7 +466,11 @@ namespace Azi.ACDDokanNet
                 return DokanResult.AccessDenied;
             }
 
-            if (ReadOnly) return DokanResult.AccessDenied;
+            if (ReadOnly)
+            {
+                return DokanResult.AccessDenied;
+            }
+
             try
             {
                 provider.MoveFile(oldName, newName, replace);
@@ -400,7 +485,8 @@ namespace Azi.ACDDokanNet
             }
         }
 
-        const int readTimeout = 30000;
+        private const int ReadTimeout = 30000;
+
         public NtStatus ReadFile(string fileName, byte[] buffer, out int bytesRead, long offset, DokanFileInfo info)
         {
             var start = DateTime.UtcNow;
@@ -408,7 +494,7 @@ namespace Azi.ACDDokanNet
             {
                 var reader = info.Context as IBlockStream;
 
-                bytesRead = reader.Read(offset, buffer, 0, buffer.Length, readTimeout);
+                bytesRead = reader.Read(offset, buffer, 0, buffer.Length, ReadTimeout);
                 return DokanResult.Success;
             }
             catch (ObjectDisposedException)
@@ -438,15 +524,23 @@ namespace Azi.ACDDokanNet
 
         public NtStatus SetAllocationSize(string fileName, long length, DokanFileInfo info)
         {
-            if (ReadOnly) return DokanResult.AccessDenied;
-            //Log.Trace(fileName);
+            if (ReadOnly)
+            {
+                return DokanResult.AccessDenied;
+            }
+
+            // Log.Trace(fileName);
             return DokanResult.Success;
         }
 
         public NtStatus SetEndOfFile(string fileName, long length, DokanFileInfo info)
         {
-            if (ReadOnly) return DokanResult.AccessDenied;
-            //Log.Trace(fileName);
+            if (ReadOnly)
+            {
+                return DokanResult.AccessDenied;
+            }
+
+            // Log.Trace(fileName);
 
             var file = info.Context as IBlockStream;
             file.SetLength(length);
@@ -457,7 +551,10 @@ namespace Azi.ACDDokanNet
 
         public NtStatus SetFileAttributes(string fileName, FileAttributes attributes, DokanFileInfo info)
         {
-            if (ReadOnly) return DokanResult.AccessDenied;
+            if (ReadOnly)
+            {
+                return DokanResult.AccessDenied;
+            }
 
             Log.Trace(fileName);
             return DokanResult.Error;
@@ -465,14 +562,22 @@ namespace Azi.ACDDokanNet
 
         public NtStatus SetFileSecurity(string fileName, FileSystemSecurity security, AccessControlSections sections, DokanFileInfo info)
         {
-            if (ReadOnly) return DokanResult.AccessDenied;
+            if (ReadOnly)
+            {
+                return DokanResult.AccessDenied;
+            }
+
             Log.Trace(fileName);
             return DokanResult.NotImplemented;
         }
 
         public NtStatus SetFileTime(string fileName, DateTime? creationTime, DateTime? lastAccessTime, DateTime? lastWriteTime, DokanFileInfo info)
         {
-            if (ReadOnly) return DokanResult.AccessDenied;
+            if (ReadOnly)
+            {
+                return DokanResult.AccessDenied;
+            }
+
             Log.Trace(fileName);
             return DokanResult.Error;
         }
@@ -495,6 +600,7 @@ namespace Azi.ACDDokanNet
                 bytesWritten = 0;
                 return DokanResult.AccessDenied;
             }
+
             try
             {
                 if (info.Context != null)
