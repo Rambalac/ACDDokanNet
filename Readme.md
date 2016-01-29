@@ -65,6 +65,7 @@ Prerequisites
 - For developing
     * VS 2015
     * .NET 4.5
+    * Check [Build](Build.md) info page
 
 Installation
 ------------
