@@ -1,6 +1,7 @@
 ﻿using Azi.Amazon.CloudDrive;
 using Azi.Amazon.CloudDrive.JsonObjects;
 using Azi.Tools;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -8,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -545,7 +547,6 @@ namespace Azi.ACDDokanNet
             }
         }
 
-        #region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls
 
         protected virtual void Dispose(bool disposing)
@@ -579,7 +580,13 @@ namespace Azi.ACDDokanNet
             // TODO: uncomment the following line if the finalizer is overridden above.
             // GC.SuppressFinalize(this);
         }
-        #endregion
+
+        public void BuildItemInfo(FSItem item)
+        {
+            var info = new ACDDokanNetItemInfo();
+            string str = JsonConvert.SerializeObject(info);
+            item.Info = Encoding.UTF8.GetBytes(str);
+        }
 
     }
 }

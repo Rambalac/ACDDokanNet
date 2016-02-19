@@ -10,6 +10,7 @@ namespace Azi.Tools
     public static class Log
     {
         private const string Source = "ACDDokan.Net";
+        private static readonly string Query = $"*[System[Provider[@Name = '{Source}']]]";
 
         static Log()
         {
@@ -98,8 +99,6 @@ namespace Azi.Tools
                 // Just ignore
             }
         }
-
-        private static readonly string Query = $"*[System[Provider[@Name = '{Source}']]]";
 
         public static void Export(string path)
         {

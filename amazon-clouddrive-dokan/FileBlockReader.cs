@@ -12,7 +12,6 @@ using System.Diagnostics;
 
 namespace Azi.ACDDokanNet
 {
-
     public class FileBlockReader : AbstractBlockStream
     {
         private readonly ConcurrentBag<FileStream> files;

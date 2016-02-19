@@ -47,6 +47,8 @@ namespace Azi.ACDDokanNet
 
         public DateTime CreationTime { get; internal set; }
 
+        public byte[] Info { get; internal set; }
+
         private FSItem()
         {
         }
@@ -76,6 +78,13 @@ namespace Azi.ACDDokanNet
 
         public bool IsExpired(int expirationSeconds) => DateTime.UtcNow > FetchTime.AddSeconds(expirationSeconds);
 
+
+        /// <summary>
+        /// Construct FSItem using information from AmazonNode
+        /// </summary>
+        /// <param name="itemPath">Item path</param>
+        /// <param name="node">Amazon Node info</param>
+        /// <returns>New constructed item</returns>
         public static FSItem FromNode(string itemPath, AmazonNode node)
         {
             return new FSItem
@@ -87,7 +96,7 @@ namespace Azi.ACDDokanNet
                 CreationTime = node.createdDate,
                 LastAccessTime = node.modifiedDate,
                 LastWriteTime = node.modifiedDate,
-                ParentIds = new ConcurrentBag<string>(node.parents)
+                ParentIds = new ConcurrentBag<string>(node.parents),
             };
         }
 

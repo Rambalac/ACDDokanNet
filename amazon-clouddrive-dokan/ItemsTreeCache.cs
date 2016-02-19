@@ -11,7 +11,6 @@ using System.Threading.Tasks;
 
 namespace Azi.ACDDokanNet
 {
-
     public class ItemsTreeCache : IDisposable
     {
         private class DirItem

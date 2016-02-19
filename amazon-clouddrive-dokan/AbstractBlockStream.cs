@@ -12,7 +12,6 @@ using System.Diagnostics;
 
 namespace Azi.ACDDokanNet
 {
-
     public abstract class AbstractBlockStream : IBlockStream
     {
         private int closed = 0;

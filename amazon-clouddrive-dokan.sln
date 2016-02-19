@@ -25,6 +25,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "images", "images", "{C40D9D
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "amazon-clouddrive-dokanTests", "amazon-clouddrive-dokanTests\amazon-clouddrive-dokanTests.csproj", "{07444044-FB75-4639-AF4B-044A48EAD482}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShellExtension", "ShellExtension\ShellExtension.csproj", "{8DAC61EF-E07B-4BD2-8D79-5865EF2799BB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -49,6 +51,10 @@ Global
 		{07444044-FB75-4639-AF4B-044A48EAD482}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{07444044-FB75-4639-AF4B-044A48EAD482}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{07444044-FB75-4639-AF4B-044A48EAD482}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8DAC61EF-E07B-4BD2-8D79-5865EF2799BB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8DAC61EF-E07B-4BD2-8D79-5865EF2799BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8DAC61EF-E07B-4BD2-8D79-5865EF2799BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8DAC61EF-E07B-4BD2-8D79-5865EF2799BB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

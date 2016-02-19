@@ -12,7 +12,6 @@ using System.Net.Http.Headers;
 
 namespace Azi.ACDDokanNet
 {
-
     public class SmallFilesCache
     {
         private class CacheEntry : IDisposable
@@ -78,7 +77,7 @@ namespace Azi.ACDDokanNet
                     return;
                 }
 
-                bool wasNull = (cachePath == null);
+                bool wasNull = cachePath == null;
                 try
                 {
                     if (cachePath != null)
@@ -270,7 +269,6 @@ namespace Azi.ACDDokanNet
             var oldcachePath = cachePath;
             return Task.Run(() =>
             {
-
                 int failed = 0;
                 try
                 {

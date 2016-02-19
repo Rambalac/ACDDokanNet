@@ -71,8 +71,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AbstractBlockStream.cs" />
+    <Compile Include="ACDDokanNetItemInfo.cs" />
     <Compile Include="Block.cs" />
     <Compile Include="BufferedAmazonBlockReader.cs" />
+    <Compile Include="ByteArrayBlockReader.cs" />
     <Compile Include="Downloader.cs" />
     <Compile Include="FileBlockReader.cs" />
     <Compile Include="FSItem.cs" />
@@ -99,6 +101,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\ShellExtension\ShellExtension.csproj">
+      <Project>{8dac61ef-e07b-4bd2-8d79-5865ef2799bb}</Project>
+      <Name>ShellExtension</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Tools\Tools.csproj">
       <Project>{199cdb28-7472-41bd-bb1f-bf345451a68d}</Project>
       <Name>Tools</Name>

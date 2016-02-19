@@ -32,7 +32,6 @@ namespace Azi.ACDDokanNet.Gui
 
         public ViewModel()
         {
-
             if (App != null)
             {
                 App.OnProviderStatisticsUpdated = ProviderStatisticsUpdated;

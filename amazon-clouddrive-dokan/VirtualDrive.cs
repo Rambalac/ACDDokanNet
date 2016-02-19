@@ -10,10 +10,10 @@ using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
 using System.Security.Principal;
+using ShellExtension;
 
 namespace Azi.ACDDokanNet
 {
-
     internal class VirtualDrive : IDokanOperations
     {
         private string creator = WindowsIdentity.GetCurrent().Name;
@@ -109,7 +109,7 @@ namespace Azi.ACDDokanNet
         {
             try
             {
-                var res = _CreateFile(fileName, access, share, mode, options, attributes, info);
+                var res = MainCreateFile(fileName, access, share, mode, options, attributes, info);
 #if TRACE
                 bool readWriteAttributes = (access & DataAccess) == 0;
                 if (!(readWriteAttributes || info.IsDirectory) || (res != DokanResult.Success && !(lastFilePath == fileName && res == DokanResult.FileNotFound)))
@@ -128,7 +128,7 @@ namespace Azi.ACDDokanNet
             }
         }
 
-        public NtStatus _CreateFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
+        public NtStatus MainCreateFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
         {
             if (!HasAccess(info))
             {
@@ -157,7 +157,37 @@ namespace Azi.ACDDokanNet
                 return DokanResult.Success;
             }
 
+            string streamName = null;
+            if (fileName.Contains(':'))
+            {
+                var names = fileName.Split(':');
+                fileName = names[0];
+                streamName = names[1];
+            }
+
             var item = provider.GetItem(fileName);
+
+            if (streamName != null && item != null)
+            {
+                Log.Trace($"Opening alternate stream {fileName}:{streamName}");
+                if (mode != FileMode.Open)
+                {
+                    return DokanResult.AccessDenied;
+                }
+
+                switch (streamName)
+                {
+                    case ContextMenu.ACDDokanNetInfoStreamName:
+                        if (item.Info == null)
+                        {
+                            provider.BuildItemInfo(item);
+                        }
+
+                        return OpenAsByteArray(item.Info, info);
+                }
+
+                return DokanResult.AccessDenied;
+            }
 
             bool readWriteAttributes = (access & DataAccess) == 0;
             switch (mode)
@@ -204,6 +234,12 @@ namespace Azi.ACDDokanNet
             }
 
             return _OpenFile(fileName, access, share, mode, options, attributes, info);
+        }
+
+        private NtStatus OpenAsByteArray(byte[] data, DokanFileInfo info)
+        {
+            info.Context = new ByteArrayBlockReader(data);
+            return DokanResult.Success;
         }
 
         private bool HasAccess(DokanFileInfo info)
@@ -358,7 +394,7 @@ namespace Azi.ACDDokanNet
         {
             if (!HasAccess(info))
             {
-                fileInfo = new FileInformation();
+                fileInfo = default(FileInformation);
                 return DokanResult.AccessDenied;
             }
 
@@ -372,13 +408,13 @@ namespace Azi.ACDDokanNet
                     return DokanResult.Success;
                 }
 
-                fileInfo = new FileInformation();
+                fileInfo = default(FileInformation);
                 return DokanResult.PathNotFound;
             }
             catch (Exception e)
             {
                 Log.Error(e);
-                fileInfo = new FileInformation();
+                fileInfo = default(FileInformation);
                 return DokanResult.Error;
             }
         }
@@ -408,7 +444,7 @@ namespace Azi.ACDDokanNet
             Log.Trace(fileName);
 
             var identity = WindowsIdentity.GetCurrent().Owner;
-            FileSystemSecurity result = (info.IsDirectory)
+            FileSystemSecurity result = info.IsDirectory
                 ? (FileSystemSecurity)new DirectorySecurity()
                 : (FileSystemSecurity)new FileSecurity();
             if (sections.HasFlag(AccessControlSections.Access))
@@ -430,6 +466,7 @@ namespace Azi.ACDDokanNet
         {
             volumeLabel = provider.VolumeName;
             features =
+                FileSystemFeatures.NamedStreams |
                 FileSystemFeatures.SupportsRemoteStorage |
                 FileSystemFeatures.CasePreservedNames |
                 FileSystemFeatures.CaseSensitiveSearch |
@@ -449,7 +486,6 @@ namespace Azi.ACDDokanNet
         {
             try
             {
-
                 return DokanResult.Success;
             }
             catch (Exception e)
@@ -634,8 +670,40 @@ namespace Azi.ACDDokanNet
         public NtStatus FindStreams(string fileName, out IList<FileInformation> streams, DokanFileInfo info)
         {
             Log.Trace(fileName);
-            streams = new FileInformation[0];
-            return DokanResult.NotImplemented;
+            streams = new List<FileInformation>();
+            try
+            {
+
+                var item = provider.GetItem(fileName);
+                if (item == null)
+                {
+                    return DokanResult.FileNotFound;
+                }
+
+                if (!item.IsDir)
+                {
+                    var infostream = MakeFileInformation(item);
+                    infostream.FileName = "::$DATA";
+                    streams.Add(infostream);
+                }
+
+                {
+                    var infostream = new FileInformation
+                    {
+                        FileName = $":{ContextMenu.ACDDokanNetInfoStreamName}:$DATA",
+                        Length = 2
+                    };
+                    streams.Add(infostream);
+                }
+
+                return DokanResult.Success;
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+                return DokanResult.Error;
+            }
+
         }
 
         public Action OnMount;

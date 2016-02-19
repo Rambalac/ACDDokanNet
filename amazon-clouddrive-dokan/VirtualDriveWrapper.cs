@@ -47,7 +47,7 @@ namespace Azi.ACDDokanNet
             {
                 virtualDrive.ReadOnly = readOnly;
 #if DEBUG
-                virtualDrive.Mount(path, DokanOptions.DebugMode | DokanOptions.FixedDrive, 0, 800, TimeSpan.FromSeconds(30));
+                virtualDrive.Mount(path, DokanOptions.DebugMode | DokanOptions.AltStream | DokanOptions.FixedDrive, 0, 800, TimeSpan.FromSeconds(30));
 #else
                 virtualDrive.Mount(path, DokanOptions.FixedDrive,0, 800, TimeSpan.FromSeconds(30));
 #endif
