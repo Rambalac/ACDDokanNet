@@ -581,9 +581,16 @@ namespace Azi.ACDDokanNet
             // GC.SuppressFinalize(this);
         }
 
-        public void BuildItemInfo(FSItem item)
+        public async Task BuildItemInfo(FSItem item)
         {
-            var info = new ACDDokanNetItemInfo();
+            var node = await Amazon.Nodes.GetNodeExtended(item.Id);
+            var info = new ACDDokanNetItemInfo
+            {
+                Id = item.Id,
+                TempLink = node.tempLink,
+                Assets = node.assets?.Select(i => new ACDDokanNetAssetInfo { Id = i.id, TempLink = i.tempLink }).ToList()
+            };
+
             string str = JsonConvert.SerializeObject(info);
             item.Info = Encoding.UTF8.GetBytes(str);
         }

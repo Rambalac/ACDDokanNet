@@ -180,7 +180,7 @@ namespace Azi.ACDDokanNet
                     case ContextMenu.ACDDokanNetInfoStreamName:
                         if (item.Info == null)
                         {
-                            provider.BuildItemInfo(item);
+                            provider.BuildItemInfo(item).Wait();
                         }
 
                         return OpenAsByteArray(item.Info, info);
@@ -400,11 +400,24 @@ namespace Azi.ACDDokanNet
 
             try
             {
+                string streamName = null;
+                if (fileName.Contains(':'))
+                {
+                    var names = fileName.Split(':');
+                    fileName = names[0];
+                    streamName = names[1];
+                }
+
                 var item = provider.GetItem(fileName);
 
                 if (item != null)
                 {
                     fileInfo = MakeFileInformation(item);
+                    if (streamName != null)
+                    {
+                        fileInfo.Length = 1;
+                    }
+
                     return DokanResult.Success;
                 }
 
@@ -691,7 +704,7 @@ namespace Azi.ACDDokanNet
                     var infostream = new FileInformation
                     {
                         FileName = $":{ContextMenu.ACDDokanNetInfoStreamName}:$DATA",
-                        Length = 2
+                        Length = 1
                     };
                     streams.Add(infostream);
                 }

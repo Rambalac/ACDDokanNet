@@ -16,7 +16,7 @@ namespace Azi.ACDDokanNet.Gui
     /// <summary>
     /// Interaction logic for App.xaml
     /// </summary>
-    public partial class App : Application, IDisposable
+    public partial class App : Application, IDisposable, ITokenUpdateListener
     {
         public new static App Current => Application.Current as App;
 
@@ -208,13 +208,7 @@ namespace Azi.ACDDokanNet.Gui
         {
             var settings = Gui.Properties.Settings.Default;
             var amazon = new AmazonDrive(AmazonSecret.clientId, AmazonSecret.clientSecret);
-            amazon.OnTokenUpdate = (token, renew, expire) =>
-            {
-                settings.AuthToken = token;
-                settings.AuthRenewToken = renew;
-                settings.AuthTokenExpiration = expire;
-                settings.Save();
-            };
+            amazon.OnTokenUpdate = this;
 
             if (!string.IsNullOrWhiteSpace(settings.AuthRenewToken))
             {
@@ -402,7 +396,16 @@ namespace Azi.ACDDokanNet.Gui
             mountTask.Wait();
         }
 
-        #region IDisposable Support
+        public void OnTokenUpdated(string access_token, string refresh_token, DateTime expires_in)
+        {
+            var settings = Gui.Properties.Settings.Default;
+            settings.AuthToken = access_token;
+            settings.AuthRenewToken = refresh_token;
+            settings.AuthTokenExpiration = expires_in;
+            settings.Save();
+
+        }
+
         private bool disposedValue = false; // To detect redundant calls
 
         protected virtual void Dispose(bool disposing)
@@ -436,7 +439,6 @@ namespace Azi.ACDDokanNet.Gui
             // TODO: uncomment the following line if the finalizer is overridden above.
             // GC.SuppressFinalize(this);
         }
-        #endregion
 
     }
 }

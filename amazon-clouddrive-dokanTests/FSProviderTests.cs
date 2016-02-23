@@ -11,7 +11,7 @@ using System.Threading;
 
 namespace Azi.ACDDokanNet.Tests
 {
-    public abstract class FSProviderTestsBase : IDisposable
+    public abstract class FSProviderTestsBase : IDisposable, ITokenUpdateListener
     {
         protected FSProvider provider;
         protected AmazonDrive amazon;
@@ -20,13 +20,7 @@ namespace Azi.ACDDokanNet.Tests
         {
             var settings = Tests.Properties.Settings.Default;
             var amazon = new AmazonDrive(AmazonSecret.clientId, AmazonSecret.clientSecret);
-            amazon.OnTokenUpdate = (token, renew, expire) =>
-            {
-                settings.AuthToken = token;
-                settings.AuthRenewToken = renew;
-                settings.AuthTokenExpiration = expire;
-                settings.Save();
-            };
+            amazon.OnTokenUpdate = this;
 
             if (!string.IsNullOrWhiteSpace(settings.AuthRenewToken))
             {
@@ -105,6 +99,16 @@ namespace Azi.ACDDokanNet.Tests
                 Thread.Sleep(100);
                 Directory.Delete(path, true);
             }
+        }
+
+        public void OnTokenUpdated(string access_token, string refresh_token, DateTime expires_in)
+        {
+            var settings = Tests.Properties.Settings.Default;
+            settings.AuthToken = access_token;
+            settings.AuthRenewToken = refresh_token;
+            settings.AuthTokenExpiration = expires_in;
+            settings.Save();
+
         }
 
         public class FSProviderTests : FSProviderTestsBase
