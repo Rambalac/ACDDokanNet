@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Microsoft.Win32;
+using Newtonsoft.Json;
 using SharpShell.Attributes;
 using SharpShell.SharpContextMenu;
 using System;
@@ -33,12 +34,35 @@ namespace ShellExtension
 
             menu.Items.Add("-");
             if (SelectedItemPaths.Count() == 1)
+            {
+                if (File.Exists(SelectedItemPaths.Single()))
+                {
+                    menu.Items.Add(new ToolStripMenuItem("Open as temp link", null, OpenAsUrl));
+                }
                 menu.Items.Add(new ToolStripMenuItem("Open in Browser", null, OpenInBrowser));
+            }
             if (SelectedItemPaths.Any(path => File.Exists(path)))
                 menu.Items.Add(new ToolStripMenuItem("Copy temp links", null, CopyTempLink));
 
             //  Return the menu.
             return menu;
+        }
+
+        private void OpenAsUrl(object sender, EventArgs e)
+        {
+            var info = ReadInfo(SelectedItemPaths.Single());
+            if (info.TempLink == null) return;
+            var command = NativeMethdos.AssocQueryString(Path.GetExtension(SelectedItemPaths.Single()));
+
+            command = command.Replace("%1", info.TempLink);
+
+            Process process = new Process();
+            ProcessStartInfo startInfo = new ProcessStartInfo();
+            startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            startInfo.FileName = "cmd.exe";
+            startInfo.Arguments = "/C "+command;
+            process.StartInfo = startInfo;
+            process.Start();
         }
 
         private void OpenInBrowser(object sender, EventArgs e)

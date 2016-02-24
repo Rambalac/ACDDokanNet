@@ -592,6 +592,16 @@ namespace Azi.ACDDokanNet
                 Assets = node.assets?.Select(i => new ACDDokanNetAssetInfo { Id = i.id, TempLink = i.tempLink }).ToList()
             };
 
+            if (node.video != null)
+            {
+                info.Video = new ACDDokanNetAssetInfoImage { Width = node.video.width, Height = node.video.height };
+            }
+
+            if (node.image != null)
+            {
+                info.Image = new ACDDokanNetAssetInfoImage { Width = node.image.width, Height = node.image.height };
+            }
+
             string str = JsonConvert.SerializeObject(info);
             item.Info = Encoding.UTF8.GetBytes(str);
         }
