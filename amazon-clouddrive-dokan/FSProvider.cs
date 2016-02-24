@@ -2,6 +2,7 @@
 using Azi.Amazon.CloudDrive.JsonObjects;
 using Azi.Tools;
 using Newtonsoft.Json;
+using ShellExtension;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;

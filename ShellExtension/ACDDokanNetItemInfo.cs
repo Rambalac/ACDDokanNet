@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Azi.ACDDokanNet
+namespace ShellExtension
 {
     public class ACDDokanNetAssetInfo
     {
