@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Threading.Tasks;
-using Azi.Amazon.CloudDrive.JsonObjects;
 using System.IO;
-using Azi.Amazon.CloudDrive;
 using Azi.Tools;
 using System.Threading;
-using System.Security.Cryptography;
 using System.Collections.Concurrent;
 
 namespace Azi.ACDDokanNet
@@ -135,7 +131,8 @@ namespace Azi.ACDDokanNet
                     {
                         throw new TimeoutException();
                     }
-                } while (file.Position < downloader.Item.Length && count > 0);
+                }
+                while (file.Position < downloader.Item.Length && count > 0);
                 return totalred;
             }
             finally
@@ -160,7 +157,6 @@ namespace Azi.ACDDokanNet
             lock (fileLock)
             {
                 // if (lastPosition != position) Log.Warn($"Write Position in New file was changed from {lastPosition} to {position}");
-
                 writer.Position = position;
                 writer.Write(buffer, offset, count);
                 written = true;
@@ -168,6 +164,7 @@ namespace Azi.ACDDokanNet
             }
 
             downloader.Item.Length = writer.Length;
+
             // Log.Trace("Write bytes: " + count);
         }
 
@@ -186,7 +183,6 @@ namespace Azi.ACDDokanNet
             }
         }
 
-        #region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls
 
         protected override void Dispose(bool disposing)
@@ -202,7 +198,5 @@ namespace Azi.ACDDokanNet
                 disposedValue = true;
             }
         }
-
-        #endregion
     }
 }

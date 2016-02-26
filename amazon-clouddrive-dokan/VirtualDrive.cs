@@ -6,8 +6,6 @@ using System.IO;
 using System.Security.AccessControl;
 using FileAccess = DokanNet.FileAccess;
 using Azi.Tools;
-using System.Threading.Tasks;
-using System.Text.RegularExpressions;
 using System.Diagnostics;
 using System.Security.Principal;
 using ShellExtension;
@@ -74,7 +72,7 @@ namespace Azi.ACDDokanNet
             }
         }
 
-        private NtStatus _CreateDirectory(string fileName, DokanFileInfo info)
+        private NtStatus MainCreateDirectory(string fileName, DokanFileInfo info)
         {
             if (ReadOnly)
             {
@@ -115,7 +113,10 @@ namespace Azi.ACDDokanNet
                 if (!(readWriteAttributes || info.IsDirectory) || (res != DokanResult.Success && !(lastFilePath == fileName && res == DokanResult.FileNotFound)))
                 {
                     if (!(info.Context is NewFileBlockWriter || info.Context is FileBlockReader || info.Context is SmallFileBlockReaderWriter || info.Context is BufferedAmazonBlockReader))
+                    {
                         Log.Trace($"{fileName}\r\n  Access:[{access}]\r\n  Share:[{share}]\r\n  Mode:[{mode}]\r\n  Options:[{options}]\r\n  Attr:[{attributes}]\r\nStatus:{res}");
+                    }
+
                     lastFilePath = fileName;
                 }
 #endif
@@ -139,7 +140,7 @@ namespace Azi.ACDDokanNet
             {
                 if (mode == FileMode.CreateNew)
                 {
-                    return _CreateDirectory(fileName, info);
+                    return MainCreateDirectory(fileName, info);
                 }
 
                 if (mode == FileMode.Open && !provider.Exists(fileName))
@@ -199,12 +200,13 @@ namespace Azi.ACDDokanNet
                     }
 
                     if (item.IsDir)
+
                     // check if driver only wants to read attributes, security info, or open directory
                     {
                         info.IsDirectory = item.IsDir;
                         info.Context = new object();
-                        // must set it to something if you return DokanError.Success
 
+                        // must set it to something if you return DokanError.Success
                         return DokanResult.Success;
                     }
 
@@ -233,7 +235,7 @@ namespace Azi.ACDDokanNet
                 return DokanResult.Success;
             }
 
-            return _OpenFile(fileName, access, share, mode, options, attributes, info);
+            return MainOpenFile(fileName, access, share, mode, options, attributes, info);
         }
 
         private NtStatus OpenAsByteArray(byte[] data, DokanFileInfo info)
@@ -255,7 +257,7 @@ namespace Azi.ACDDokanNet
             return false;
         }
 
-        private NtStatus _OpenFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
+        private NtStatus MainOpenFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
         {
             bool readAccess = (access & DataReadAccess) != 0;
             bool writeAccess = (access & DataWriteAccess) != 0;
@@ -452,7 +454,6 @@ namespace Azi.ACDDokanNet
         }
 
         public NtStatus GetFileSecurity(string fileName, out FileSystemSecurity security, AccessControlSections sections, DokanFileInfo info)
-
         {
             Log.Trace(fileName);
 
@@ -590,7 +591,6 @@ namespace Azi.ACDDokanNet
             }
 
             // Log.Trace(fileName);
-
             var file = info.Context as IBlockStream;
             file.SetLength(length);
             Log.Trace($"{fileName} to {length}");
@@ -716,7 +716,6 @@ namespace Azi.ACDDokanNet
                 Log.Error(e);
                 return DokanResult.Error;
             }
-
         }
 
         public Action OnMount;

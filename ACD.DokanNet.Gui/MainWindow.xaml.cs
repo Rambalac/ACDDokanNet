@@ -1,20 +1,8 @@
 ﻿using Azi.Tools;
 using Microsoft.WindowsAPICodePack.Dialogs;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 namespace Azi.ACDDokanNet.Gui
 {
@@ -30,15 +18,17 @@ namespace Azi.ACDDokanNet.Gui
             InitializeComponent();
         }
 
-        private async void mountButton_Click(object sender, RoutedEventArgs e)
+        private async void MountButton_Click(object sender, RoutedEventArgs e)
         {
             var dlg = new MountWaitBox(this);
             var cs = new System.Threading.CancellationTokenSource();
             dlg.Cancellation = cs;
             dlg.Show();
-            try {
+            try
+            {
                 await Model.Mount(cs.Token);
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 MessageBox.Show(this, ex.Message);
             }
@@ -47,7 +37,7 @@ namespace Azi.ACDDokanNet.Gui
             Activate();
         }
 
-        private async void unmountButton_Click(object sender, RoutedEventArgs e)
+        private async void UnmountButton_Click(object sender, RoutedEventArgs e)
         {
             await Model.Unmount();
         }
@@ -79,7 +69,7 @@ namespace Azi.ACDDokanNet.Gui
             }
         }
 
-        private async void logoutButton_Click(object sender, RoutedEventArgs e)
+        private async void LogoutButton_Click(object sender, RoutedEventArgs e)
         {
             await Model.Unmount();
             App.Current.ClearCredentials();
@@ -103,7 +93,7 @@ namespace Azi.ACDDokanNet.Gui
             Hide();
         }
 
-        private void exportLog_Click(object sender, RoutedEventArgs e)
+        private void ExportLog_Click(object sender, RoutedEventArgs e)
         {
             MessageBox.Show(Properties.Resources.LogWarning);
 
@@ -121,9 +111,11 @@ namespace Azi.ACDDokanNet.Gui
             {
                 if (dlg.ShowDialog() == CommonFileDialogResult.Ok)
                 {
-                    try {
+                    try
+                    {
                         Log.Export(dlg.FileName);
-                    }catch(Exception ex)
+                    }
+                    catch (Exception ex)
                     {
                         Log.Error(ex);
                         MessageBox.Show(this, ex.Message);
@@ -132,7 +124,7 @@ namespace Azi.ACDDokanNet.Gui
             }
         }
 
-        private void openIssue_Click(object sender, RoutedEventArgs e)
+        private void OpenIssue_Click(object sender, RoutedEventArgs e)
         {
             Process.Start("https://github.com/Rambalac/AmazonCloudDriveApi/issues/new");
         }

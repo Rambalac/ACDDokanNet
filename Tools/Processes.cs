@@ -1,24 +1,24 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Management;
-using System.Runtime.Caching;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Azi.Tools
 {
     public static class Processes
     {
-        private class ProcInfo
-        {
-            internal string userName;
-            internal readonly DateTime expire = DateTime.UtcNow.AddMilliseconds(10000);
-        }
-
         private static readonly ConcurrentDictionary<int, ProcInfo> PidOwner = new ConcurrentDictionary<int, ProcInfo>();
+
+        public static string GetProcessOwner(int id)
+        {
+            var result = PidOwner.GetOrAdd(id, (processId) => new ProcInfo { UserName = GetOwner(processId) });
+            if (DateTime.UtcNow > result.Expire)
+            {
+                result = new ProcInfo { UserName = GetOwner(id) };
+                PidOwner[id] = result;
+            }
+
+            return result.UserName;
+        }
 
         private static string GetOwner(int processId)
         {
@@ -40,16 +40,11 @@ namespace Azi.Tools
             return "NO OWNER";
         }
 
-        public static string GetProcessOwner(int id)
+        private class ProcInfo
         {
-            var result = PidOwner.GetOrAdd(id, (processId) => new ProcInfo { userName = GetOwner(processId) });
-            if (DateTime.UtcNow > result.expire)
-            {
-                result = new ProcInfo { userName = GetOwner(id) };
-                PidOwner[id] = result;
-            }
+            public string UserName { get; set; }
 
-            return result.userName;
+            public DateTime Expire { get; } = DateTime.UtcNow.AddMilliseconds(10000);
         }
     }
 }

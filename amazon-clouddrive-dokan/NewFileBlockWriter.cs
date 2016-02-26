@@ -1,11 +1,6 @@
-﻿using System;
-using System.Threading.Tasks;
-using Azi.Amazon.CloudDrive.JsonObjects;
-using System.IO;
-using Azi.Amazon.CloudDrive;
+﻿using System.IO;
 using Azi.Tools;
 using System.Threading;
-using System.Security.Cryptography;
 
 namespace Azi.ACDDokanNet
 {
@@ -63,6 +58,7 @@ namespace Azi.ACDDokanNet
             }
 
             Item.Length = writer.Length;
+
             // Log.Trace("Write byte: " + count);
         }
 
@@ -80,7 +76,6 @@ namespace Azi.ACDDokanNet
             }
         }
 
-        #region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls
 
         protected override void Dispose(bool disposing)
@@ -96,7 +91,5 @@ namespace Azi.ACDDokanNet
                 disposedValue = true;
             }
         }
-
-        #endregion
     }
 }

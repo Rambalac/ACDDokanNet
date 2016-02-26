@@ -1,10 +1,8 @@
-﻿using Azi.ACDDokanNet;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,23 +10,11 @@ namespace Azi.ACDDokanNet.Gui
 {
     public class ViewModel : INotifyPropertyChanged
     {
-        readonly private App App = App.Current;
-
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        public IList<char> DriveLetters => VirtualDriveWrapper.GetFreeDriveLettes();
-
         private Timer refreshTimer;
 
-        private void RefreshLetters(object state)
-        {
-            if (!CanMount)
-            {
-                return;
-            }
+        private bool mounting = false;
 
-            OnPropertyChanged(nameof(DriveLetters));
-        }
+        private bool unmounting = false;
 
         public ViewModel()
         {
@@ -39,6 +25,10 @@ namespace Azi.ACDDokanNet.Gui
                 refreshTimer = new Timer(RefreshLetters, null, 1000, 1000);
             }
         }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        public IList<char> DriveLetters => VirtualDriveWrapper.GetFreeDriveLettes();
 
         public bool IsAutomount
         {
@@ -77,85 +67,16 @@ namespace Azi.ACDDokanNet.Gui
 
         public string CacheFolder
         {
-            get { return Properties.Settings.Default.CacheFolder; }
+            get
+            {
+                return Properties.Settings.Default.CacheFolder;
+            }
 
             set
             {
                 App.SmallFileCacheFolder = value;
                 OnPropertyChanged(nameof(CacheFolder));
             }
-        }
-
-        internal void OnPropertyChanged(string name)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-        }
-
-        private bool mounting = false;
-
-        internal async Task Mount(CancellationToken cs)
-        {
-            if (App == null)
-            {
-                throw new NullReferenceException();
-            }
-
-            mounting = true;
-            NotifyMount();
-            try
-            {
-                try
-                {
-                    var letter = await App.Mount(SelectedDriveLetter, ReadOnly, cs);
-                    if (letter != null)
-                    {
-                        SelectedDriveLetter = (char)letter;
-                    }
-                }
-                catch (TimeoutException)
-                {
-                    // Ignore if timeout
-                }
-                catch (OperationCanceledException)
-                {
-                    // Ignore if aborted
-                }
-            }
-            finally
-            {
-                mounting = false;
-                NotifyMount();
-            }
-        }
-
-        private bool unmounting = false;
-
-        internal async Task Unmount()
-        {
-            if (App == null)
-            {
-                throw new NullReferenceException();
-            }
-
-            unmounting = true;
-            NotifyMount();
-            try
-            {
-                await App.Unmount();
-            }
-            finally
-            {
-                unmounting = false;
-                NotifyMount();
-            }
-        }
-
-        private void NotifyMount()
-        {
-            OnPropertyChanged(nameof(CanMount));
-            OnPropertyChanged(nameof(CanUnmount));
-            OnPropertyChanged(nameof(IsMounted));
-            OnPropertyChanged(nameof(IsUnmounted));
         }
 
         public bool CanMount => (!mounting) && !(App?.IsMounted ?? false) && DriveLetters.Contains(SelectedDriveLetter);
@@ -165,14 +86,6 @@ namespace Azi.ACDDokanNet.Gui
         public bool IsMounted => !mounting && !unmounting && (App?.IsMounted ?? false);
 
         public bool IsUnmounted => !unmounting && !mounting && !(App?.IsMounted ?? false);
-
-        private void ProviderStatisticsUpdated(int downloading, int uploading)
-        {
-            UploadingFilesCount = uploading;
-            DownloadingFilesCount = downloading;
-            OnPropertyChanged(nameof(UploadingFilesCount));
-            OnPropertyChanged(nameof(DownloadingFilesCount));
-        }
 
         public int UploadingFilesCount { get; private set; }
 
@@ -211,5 +124,93 @@ namespace Azi.ACDDokanNet.Gui
         }
 
         public string Version => Assembly.GetEntryAssembly().GetName().Version.ToString();
+
+        private App App => App.Current;
+
+        internal void OnPropertyChanged(string name)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        }
+
+        internal async Task Mount(CancellationToken cs)
+        {
+            if (App == null)
+            {
+                throw new NullReferenceException();
+            }
+
+            mounting = true;
+            NotifyMount();
+            try
+            {
+                try
+                {
+                    var letter = await App.Mount(SelectedDriveLetter, ReadOnly, cs);
+                    if (letter != null)
+                    {
+                        SelectedDriveLetter = (char)letter;
+                    }
+                }
+                catch (TimeoutException)
+                {
+                    // Ignore if timeout
+                }
+                catch (OperationCanceledException)
+                {
+                    // Ignore if aborted
+                }
+            }
+            finally
+            {
+                mounting = false;
+                NotifyMount();
+            }
+        }
+
+        internal async Task Unmount()
+        {
+            if (App == null)
+            {
+                throw new NullReferenceException();
+            }
+
+            unmounting = true;
+            NotifyMount();
+            try
+            {
+                await App.Unmount();
+            }
+            finally
+            {
+                unmounting = false;
+                NotifyMount();
+            }
+        }
+
+        private void RefreshLetters(object state)
+        {
+            if (!CanMount)
+            {
+                return;
+            }
+
+            OnPropertyChanged(nameof(DriveLetters));
+        }
+
+        private void NotifyMount()
+        {
+            OnPropertyChanged(nameof(CanMount));
+            OnPropertyChanged(nameof(CanUnmount));
+            OnPropertyChanged(nameof(IsMounted));
+            OnPropertyChanged(nameof(IsUnmounted));
+        }
+
+        private void ProviderStatisticsUpdated(int downloading, int uploading)
+        {
+            UploadingFilesCount = uploading;
+            DownloadingFilesCount = downloading;
+            OnPropertyChanged(nameof(UploadingFilesCount));
+            OnPropertyChanged(nameof(DownloadingFilesCount));
+        }
     }
 }

@@ -37,9 +37,9 @@
                         <RowDefinition/>
                     </Grid.RowDefinitions>
                     <ComboBox x:Name="comboBox" ItemsSource="{Binding DriveLetters}" IsEnabled="{Binding IsUnmounted}" SelectedItem="{Binding SelectedDriveLetter}"/>
-                    <Button x:Name="mountButton" IsEnabled="{Binding CanMount}" Content="Mount" Margin="3,0,0,0" Padding="5,1" Click="mountButton_Click" Grid.Column="1" />
-                    <Button x:Name="logoutButton" Content="Logout" Margin="3,0,0,0" Padding="5,1" IsEnabled="{Binding CanUnmount}" Click="logoutButton_Click" Grid.Column="2" />
-                    <Button x:Name="unmountButton" Content="Unmount" Margin="3,0,0,0" Padding="5,1" IsEnabled="{Binding CanUnmount}" Click="unmountButton_Click" Grid.Column="3" />
+                    <Button x:Name="mountButton" IsEnabled="{Binding CanMount}" Content="Mount" Margin="3,0,0,0" Padding="5,1" Click="MountButton_Click" Grid.Column="1" />
+                    <Button x:Name="logoutButton" Content="Logout" Margin="3,0,0,0" Padding="5,1" IsEnabled="{Binding CanUnmount}" Click="LogoutButton_Click" Grid.Column="2" />
+                    <Button x:Name="unmountButton" Content="Unmount" Margin="3,0,0,0" Padding="5,1" IsEnabled="{Binding CanUnmount}" Click="UnmountButton_Click" Grid.Column="3" />
                     <CheckBox x:Name="automountCheckBox" IsChecked="{Binding IsAutomount}" Content="Mount on login" IsEnabled="{Binding IsMounted}" Margin="0,5,0,0" Grid.Row="1" Grid.ColumnSpan="3"/>
                 </Grid>
             </GroupBox>
@@ -110,8 +110,8 @@
                                 <ColumnDefinition Width="6.419" />
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <Button Content="Export Log" Click="exportLog_Click"/>
-                            <Button Content="Open GitHub Issue" Grid.Column="2" Click="openIssue_Click"/>
+                            <Button Content="Export Log" Click="ExportLog_Click"/>
+                            <Button Content="Open GitHub Issue" Grid.Column="2" Click="OpenIssue_Click"/>
                         </Grid>
                     </Grid>
             </Expander>

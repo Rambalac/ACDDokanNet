@@ -3,12 +3,10 @@ using Azi.Tools;
 using Microsoft.Win32;
 using System;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
-using System.Windows.Interop;
 using Application = System.Windows.Application;
 
 namespace Azi.ACDDokanNet.Gui
@@ -18,7 +16,7 @@ namespace Azi.ACDDokanNet.Gui
     /// </summary>
     public partial class App : Application, IDisposable, ITokenUpdateListener
     {
-        public new static App Current => Application.Current as App;
+        public static new App Current => Application.Current as App;
 
         public bool IsMounted => mountedLetter != null;
 
@@ -26,7 +24,7 @@ namespace Azi.ACDDokanNet.Gui
 
         public FSProvider.StatisticsUpdated OnProviderStatisticsUpdated { get; set; }
 
-        public Action OnMountChanged;
+        public Action OnMountChanged { get; set; }
 
         public long SmallFileSizeLimit
         {
@@ -106,10 +104,11 @@ namespace Azi.ACDDokanNet.Gui
             notifyIcon = new NotifyIcon(components);
 
             var contextMenu = new ContextMenu(
-                        new MenuItem[] {
-                            new MenuItem("&Settings", (s,e) => OpenSettings()),
+                        new MenuItem[]
+                        {
+                            new MenuItem("&Settings", (s, e) => OpenSettings()),
                             new MenuItem("-"),
-                            new MenuItem("E&xit", (s,e) => menuExit_Click())
+                            new MenuItem("E&xit", (s, e) => MenuExit_Click())
                         });
 
             notifyIcon.Icon = Gui.Properties.Resources.app_all;
@@ -118,13 +117,18 @@ namespace Azi.ACDDokanNet.Gui
             notifyIcon.Text = $"Amazon Cloud Drive Dokan.NET driver settings.";
             notifyIcon.Visible = true;
 
-            notifyIcon.MouseClick += (sender, e) => { if (e.Button == MouseButtons.Left) { ShowBalloon(); } };
+            notifyIcon.MouseClick += (sender, e) =>
+            {
+                if (e.Button == MouseButtons.Left)
+                {
+                    ShowBalloon();
+                }
+            };
         }
 
         private void ShowBalloon()
         {
-            notifyIcon.ShowBalloonTip(5000, "State",
-                $"Downloading: {downloading}\r\nUploading: {uploading}", ToolTipIcon.None);
+            notifyIcon.ShowBalloonTip(5000, "State", $"Downloading: {downloading}\r\nUploading: {uploading}", ToolTipIcon.None);
         }
 
         private void OpenSettings()
@@ -133,7 +137,7 @@ namespace Azi.ACDDokanNet.Gui
             MainWindow.Activate();
         }
 
-        private void menuExit_Click()
+        private void MenuExit_Click()
         {
             if (uploading > 0)
             {
@@ -181,7 +185,7 @@ namespace Azi.ACDDokanNet.Gui
             {
                 if (!shuttingdown)
                 {
-                    notifyIcon.ShowBalloonTip(5000, "", "Settings window is still accessible from here.\r\nTo close application totally click here with right button and select Exit.", ToolTipIcon.None);
+                    notifyIcon.ShowBalloonTip(5000, string.Empty, "Settings window is still accessible from here.\r\nTo close application totally click here with right button and select Exit.", ToolTipIcon.None);
                 }
             };
 
@@ -207,7 +211,7 @@ namespace Azi.ACDDokanNet.Gui
         private async Task<AmazonDrive> Authenticate(CancellationToken cs, bool interactiveAuth = true)
         {
             var settings = Gui.Properties.Settings.Default;
-            var amazon = new AmazonDrive(AmazonSecret.clientId, AmazonSecret.clientSecret);
+            var amazon = new AmazonDrive(AmazonSecret.ClientId, AmazonSecret.ClientSecret);
             amazon.OnTokenUpdate = this;
 
             if (!string.IsNullOrWhiteSpace(settings.AuthRenewToken))
@@ -263,7 +267,9 @@ namespace Azi.ACDDokanNet.Gui
                     rk.SetValue(AppName, $"\"{path}\" /mount");
                 }
                 else
+                {
                     rk.DeleteValue(AppName, false);
+                }
             }
         }
 
@@ -298,7 +304,8 @@ namespace Azi.ACDDokanNet.Gui
 
             var mountedEvent = new TaskCompletionSource<char>();
 
-            mountTask = Task.Factory.StartNew(async () =>
+            mountTask = Task.Factory.StartNew(
+                async () =>
               {
                   try
                   {
@@ -403,7 +410,6 @@ namespace Azi.ACDDokanNet.Gui
             settings.AuthRenewToken = refresh_token;
             settings.AuthTokenExpiration = expires_in;
             settings.Save();
-
         }
 
         private bool disposedValue = false; // To detect redundant calls
@@ -420,7 +426,6 @@ namespace Azi.ACDDokanNet.Gui
 
                 // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
                 // TODO: set large fields to null.
-
                 disposedValue = true;
             }
         }
@@ -436,9 +441,9 @@ namespace Azi.ACDDokanNet.Gui
         {
             // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
             Dispose(true);
+
             // TODO: uncomment the following line if the finalizer is overridden above.
             // GC.SuppressFinalize(this);
         }
-
     }
 }

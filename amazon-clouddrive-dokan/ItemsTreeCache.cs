@@ -1,13 +1,8 @@
-﻿using Azi.Amazon.CloudDrive;
-using Azi.Amazon.CloudDrive.JsonObjects;
-using Azi.Tools;
-using System;
-using System.Collections.Concurrent;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Azi.ACDDokanNet
 {
@@ -237,7 +232,6 @@ namespace Azi.ACDDokanNet
             }
         }
 
-        #region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls
 
         protected virtual void Dispose(bool disposing)
@@ -251,7 +245,6 @@ namespace Azi.ACDDokanNet
 
                 // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
                 // TODO: set large fields to null.
-
                 disposedValue = true;
             }
         }
@@ -267,10 +260,9 @@ namespace Azi.ACDDokanNet
         {
             // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
             Dispose(true);
+
             // TODO: uncomment the following line if the finalizer is overridden above.
             // GC.SuppressFinalize(this);
         }
-        #endregion
-
     }
 }

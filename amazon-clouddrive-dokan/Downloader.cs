@@ -1,14 +1,6 @@
-﻿using Azi.Amazon.CloudDrive;
-using Azi.Tools;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Linq;
-using System.Diagnostics;
-using System.Net.Http.Headers;
 
 namespace Azi.ACDDokanNet
 {

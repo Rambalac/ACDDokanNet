@@ -1,16 +1,11 @@
-﻿using Microsoft.Win32;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using SharpShell.Attributes;
 using SharpShell.SharpContextMenu;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.ComTypes;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using Trinet.Core.IO.Ntfs;
 
@@ -41,8 +36,10 @@ namespace ShellExtension
                 }
                 menu.Items.Add(new ToolStripMenuItem("Open in Browser", null, OpenInBrowser));
             }
-            if (SelectedItemPaths.Any(path => File.Exists(path)))
+            if (SelectedItemPaths.Any(File.Exists))
+            {
                 menu.Items.Add(new ToolStripMenuItem("Copy temp links", null, CopyTempLink));
+            }
 
             //  Return the menu.
             return menu;
@@ -51,13 +48,17 @@ namespace ShellExtension
         private void OpenAsUrl(object sender, EventArgs e)
         {
             var info = ReadInfo(SelectedItemPaths.Single());
-            if (info.TempLink == null) return;
+            if (info.TempLink == null)
+            {
+                return;
+            }
+
             var command = NativeMethdos.AssocQueryString(Path.GetExtension(SelectedItemPaths.Single()));
 
             command = command.Replace("%1", info.TempLink);
 
-            Process process = new Process();
-            ProcessStartInfo startInfo = new ProcessStartInfo();
+            var process = new Process();
+            var startInfo = new ProcessStartInfo();
             startInfo.WindowStyle = ProcessWindowStyle.Hidden;
             startInfo.FileName = "cmd.exe";
             startInfo.Arguments = "/C "+command;

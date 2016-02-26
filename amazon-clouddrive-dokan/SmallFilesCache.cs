@@ -2,7 +2,6 @@
 using Azi.Tools;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -68,7 +67,10 @@ namespace Azi.ACDDokanNet
 
         public string CachePath
         {
-            get { return cachePath; }
+            get
+            {
+                return cachePath;
+            }
 
             set
             {
@@ -176,7 +178,8 @@ namespace Azi.ACDDokanNet
 
                                     writer.Write(buf, 0, red);
                                     downloader.Downloaded = writer.Length;
-                                } while (red > 0);
+                                }
+                                while (red > 0);
                             }
                         });
                         if (writer.Length < item.Length)
@@ -211,7 +214,10 @@ namespace Azi.ACDDokanNet
 
         public long TotalSize
         {
-            get { return Interlocked.Read(ref totalSize); }
+            get
+            {
+                return Interlocked.Read(ref totalSize);
+            }
 
             set
             {
@@ -234,7 +240,11 @@ namespace Azi.ACDDokanNet
                 try
                 {
                     long deleted = 0;
-                    foreach (var file in access.Values.OrderBy(f => f.AccessTime).TakeWhile(f => { size -= f.Length; return size > 0; }).ToList())
+                    foreach (var file in access.Values.OrderBy(f => f.AccessTime).TakeWhile(f =>
+                    {
+                        size -= f.Length;
+                        return size > 0;
+                    }).ToList())
                     {
                         try
                         {

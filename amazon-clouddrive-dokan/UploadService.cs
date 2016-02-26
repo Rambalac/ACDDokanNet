@@ -4,11 +4,8 @@ using Azi.Tools;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -155,11 +152,17 @@ namespace Azi.ACDDokanNet
                 Log.Trace("Started upload: " + item.path);
                 AmazonNode node;
                 if (!item.overwrite)
+                {
                     node = await amazon.Files.UploadNew(item.parentId, Path.GetFileName(item.path),
                         () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, true));
+                }
                 else
-                    node = await amazon.Files.Overwrite(item.id,
+                {
+                    node = await amazon.Files.Overwrite(
+                        item.id,
                         () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, true));
+                }
+
                 File.Delete(path + ".info");
                 if (node == null)
                 {
@@ -281,7 +284,6 @@ namespace Azi.ACDDokanNet
             return;
         }
 
-        #region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls
 
         protected virtual void Dispose(bool disposing)
@@ -295,7 +297,6 @@ namespace Azi.ACDDokanNet
 
                 // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
                 // TODO: set large fields to null.
-
                 disposedValue = true;
             }
         }
@@ -311,10 +312,9 @@ namespace Azi.ACDDokanNet
         {
             // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
             Dispose(true);
+
             // TODO: uncomment the following line if the finalizer is overridden above.
             // GC.SuppressFinalize(this);
         }
-
-        #endregion
     }
 }

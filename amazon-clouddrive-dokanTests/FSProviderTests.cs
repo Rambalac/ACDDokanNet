@@ -1,9 +1,5 @@
 ﻿using Xunit;
-using Azi.ACDDokanNet;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Azi.Amazon.CloudDrive;
 using System.IO;
@@ -66,7 +62,10 @@ namespace Azi.ACDDokanNet.Tests
         {
             provider.DeleteDir("\\ACDDokanNetTest");
             provider.Dispose();
-            try { DeleteDir(provider.CachePath); }
+            try
+            {
+                DeleteDir(provider.CachePath);
+            }
             catch (UnauthorizedAccessException)
             {
                 // Ignore
@@ -108,7 +107,6 @@ namespace Azi.ACDDokanNet.Tests
             settings.AuthRenewToken = refresh_token;
             settings.AuthTokenExpiration = expires_in;
             settings.Save();
-
         }
 
         public class FSProviderTests : FSProviderTestsBase

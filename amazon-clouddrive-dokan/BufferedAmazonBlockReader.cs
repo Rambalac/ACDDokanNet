@@ -1,12 +1,9 @@
 ﻿using Azi.Amazon.CloudDrive;
-using Azi.Amazon.CloudDrive.JsonObjects;
 using Azi.Tools;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Azi.ACDDokanNet

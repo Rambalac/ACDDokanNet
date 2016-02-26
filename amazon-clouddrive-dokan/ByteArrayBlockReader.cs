@@ -18,7 +18,7 @@ namespace Azi.ACDDokanNet
 
         public override int Read(long position, byte[] buffer, int offset, int count, int timeout = 1000)
         {
-            int realCount = (int)(data.Length - position);
+            var realCount = (int)(data.Length - position);
             if (realCount > count)
             {
                 realCount = count;

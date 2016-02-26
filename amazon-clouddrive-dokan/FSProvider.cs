@@ -4,12 +4,10 @@ using Azi.Tools;
 using Newtonsoft.Json;
 using ShellExtension;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -398,7 +396,7 @@ namespace Azi.ACDDokanNet
             var curdir = folderPath;
             if (curdir == "\\")
             {
-                curdir = "";
+                curdir = string.Empty;
             }
 
             foreach (var node in nodes.Where(n => FsItemKinds.Contains(n.kind)))
@@ -413,7 +411,6 @@ namespace Azi.ACDDokanNet
             }
 
             // Log.Warn("Got real dir:\r\n  " + string.Join("\r\n  ", items.Select(i => i.Path)));
-
             itemsTreeCache.AddDirItems(folderPath, items);
             return items;
         }
@@ -425,7 +422,7 @@ namespace Azi.ACDDokanNet
 
         private async Task<FSItem> FetchNode(string itemPath)
         {
-            if (itemPath == "\\" || itemPath == "")
+            if (itemPath == "\\" || itemPath == string.Empty)
             {
                 return FSItem.FromRoot(await Amazon.Nodes.GetRoot());
             }
@@ -455,7 +452,8 @@ namespace Azi.ACDDokanNet
                 }
 
                 item = itemsTreeCache.GetItem(curpath);
-            } while (item == null);
+            }
+            while (item == null);
             if (item == null)
             {
                 item = FSItem.FromRoot(await Amazon.Nodes.GetRoot());
@@ -465,7 +463,7 @@ namespace Azi.ACDDokanNet
             {
                 if (curpath == "\\")
                 {
-                    curpath = "";
+                    curpath = string.Empty;
                 }
 
                 curpath = curpath + "\\" + name;
@@ -474,6 +472,7 @@ namespace Azi.ACDDokanNet
                 if (newnode == null || newnode.status != AmazonNodeStatus.AVAILABLE)
                 {
                     itemsTreeCache.AddItemOnly(FSItem.MakeNotExistingDummy(curpath));
+
                     // Log.Error("NonExisting path from server: " + itemPath);
                     return null;
                 }
@@ -508,10 +507,13 @@ namespace Azi.ACDDokanNet
                     item = FSItem.FromNode(Path.Combine(oldDir, newName), Amazon.Nodes.Rename(item.Id, newName).Result);
                 }
                 else
+                {
                     item = new FSItem(item)
                     {
                         Path = Path.Combine(oldDir, newName)
                     };
+                }
+
                 if (item == null)
                 {
                     throw new InvalidOperationException("Can not rename");
@@ -532,10 +534,12 @@ namespace Azi.ACDDokanNet
                     }
                 }
                 else
+                {
                     item = new FSItem(item)
                     {
                         Path = newPath
                     };
+                }
             }
 
             if (item.IsDir)
@@ -562,7 +566,6 @@ namespace Azi.ACDDokanNet
 
                 // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
                 // TODO: set large fields to null.
-
                 disposedValue = true;
             }
         }
@@ -578,6 +581,7 @@ namespace Azi.ACDDokanNet
         {
             // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
             Dispose(true);
+
             // TODO: uncomment the following line if the finalizer is overridden above.
             // GC.SuppressFinalize(this);
         }
@@ -605,6 +609,5 @@ namespace Azi.ACDDokanNet
             string str = JsonConvert.SerializeObject(info);
             item.Info = Encoding.UTF8.GetBytes(str);
         }
-
     }
 }

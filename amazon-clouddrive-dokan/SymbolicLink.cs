@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Azi.ACDDokanNet
 {
@@ -16,8 +12,7 @@ namespace Azi.ACDDokanNet
         internal static extern bool CreateHardLink(
           string lpFileName,
           string lpExistingFileName,
-          IntPtr lpSecurityAttributes
-          );
+          IntPtr lpSecurityAttributes);
 
         public enum SymbolicLink
         {
