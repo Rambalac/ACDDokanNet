@@ -70,7 +70,6 @@
   <ItemGroup>
     <Compile Include="ACDDokanNetItemInfo.cs" />
     <Compile Include="ContextMenu.cs" />
-    <Compile Include="Interfaces.cs" />
     <Compile Include="NativeMethdos.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
