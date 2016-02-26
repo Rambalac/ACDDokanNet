@@ -61,7 +61,7 @@
     <ApplicationIcon>app_all.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="AmazonCloudDriveApi, Version=1.0.4.28331, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="AmazonCloudDriveApi, Version=1.0.4.24209, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\AmazonCloudDriveApi.1.0.4\lib\net45\AmazonCloudDriveApi.dll</HintPath>
       <Private>True</Private>
     </Reference>
