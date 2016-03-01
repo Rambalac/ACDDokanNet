@@ -53,7 +53,7 @@ namespace ShellExtension
                 return;
             }
 
-            var command = NativeMethdos.AssocQueryString(Path.GetExtension(SelectedItemPaths.Single()));
+            var command = NativeMethods.AssocQueryString(Path.GetExtension(SelectedItemPaths.Single()));
 
             command = command.Replace("%1", info.TempLink);
 

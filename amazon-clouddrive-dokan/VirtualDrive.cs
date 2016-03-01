@@ -14,6 +14,23 @@ namespace Azi.ACDDokanNet
 {
     internal class VirtualDrive : IDokanOperations
     {
+        private const int ReadTimeout = 30000;
+
+        private const FileAccess DataAccess = FileAccess.ReadData | FileAccess.WriteData | FileAccess.AppendData |
+                              FileAccess.Execute |
+                              FileAccess.GenericExecute | FileAccess.GenericWrite | FileAccess.GenericRead;
+
+        private const FileAccess DataWriteAccess = FileAccess.WriteData | FileAccess.AppendData |
+                                                   FileAccess.Delete |
+                                                   FileAccess.GenericWrite;
+
+        private const FileAccess DataReadAccess = FileAccess.ReadData | FileAccess.GenericExecute |
+                                                   FileAccess.Execute;
+
+#if TRACE
+        private string lastFilePath;
+#endif
+
         private string creator = WindowsIdentity.GetCurrent().Name;
         private FSProvider provider;
 
@@ -21,6 +38,14 @@ namespace Azi.ACDDokanNet
         {
             this.provider = provider;
         }
+
+        public Action OnMount { get; set; }
+
+        public Action OnUnmount { get; set; }
+
+        public string MountPath { get; internal set; }
+
+        public bool ReadOnly { get; internal set; }
 
         public void Cleanup(string fileName, DokanFileInfo info)
         {
@@ -72,37 +97,6 @@ namespace Azi.ACDDokanNet
             }
         }
 
-        private NtStatus MainCreateDirectory(string fileName, DokanFileInfo info)
-        {
-            if (ReadOnly)
-            {
-                return DokanResult.AccessDenied;
-            }
-
-            if (provider.Exists(fileName))
-            {
-                return DokanResult.AlreadyExists;
-            }
-
-            provider.CreateDir(fileName);
-            return DokanResult.Success;
-        }
-
-        private const FileAccess DataAccess = FileAccess.ReadData | FileAccess.WriteData | FileAccess.AppendData |
-                                      FileAccess.Execute |
-                                      FileAccess.GenericExecute | FileAccess.GenericWrite | FileAccess.GenericRead;
-
-        private const FileAccess DataWriteAccess = FileAccess.WriteData | FileAccess.AppendData |
-                                                   FileAccess.Delete |
-                                                   FileAccess.GenericWrite;
-
-        private const FileAccess DataReadAccess = FileAccess.ReadData | FileAccess.GenericExecute |
-                                                   FileAccess.Execute;
-
-#if TRACE
-        string lastFilePath;
-#endif
-
         public NtStatus CreateFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
         {
             try
@@ -127,166 +121,6 @@ namespace Azi.ACDDokanNet
                 Log.Error($"{fileName}\r\n  Access:[{access}]\r\n  Share:[{share}]\r\n  Mode:[{mode}]\r\n  Options:[{options}]\r\n  Attr:[{attributes}]\r\n\r\n{e}");
                 return DokanResult.Error;
             }
-        }
-
-        public NtStatus MainCreateFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
-        {
-            if (!HasAccess(info))
-            {
-                return DokanResult.AccessDenied;
-            }
-
-            if (info.IsDirectory)
-            {
-                if (mode == FileMode.CreateNew)
-                {
-                    return MainCreateDirectory(fileName, info);
-                }
-
-                if (mode == FileMode.Open && !provider.Exists(fileName))
-                {
-                    return DokanResult.PathNotFound;
-                }
-
-                if (access == FileAccess.Synchronize)
-                {
-                    info.Context = new object();
-                    return DokanResult.Success;
-                }
-
-                info.Context = new object();
-                return DokanResult.Success;
-            }
-
-            string streamName = null;
-            if (fileName.Contains(':'))
-            {
-                var names = fileName.Split(':');
-                fileName = names[0];
-                streamName = names[1];
-            }
-
-            var item = provider.GetItem(fileName);
-
-            if (streamName != null && item != null)
-            {
-                Log.Trace($"Opening alternate stream {fileName}:{streamName}");
-                if (mode != FileMode.Open)
-                {
-                    return DokanResult.AccessDenied;
-                }
-
-                switch (streamName)
-                {
-                    case ContextMenu.ACDDokanNetInfoStreamName:
-                        if (item.Info == null)
-                        {
-                            provider.BuildItemInfo(item).Wait();
-                        }
-
-                        return OpenAsByteArray(item.Info, info);
-                }
-
-                return DokanResult.AccessDenied;
-            }
-
-            bool readWriteAttributes = (access & DataAccess) == 0;
-            switch (mode)
-            {
-                case FileMode.Open:
-                    if (item == null)
-                    {
-                        return DokanResult.FileNotFound;
-                    }
-
-                    if (item.IsDir)
-
-                    // check if driver only wants to read attributes, security info, or open directory
-                    {
-                        info.IsDirectory = item.IsDir;
-                        info.Context = new object();
-
-                        // must set it to something if you return DokanError.Success
-                        return DokanResult.Success;
-                    }
-
-                    break;
-
-                case FileMode.CreateNew:
-                    if (item != null)
-                    {
-                        return DokanResult.FileExists;
-                    }
-
-                    break;
-
-                case FileMode.Truncate:
-                    if (item == null)
-                    {
-                        return DokanResult.FileNotFound;
-                    }
-
-                    break;
-            }
-
-            if (readWriteAttributes)
-            {
-                info.Context = new object();
-                return DokanResult.Success;
-            }
-
-            return MainOpenFile(fileName, access, share, mode, options, attributes, info);
-        }
-
-        private NtStatus OpenAsByteArray(byte[] data, DokanFileInfo info)
-        {
-            info.Context = new ByteArrayBlockReader(data);
-            return DokanResult.Success;
-        }
-
-        private bool HasAccess(DokanFileInfo info)
-        {
-            var watch = Stopwatch.StartNew();
-            var identity = Processes.GetProcessOwner(info.ProcessId);
-            if (identity == "NT AUTHORITY\\SYSTEM" || identity == creator)
-            {
-                return true;
-            }
-
-            Log.Warn($"User {identity} has no access to Amazon Cloud Drive on drive {MountPath}\r\nCreator User is {creator} - Identity User is {identity}");
-            return false;
-        }
-
-        private NtStatus MainOpenFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
-        {
-            bool readAccess = (access & DataReadAccess) != 0;
-            bool writeAccess = (access & DataWriteAccess) != 0;
-
-            if (writeAccess && ReadOnly)
-            {
-                return DokanResult.AccessDenied;
-            }
-
-            System.IO.FileAccess IOaccess = System.IO.FileAccess.Read;
-            if (!readAccess && writeAccess)
-            {
-                IOaccess = System.IO.FileAccess.Write;
-            }
-
-            if (readAccess && writeAccess)
-            {
-                IOaccess = System.IO.FileAccess.ReadWrite;
-            }
-
-            var result = provider.OpenFile(fileName, mode, IOaccess, share, options);
-
-            if (result == null)
-            {
-                return DokanResult.AccessDenied;
-            }
-
-            info.Context = result;
-            return DokanResult.Success;
         }
 
         public NtStatus DeleteDirectory(string fileName, DokanFileInfo info)
@@ -434,23 +268,112 @@ namespace Azi.ACDDokanNet
             }
         }
 
-        private FileInformation MakeFileInformation(FSItem i)
+        public NtStatus MainCreateFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
         {
-            var result = new FileInformation
+            if (!HasAccess(info))
             {
-                Length = i.Length,
-                FileName = i.Name,
-                Attributes = i.IsDir ? FileAttributes.Directory : FileAttributes.Normal,
-                LastAccessTime = i.LastAccessTime,
-                LastWriteTime = i.LastWriteTime,
-                CreationTime = i.CreationTime
-            };
-            if (ReadOnly)
-            {
-                result.Attributes |= FileAttributes.ReadOnly;
+                return DokanResult.AccessDenied;
             }
 
-            return result;
+            if (info.IsDirectory)
+            {
+                if (mode == FileMode.CreateNew)
+                {
+                    return MainCreateDirectory(fileName, info);
+                }
+
+                if (mode == FileMode.Open && !provider.Exists(fileName))
+                {
+                    return DokanResult.PathNotFound;
+                }
+
+                if (access == FileAccess.Synchronize)
+                {
+                    info.Context = new object();
+                    return DokanResult.Success;
+                }
+
+                info.Context = new object();
+                return DokanResult.Success;
+            }
+
+            string streamName = null;
+            if (fileName.Contains(':'))
+            {
+                var names = fileName.Split(':');
+                fileName = names[0];
+                streamName = names[1];
+            }
+
+            var item = provider.GetItem(fileName);
+
+            if (streamName != null && item != null)
+            {
+                Log.Trace($"Opening alternate stream {fileName}:{streamName}");
+                if (mode != FileMode.Open)
+                {
+                    return DokanResult.AccessDenied;
+                }
+
+                switch (streamName)
+                {
+                    case ContextMenu.ACDDokanNetInfoStreamName:
+                        if (item.Info == null)
+                        {
+                            provider.BuildItemInfo(item).Wait();
+                        }
+
+                        return OpenAsByteArray(item.Info, info);
+                }
+
+                return DokanResult.AccessDenied;
+            }
+
+            bool readWriteAttributes = (access & DataAccess) == 0;
+            switch (mode)
+            {
+                case FileMode.Open:
+                    if (item == null)
+                    {
+                        return DokanResult.FileNotFound;
+                    }
+
+                    // check if driver only wants to read attributes, security info, or open directory
+                    if (item.IsDir)
+                    {
+                        info.IsDirectory = item.IsDir;
+                        info.Context = new object();
+
+                        // must set it to something if you return DokanError.Success
+                        return DokanResult.Success;
+                    }
+
+                    break;
+
+                case FileMode.CreateNew:
+                    if (item != null)
+                    {
+                        return DokanResult.FileExists;
+                    }
+
+                    break;
+
+                case FileMode.Truncate:
+                    if (item == null)
+                    {
+                        return DokanResult.FileNotFound;
+                    }
+
+                    break;
+            }
+
+            if (readWriteAttributes)
+            {
+                info.Context = new object();
+                return DokanResult.Success;
+            }
+
+            return MainOpenFile(fileName, access, share, mode, options, attributes, info);
         }
 
         public NtStatus GetFileSecurity(string fileName, out FileSystemSecurity security, AccessControlSections sections, DokanFileInfo info)
@@ -534,8 +457,6 @@ namespace Azi.ACDDokanNet
                 return DokanResult.Error;
             }
         }
-
-        private const int ReadTimeout = 30000;
 
         public NtStatus ReadFile(string fileName, byte[] buffer, out int bytesRead, long offset, DokanFileInfo info)
         {
@@ -686,7 +607,6 @@ namespace Azi.ACDDokanNet
             streams = new List<FileInformation>();
             try
             {
-
                 var item = provider.GetItem(fileName);
                 if (item == null)
                 {
@@ -718,12 +638,6 @@ namespace Azi.ACDDokanNet
             }
         }
 
-        public Action OnMount;
-        internal Action OnUnmount;
-        internal string MountPath;
-
-        public bool ReadOnly { get; internal set; }
-
         public NtStatus Mounted(DokanFileInfo info)
         {
             OnMount?.Invoke();
@@ -734,6 +648,92 @@ namespace Azi.ACDDokanNet
         {
             OnUnmount?.Invoke();
             return DokanResult.Success;
+        }
+
+        private NtStatus MainCreateDirectory(string fileName, DokanFileInfo info)
+        {
+            if (ReadOnly)
+            {
+                return DokanResult.AccessDenied;
+            }
+
+            if (provider.Exists(fileName))
+            {
+                return DokanResult.AlreadyExists;
+            }
+
+            provider.CreateDir(fileName);
+            return DokanResult.Success;
+        }
+
+        private NtStatus OpenAsByteArray(byte[] data, DokanFileInfo info)
+        {
+            info.Context = new ByteArrayBlockReader(data);
+            return DokanResult.Success;
+        }
+
+        private bool HasAccess(DokanFileInfo info)
+        {
+            var watch = Stopwatch.StartNew();
+            var identity = Processes.GetProcessOwner(info.ProcessId);
+            if (identity == "NT AUTHORITY\\SYSTEM" || identity == creator)
+            {
+                return true;
+            }
+
+            Log.Warn($"User {identity} has no access to Amazon Cloud Drive on drive {MountPath}\r\nCreator User is {creator} - Identity User is {identity}");
+            return false;
+        }
+
+        private NtStatus MainOpenFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
+        {
+            bool readAccess = (access & DataReadAccess) != 0;
+            bool writeAccess = (access & DataWriteAccess) != 0;
+
+            if (writeAccess && ReadOnly)
+            {
+                return DokanResult.AccessDenied;
+            }
+
+            var ioaccess = System.IO.FileAccess.Read;
+            if (!readAccess && writeAccess)
+            {
+                ioaccess = System.IO.FileAccess.Write;
+            }
+
+            if (readAccess && writeAccess)
+            {
+                ioaccess = System.IO.FileAccess.ReadWrite;
+            }
+
+            var result = provider.OpenFile(fileName, mode, ioaccess, share, options);
+
+            if (result == null)
+            {
+                return DokanResult.AccessDenied;
+            }
+
+            info.Context = result;
+            return DokanResult.Success;
+        }
+
+        private FileInformation MakeFileInformation(FSItem i)
+        {
+            var result = new FileInformation
+            {
+                Length = i.Length,
+                FileName = i.Name,
+                Attributes = i.IsDir ? FileAttributes.Directory : FileAttributes.Normal,
+                LastAccessTime = i.LastAccessTime,
+                LastWriteTime = i.LastWriteTime,
+                CreationTime = i.CreationTime
+            };
+            if (ReadOnly)
+            {
+                result.Attributes |= FileAttributes.ReadOnly;
+            }
+
+            return result;
         }
     }
 }

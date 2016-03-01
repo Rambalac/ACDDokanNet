@@ -8,14 +8,18 @@ namespace Azi.ACDDokanNet
 {
     public class SmallFileBlockReaderWriter : AbstractBlockStream
     {
+        private const int WaitForFile = 50;
+
         private readonly FileStream writer;
         private readonly ConcurrentBag<FileStream> readers = new ConcurrentBag<FileStream>();
 
-        private object fileLock = new object();
-        private object closeLock = new object();
+        private readonly object fileLock = new object();
+        private readonly object closeLock = new object();
         private Downloader downloader;
-
-        public Action<FSItem, string> OnChangedAndClosed;
+        private int closed = 0;
+        private long lastPosition = 0;
+        private bool written = false;
+        private bool disposedValue = false; // To detect redundant calls
 
         public SmallFileBlockReaderWriter(Downloader downloader)
         {
@@ -24,7 +28,7 @@ namespace Azi.ACDDokanNet
             writer = new FileStream(downloader.Path, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
         }
 
-        private int closed = 0;
+        public Action<FSItem, string> OnChangedAndClosed { get; set; }
 
         public override void Close()
         {
@@ -54,47 +58,6 @@ namespace Azi.ACDDokanNet
                 }
             }
         }
-
-        private FileStream GetReader()
-        {
-            if (closed == 1)
-            {
-                throw new IOException("File is alredy closed");
-            }
-
-            FileStream result;
-            if (readers.TryTake(out result))
-            {
-                return result;
-            }
-
-            lock (closeLock)
-            {
-                if (closed == 1)
-                {
-                    throw new IOException("File is already closed");
-                }
-
-                return new FileStream(downloader.Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            }
-        }
-
-        private void ReleaseFile(FileStream file)
-        {
-            lock (closeLock)
-            {
-                if (closed != 1)
-                {
-                    readers.Add(file);
-                }
-                else
-                {
-                    file.Close();
-                }
-            }
-        }
-
-        private const int WaitForFile = 50;
 
         public override int Read(long position, byte[] buffer, int offset, int count, int timeout)
         {
@@ -141,9 +104,6 @@ namespace Azi.ACDDokanNet
             }
         }
 
-        private long lastPosition = 0;
-        private bool written = false;
-
         public override void Write(long position, byte[] buffer, int offset, int count, int timeout = 1000)
         {
             if (position < downloader.Item.Length)
@@ -183,8 +143,6 @@ namespace Azi.ACDDokanNet
             }
         }
 
-        private bool disposedValue = false; // To detect redundant calls
-
         protected override void Dispose(bool disposing)
         {
             if (!disposedValue)
@@ -196,6 +154,45 @@ namespace Azi.ACDDokanNet
                 }
 
                 disposedValue = true;
+            }
+        }
+
+        private FileStream GetReader()
+        {
+            if (closed == 1)
+            {
+                throw new IOException("File is already closed");
+            }
+
+            FileStream result;
+            if (readers.TryTake(out result))
+            {
+                return result;
+            }
+
+            lock (closeLock)
+            {
+                if (closed == 1)
+                {
+                    throw new IOException("File is already closed");
+                }
+
+                return new FileStream(downloader.Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            }
+        }
+
+        private void ReleaseFile(FileStream file)
+        {
+            lock (closeLock)
+            {
+                if (closed != 1)
+                {
+                    readers.Add(file);
+                }
+                else
+                {
+                    file.Close();
+                }
             }
         }
     }

@@ -4,7 +4,7 @@ using System.Text;
 
 namespace ShellExtension
 {
-    class NativeMethdos
+    class NativeMethods
     {
         private enum AssocF
         {

@@ -10,11 +10,6 @@ namespace Azi.ACDDokanNet
     {
         private readonly VirtualDrive virtualDrive;
 
-        public static IList<char> GetFreeDriveLettes()
-        {
-            return Enumerable.Range('C', 'Z' - 'C' + 1).Select(c => (char)c).Except(Environment.GetLogicalDrives().Select(s => s[0])).ToList();
-        }
-
         public VirtualDriveWrapper(FSProvider provider)
         {
             virtualDrive = new VirtualDrive(provider);
@@ -28,13 +23,19 @@ namespace Azi.ACDDokanNet
             };
         }
 
+        public Action Mounted { get; set; }
+
+        public Action Unmounted { get; set; }
+
+        public static IList<char> GetFreeDriveLettes()
+        {
+            return Enumerable.Range('C', 'Z' - 'C' + 1).Select(c => (char)c).Except(Environment.GetLogicalDrives().Select(s => s[0])).ToList();
+        }
+
         public static void Unmount(char letter)
         {
             Dokan.Unmount(letter);
         }
-
-        public Action Mounted;
-        public Action Unmounted;
 
         public void Mount(string path, bool readOnly)
         {

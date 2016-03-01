@@ -18,16 +18,97 @@ namespace Azi.ACDDokanNet
     {
         private static readonly AmazonNodeKind[] FsItemKinds = { AmazonNodeKind.FILE, AmazonNodeKind.FOLDER };
 
-        internal readonly AmazonDrive Amazon;
+        private readonly AmazonDrive amazon;
+
         private readonly ItemsTreeCache itemsTreeCache = new ItemsTreeCache();
 
-        internal SmallFilesCache SmallFilesCache { get; private set; }
+        private string cachePath;
 
-        internal UploadService UploadService { get; private set; }
+        private int downloadingCount = 0;
+
+        private int uploadingCount = 0;
+
+        private bool disposedValue = false; // To detect redundant calls
+
+        public FSProvider(AmazonDrive amazon)
+        {
+            this.amazon = amazon;
+            SmallFilesCache = new SmallFilesCache(amazon);
+            SmallFilesCache.OnDownloadStarted = (id) =>
+            {
+                Interlocked.Increment(ref downloadingCount);
+                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+            };
+            SmallFilesCache.OnDownloaded = (id) =>
+            {
+                Interlocked.Decrement(ref downloadingCount);
+                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+            };
+            SmallFilesCache.OnDownloadFailed = (id) =>
+            {
+                Interlocked.Decrement(ref downloadingCount);
+                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+            };
+
+            UploadService = new UploadService(2, amazon);
+            UploadService.OnUploadFailed = (uploaditem, reason) =>
+            {
+                Interlocked.Decrement(ref uploadingCount);
+                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+
+                var olditemPath = Path.Combine(UploadService.CachePath, uploaditem.Id);
+                File.Delete(olditemPath);
+
+                if (reason == FailReason.ZeroLength)
+                {
+                    var item = GetItem(uploaditem.Path);
+                    item?.MakeNotUploading();
+                    return;
+                }
+
+                itemsTreeCache.DeleteFile(uploaditem.Path);
+            };
+            UploadService.OnUploadFinished = (item, node) =>
+            {
+                Interlocked.Decrement(ref uploadingCount);
+                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+
+                var newitem = FSItem.FromNode(item.Path, node);
+                var olditemPath = Path.Combine(UploadService.CachePath, item.Id);
+                var newitemPath = Path.Combine(SmallFilesCache.CachePath, node.id);
+
+                if (!File.Exists(newitemPath))
+                {
+                    File.Move(olditemPath, newitemPath);
+                }
+                else
+                {
+                    File.Delete(olditemPath);
+                }
+
+                SmallFilesCache.AddExisting(newitem);
+                itemsTreeCache.Update(newitem);
+            };
+            UploadService.OnUploadResumed = item =>
+            {
+                itemsTreeCache.Add(item);
+                Interlocked.Increment(ref uploadingCount);
+                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+            };
+            UploadService.Start();
+        }
+
+        public delegate void StatisticsUpdated(int downloading, int uploading);
 
         public long SmallFileSizeLimit { get; set; } = 20 * 1024 * 1024;
 
-        private string cachePath;
+        public SmallFilesCache SmallFilesCache { get; private set; }
+
+        public UploadService UploadService { get; private set; }
+
+        public StatisticsUpdated OnStatisticsUpdated { get; set; }
+
+        public long AvailableFreeSpace => amazon.Account.GetQuota().Result.available;
 
         public string CachePath
         {
@@ -55,100 +136,11 @@ namespace Azi.ACDDokanNet
             }
         }
 
-        private string GetRelativePath(string filepath, string relativeto)
-        {
-            var pathUri = new Uri(filepath);
-            if (!relativeto.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.InvariantCulture))
-            {
-                relativeto += Path.DirectorySeparatorChar;
-            }
+        public long TotalSize => amazon.Account.GetQuota().Result.quota;
 
-            var relativetoUri = new Uri(relativeto);
-            return Uri.UnescapeDataString(relativetoUri.MakeRelativeUri(pathUri).ToString().Replace('/', Path.DirectorySeparatorChar));
-        }
+        public long TotalFreeSpace => amazon.Account.GetQuota().Result.available;
 
-        public FSProvider(AmazonDrive amazon)
-        {
-            this.Amazon = amazon;
-            SmallFilesCache = new SmallFilesCache(amazon);
-            SmallFilesCache.OnDownloadStarted = (id) =>
-            {
-                Interlocked.Increment(ref downloadingCount);
-                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
-            };
-            SmallFilesCache.OnDownloaded = (id) =>
-            {
-                Interlocked.Decrement(ref downloadingCount);
-                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
-            };
-            SmallFilesCache.OnDownloadFailed = (id) =>
-            {
-                Interlocked.Decrement(ref downloadingCount);
-                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
-            };
-
-            UploadService = new UploadService(2, amazon);
-            UploadService.OnUploadFailed = (uploaditem, reason) =>
-            {
-                Interlocked.Decrement(ref uploadingCount);
-                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
-
-                var olditemPath = Path.Combine(UploadService.CachePath, uploaditem.id);
-                File.Delete(olditemPath);
-
-                if (reason == FailReason.ZeroLength)
-                {
-                    var item = GetItem(uploaditem.path);
-                    item?.MakeNotUploading();
-                    return;
-                }
-
-                itemsTreeCache.DeleteFile(uploaditem.path);
-            };
-            UploadService.OnUploadFinished = (item, node) =>
-              {
-                  Interlocked.Decrement(ref uploadingCount);
-                  OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
-
-                  var newitem = FSItem.FromNode(item.path, node);
-                  var olditemPath = Path.Combine(UploadService.CachePath, item.id);
-                  var newitemPath = Path.Combine(SmallFilesCache.CachePath, node.id);
-
-                  if (!File.Exists(newitemPath))
-                  {
-                      File.Move(olditemPath, newitemPath);
-                  }
-                  else
-                  {
-                      File.Delete(olditemPath);
-                  }
-
-                  SmallFilesCache.AddExisting(newitem);
-                  itemsTreeCache.Update(newitem);
-              };
-            UploadService.OnUploadResumed = item =>
-              {
-                  itemsTreeCache.Add(item);
-                  Interlocked.Increment(ref uploadingCount);
-                  OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
-              };
-            UploadService.Start();
-        }
-
-        public delegate void StatisticsUpdated(int downloading, int uploading);
-
-        public StatisticsUpdated OnStatisticsUpdated { get; set; }
-
-        public int downloadingCount = 0;
-        public int uploadingCount = 0;
-
-        public long AvailableFreeSpace => Amazon.Account.GetQuota().Result.available;
-
-        public long TotalSize => Amazon.Account.GetQuota().Result.quota;
-
-        public long TotalFreeSpace => Amazon.Account.GetQuota().Result.available;
-
-        public long TotalUsedSpace => Amazon.Account.GetUsage().Result.total.total.bytes;
+        public long TotalUsedSpace => amazon.Account.GetUsage().Result.total.total.bytes;
 
         public string VolumeName => FileSystemName;
 
@@ -179,48 +171,6 @@ namespace Azi.ACDDokanNet
 
                 DeleteItem(filePath, item);
                 itemsTreeCache.DeleteFile(filePath);
-            }
-        }
-
-        private FSItem WaitForReal(FSItem item, int timeout)
-        {
-            var timeouttime = DateTime.UtcNow.AddMilliseconds(timeout);
-            while (item.IsUploading)
-            {
-                if (DateTime.UtcNow > timeouttime)
-                {
-                    throw new TimeoutException();
-                }
-
-                Thread.Sleep(100);
-                item = GetItem(item.Path);
-            }
-
-            return item;
-        }
-
-        private void DeleteItem(string filePath, FSItem item)
-        {
-            try
-            {
-                if (item.ParentIds.Count == 1)
-                {
-                    Amazon.Nodes.Trash(item.Id).Wait();
-                }
-                else
-                {
-                    var dir = Path.GetDirectoryName(filePath);
-                    var dirItem = GetItem(dir);
-                    Amazon.Nodes.Remove(dirItem.Id, item.Id).Wait();
-                }
-            }
-            catch (AggregateException ex)
-            {
-                var webex = ex.InnerException as HttpWebException;
-                if (webex == null || (webex.StatusCode != HttpStatusCode.NotFound && webex.StatusCode != HttpStatusCode.Conflict))
-                {
-                    throw ex.InnerException;
-                }
             }
         }
 
@@ -255,7 +205,7 @@ namespace Azi.ACDDokanNet
             var dirNode = GetItem(dir);
 
             var name = Path.GetFileName(filePath);
-            var node = Amazon.Nodes.CreateFolder(dirNode.Id, name).Result;
+            var node = amazon.Nodes.CreateFolder(dirNode.Id, name).Result;
 
             itemsTreeCache.Add(FSItem.FromNode(filePath, node));
         }
@@ -287,7 +237,7 @@ namespace Azi.ACDDokanNet
 
                 Interlocked.Increment(ref downloadingCount);
                 OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
-                var buffered = new BufferedAmazonBlockReader(item, Amazon);
+                var buffered = new BufferedAmazonBlockReader(item, amazon);
                 buffered.OnClose = () =>
                   {
                       Interlocked.Decrement(ref downloadingCount);
@@ -391,7 +341,7 @@ namespace Azi.ACDDokanNet
             }
 
             var folderNode = GetItem(folderPath);
-            var nodes = await Amazon.Nodes.GetChildren(folderNode?.Id);
+            var nodes = await amazon.Nodes.GetChildren(folderNode?.Id);
             var items = new List<FSItem>(nodes.Count);
             var curdir = folderPath;
             if (curdir == "\\")
@@ -420,11 +370,189 @@ namespace Azi.ACDDokanNet
             return FetchNode(itemPath).Result;
         }
 
+        // TODO: override a finalizer only if Dispose(bool disposing) above has code to free unmanaged resources.
+        // ~FSProvider() {
+        //   // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+        //   Dispose(false);
+        // }
+
+        // This code added to correctly implement the disposable pattern.
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(true);
+
+            // TODO: uncomment the following line if the finalizer is overridden above.
+            // GC.SuppressFinalize(this);
+        }
+
+        public async Task BuildItemInfo(FSItem item)
+        {
+            var node = await amazon.Nodes.GetNodeExtended(item.Id);
+            var info = new ACDDokanNetItemInfo
+            {
+                Id = item.Id,
+                TempLink = node.tempLink,
+                Assets = node.assets?.Select(i => new ACDDokanNetAssetInfo { Id = i.id, TempLink = i.tempLink }).ToList()
+            };
+
+            if (node.video != null)
+            {
+                info.Video = new ACDDokanNetAssetInfoImage { Width = node.video.width, Height = node.video.height };
+            }
+
+            if (node.image != null)
+            {
+                info.Image = new ACDDokanNetAssetInfoImage { Width = node.image.width, Height = node.image.height };
+            }
+
+            string str = JsonConvert.SerializeObject(info);
+            item.Info = Encoding.UTF8.GetBytes(str);
+        }
+
+        public void MoveFile(string oldPath, string newPath, bool replace)
+        {
+            if (oldPath == newPath)
+            {
+                return;
+            }
+
+            Log.Trace($"Move: {oldPath} to {newPath} replace:{replace}");
+
+            var oldDir = Path.GetDirectoryName(oldPath);
+            var oldName = Path.GetFileName(oldPath);
+            var newDir = Path.GetDirectoryName(newPath);
+            var newName = Path.GetFileName(newPath);
+
+            var item = GetItem(oldPath);
+            item = WaitForReal(item, 25000);
+            if (oldName != newName)
+            {
+                if (item.Length > 0)
+                {
+                    item = FSItem.FromNode(Path.Combine(oldDir, newName), amazon.Nodes.Rename(item.Id, newName).Result);
+                }
+                else
+                {
+                    item = new FSItem(item)
+                    {
+                        Path = Path.Combine(oldDir, newName)
+                    };
+                }
+
+                if (item == null)
+                {
+                    throw new InvalidOperationException("Can not rename");
+                }
+            }
+
+            if (oldDir != newDir)
+            {
+                var oldDirNodeTask = FetchNode(oldDir);
+                var newDirNodeTask = FetchNode(newDir);
+                Task.WaitAll(oldDirNodeTask, newDirNodeTask);
+                if (item.Length > 0)
+                {
+                    item = FSItem.FromNode(newPath, amazon.Nodes.Move(item.Id, oldDirNodeTask.Result.Id, newDirNodeTask.Result.Id).Result);
+                    if (item == null)
+                    {
+                        throw new InvalidOperationException("Can not move");
+                    }
+                }
+                else
+                {
+                    item = new FSItem(item)
+                    {
+                        Path = newPath
+                    };
+                }
+            }
+
+            if (item.IsDir)
+            {
+                itemsTreeCache.MoveDir(oldPath, item);
+            }
+            else
+            {
+                itemsTreeCache.MoveFile(oldPath, item);
+            }
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    itemsTreeCache.Dispose();
+                    UploadService.Dispose();
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
+                // TODO: set large fields to null.
+                disposedValue = true;
+            }
+        }
+
+        private FSItem WaitForReal(FSItem item, int timeout)
+        {
+            var timeouttime = DateTime.UtcNow.AddMilliseconds(timeout);
+            while (item.IsUploading)
+            {
+                if (DateTime.UtcNow > timeouttime)
+                {
+                    throw new TimeoutException();
+                }
+
+                Thread.Sleep(100);
+                item = GetItem(item.Path);
+            }
+
+            return item;
+        }
+
+        private void DeleteItem(string filePath, FSItem item)
+        {
+            try
+            {
+                if (item.ParentIds.Count == 1)
+                {
+                    amazon.Nodes.Trash(item.Id).Wait();
+                }
+                else
+                {
+                    var dir = Path.GetDirectoryName(filePath);
+                    var dirItem = GetItem(dir);
+                    amazon.Nodes.Remove(dirItem.Id, item.Id).Wait();
+                }
+            }
+            catch (AggregateException ex)
+            {
+                var webex = ex.InnerException as HttpWebException;
+                if (webex == null || (webex.StatusCode != HttpStatusCode.NotFound && webex.StatusCode != HttpStatusCode.Conflict))
+                {
+                    throw ex.InnerException;
+                }
+            }
+        }
+
+        private string GetRelativePath(string filepath, string relativeto)
+        {
+            var pathUri = new Uri(filepath);
+            if (!relativeto.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.InvariantCulture))
+            {
+                relativeto += Path.DirectorySeparatorChar;
+            }
+
+            var relativetoUri = new Uri(relativeto);
+            return Uri.UnescapeDataString(relativetoUri.MakeRelativeUri(pathUri).ToString().Replace('/', Path.DirectorySeparatorChar));
+        }
+
         private async Task<FSItem> FetchNode(string itemPath)
         {
             if (itemPath == "\\" || itemPath == string.Empty)
             {
-                return FSItem.FromRoot(await Amazon.Nodes.GetRoot());
+                return FSItem.FromRoot(await amazon.Nodes.GetRoot());
             }
 
             var cached = itemsTreeCache.GetItem(itemPath);
@@ -456,7 +584,7 @@ namespace Azi.ACDDokanNet
             while (item == null);
             if (item == null)
             {
-                item = FSItem.FromRoot(await Amazon.Nodes.GetRoot());
+                item = FSItem.FromRoot(await amazon.Nodes.GetRoot());
             }
 
             foreach (var name in folders)
@@ -468,7 +596,7 @@ namespace Azi.ACDDokanNet
 
                 curpath = curpath + "\\" + name;
 
-                var newnode = await Amazon.Nodes.GetChild(item.Id, name);
+                var newnode = await amazon.Nodes.GetChild(item.Id, name);
                 if (newnode == null || newnode.status != AmazonNodeStatus.AVAILABLE)
                 {
                     itemsTreeCache.AddItemOnly(FSItem.MakeNotExistingDummy(curpath));
@@ -482,132 +610,6 @@ namespace Azi.ACDDokanNet
             }
 
             return item;
-        }
-
-        public void MoveFile(string oldPath, string newPath, bool replace)
-        {
-            if (oldPath == newPath)
-            {
-                return;
-            }
-
-            Log.Trace($"Move: {oldPath} to {newPath} replace:{replace}");
-
-            var oldDir = Path.GetDirectoryName(oldPath);
-            var oldName = Path.GetFileName(oldPath);
-            var newDir = Path.GetDirectoryName(newPath);
-            var newName = Path.GetFileName(newPath);
-
-            var item = GetItem(oldPath);
-            item = WaitForReal(item, 25000);
-            if (oldName != newName)
-            {
-                if (item.Length > 0)
-                {
-                    item = FSItem.FromNode(Path.Combine(oldDir, newName), Amazon.Nodes.Rename(item.Id, newName).Result);
-                }
-                else
-                {
-                    item = new FSItem(item)
-                    {
-                        Path = Path.Combine(oldDir, newName)
-                    };
-                }
-
-                if (item == null)
-                {
-                    throw new InvalidOperationException("Can not rename");
-                }
-            }
-
-            if (oldDir != newDir)
-            {
-                var oldDirNodeTask = FetchNode(oldDir);
-                var newDirNodeTask = FetchNode(newDir);
-                Task.WaitAll(oldDirNodeTask, newDirNodeTask);
-                if (item.Length > 0)
-                {
-                    item = FSItem.FromNode(newPath, Amazon.Nodes.Move(item.Id, oldDirNodeTask.Result.Id, newDirNodeTask.Result.Id).Result);
-                    if (item == null)
-                    {
-                        throw new InvalidOperationException("Can not move");
-                    }
-                }
-                else
-                {
-                    item = new FSItem(item)
-                    {
-                        Path = newPath
-                    };
-                }
-            }
-
-            if (item.IsDir)
-            {
-                itemsTreeCache.MoveDir(oldPath, item);
-            }
-            else
-            {
-                itemsTreeCache.MoveFile(oldPath, item);
-            }
-        }
-
-        private bool disposedValue = false; // To detect redundant calls
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
-                    itemsTreeCache.Dispose();
-                    UploadService.Dispose();
-                }
-
-                // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
-                // TODO: set large fields to null.
-                disposedValue = true;
-            }
-        }
-
-        // TODO: override a finalizer only if Dispose(bool disposing) above has code to free unmanaged resources.
-        // ~FSProvider() {
-        //   // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-        //   Dispose(false);
-        // }
-
-        // This code added to correctly implement the disposable pattern.
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-            Dispose(true);
-
-            // TODO: uncomment the following line if the finalizer is overridden above.
-            // GC.SuppressFinalize(this);
-        }
-
-        public async Task BuildItemInfo(FSItem item)
-        {
-            var node = await Amazon.Nodes.GetNodeExtended(item.Id);
-            var info = new ACDDokanNetItemInfo
-            {
-                Id = item.Id,
-                TempLink = node.tempLink,
-                Assets = node.assets?.Select(i => new ACDDokanNetAssetInfo { Id = i.id, TempLink = i.tempLink }).ToList()
-            };
-
-            if (node.video != null)
-            {
-                info.Video = new ACDDokanNetAssetInfoImage { Width = node.video.width, Height = node.video.height };
-            }
-
-            if (node.image != null)
-            {
-                info.Image = new ACDDokanNetAssetInfoImage { Width = node.image.width, Height = node.image.height };
-            }
-
-            string str = JsonConvert.SerializeObject(info);
-            item.Info = Encoding.UTF8.GetBytes(str);
         }
     }
 }

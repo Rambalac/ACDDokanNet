@@ -6,18 +6,19 @@ namespace Azi.ACDDokanNet
 {
     public class NewFileBlockWriter : AbstractBlockStream
     {
-        private readonly FSItem Item;
+        private readonly FSItem item;
         private readonly FileStream writer;
         private object fileLock = new object();
+        private int closed = 0;
+        private long lastPosition = 0;
+        private bool disposedValue = false; // To detect redundant calls
 
         public NewFileBlockWriter(FSItem item, string filePath)
         {
-            this.Item = item;
+            this.item = item;
 
             writer = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite);
         }
-
-        private int closed = 0;
 
         public override void Close()
         {
@@ -28,11 +29,11 @@ namespace Azi.ACDDokanNet
 
             lock (fileLock)
             {
-                Item.Length = writer.Length;
+                item.Length = writer.Length;
                 writer.Close();
             }
 
-            Log.Trace($"Closed New file: {Item.Path} of {Item.Length} bytes");
+            Log.Trace($"Closed New file: {item.Path} of {item.Length} bytes");
             base.Close();
         }
 
@@ -45,8 +46,6 @@ namespace Azi.ACDDokanNet
             }
         }
 
-        private long lastPosition = 0;
-
         public override void Write(long position, byte[] buffer, int offset, int count, int timeout = 1000)
         {
             lock (fileLock)
@@ -57,7 +56,7 @@ namespace Azi.ACDDokanNet
                 lastPosition = writer.Position;
             }
 
-            Item.Length = writer.Length;
+            item.Length = writer.Length;
 
             // Log.Trace("Write byte: " + count);
         }
@@ -72,11 +71,9 @@ namespace Azi.ACDDokanNet
             lock (fileLock)
             {
                 writer.SetLength(len);
-                Item.Length = len;
+                item.Length = len;
             }
         }
-
-        private bool disposedValue = false; // To detect redundant calls
 
         protected override void Dispose(bool disposing)
         {

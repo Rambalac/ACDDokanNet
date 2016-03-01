@@ -7,7 +7,26 @@ namespace Azi.ACDDokanNet
 {
     public class FSItem
     {
-        public readonly DateTime FetchTime = DateTime.UtcNow;
+        private long length;
+
+        public FSItem(FSItem item)
+        {
+            IsUploading = item.IsUploading;
+            Path = item.Path;
+            Id = item.Id;
+            IsDir = item.IsDir;
+            Length = item.Length;
+            LastAccessTime = item.LastAccessTime;
+            LastWriteTime = item.LastWriteTime;
+            CreationTime = item.CreationTime;
+            ParentIds = new ConcurrentBag<string>(item.ParentIds);
+        }
+
+        private FSItem()
+        {
+        }
+
+        public DateTime FetchTime { get; } = DateTime.UtcNow;
 
         public bool IsUploading { get; internal set; } = false;
 
@@ -21,8 +40,6 @@ namespace Azi.ACDDokanNet
         public string Id { get; internal set; }
 
         public bool IsDir { get; internal set; }
-
-        private long length;
 
         public long Length
         {
@@ -49,36 +66,6 @@ namespace Azi.ACDDokanNet
 
         public byte[] Info { get; internal set; }
 
-        private FSItem()
-        {
-        }
-
-        public FSItem(FSItem item)
-        {
-            IsUploading = item.IsUploading;
-            Path = item.Path;
-            Id = item.Id;
-            IsDir = item.IsDir;
-            Length = item.Length;
-            LastAccessTime = item.LastAccessTime;
-            LastWriteTime = item.LastWriteTime;
-            CreationTime = item.CreationTime;
-            ParentIds = new ConcurrentBag<string>(item.ParentIds);
-        }
-
-        public void MakeNotUploading()
-        {
-            IsUploading = false;
-        }
-
-        public void MakeUploading()
-        {
-            IsUploading = true;
-        }
-
-        public bool IsExpired(int expirationSeconds) => DateTime.UtcNow > FetchTime.AddSeconds(expirationSeconds);
-
-
         /// <summary>
         /// Construct FSItem using information from AmazonNode
         /// </summary>
@@ -96,7 +83,7 @@ namespace Azi.ACDDokanNet
                 CreationTime = node.createdDate,
                 LastAccessTime = node.modifiedDate,
                 LastWriteTime = node.modifiedDate,
-                ParentIds = new ConcurrentBag<string>(node.parents),
+                ParentIds = new ConcurrentBag<string>(node.parents)
             };
         }
 
@@ -130,5 +117,17 @@ namespace Azi.ACDDokanNet
         {
             return FromNode("\\", amazonNode);
         }
+
+        public void MakeNotUploading()
+        {
+            IsUploading = false;
+        }
+
+        public void MakeUploading()
+        {
+            IsUploading = true;
+        }
+
+        public bool IsExpired(int expirationSeconds) => DateTime.UtcNow > FetchTime.AddSeconds(expirationSeconds);
     }
 }

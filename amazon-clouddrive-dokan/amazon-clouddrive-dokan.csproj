@@ -52,8 +52,8 @@
     </ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="AmazonCloudDriveApi, Version=1.0.4.24209, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\AmazonCloudDriveApi.1.0.4\lib\net45\AmazonCloudDriveApi.dll</HintPath>
+    <Reference Include="AmazonCloudDriveApi, Version=1.0.5.27458, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\AmazonCloudDriveApi.1.0.5\lib\net45\AmazonCloudDriveApi.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="DokanNet, Version=1.0.8.0, Culture=neutral, PublicKeyToken=3709aaa01df28a9e, processorArchitecture=MSIL">
@@ -79,8 +79,10 @@
     <Compile Include="FSItem.cs" />
     <Compile Include="FSProvider.cs" />
     <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="HardLink.cs" />
     <Compile Include="IBlockStream.cs" />
     <Compile Include="ItemsTreeCache.cs" />
+    <Compile Include="NativeMethods.cs" />
     <Compile Include="NewFileBlockWriter.cs" />
     <Compile Include="SmallFileBlockReaderWriter.cs" />
     <Compile Include="SmallFilesCache.cs" />
