@@ -10,6 +10,14 @@ Not just in Windows Explorer, but in any application.
 Login is done via default web browser, so application itself can not get your login and password, 
 and if you already logged into Amazon Cloud Drive you don't need to enter anything, just click a button.
 
+Shell Extension
+---------------
+
+![Context Menu](/images/Context Menu.png)
+Now you can get temp links in Windows Explorer for selected files or open temp link of one selected file in your app used for that file extension. 
+Also you can open folders in browser on Amazon Cloud Drive web site.
+
+
 Pros
 ----
 * Amazon Cloud Drive is presented as real drive working not only in Windows Explorer but in many other apps (with issues). 
@@ -93,6 +101,11 @@ Catalog backup currently does not work due requirement for write already created
 
 News
 ----
+### 2016-03-02
+* Add Windows Explorer Shell Extension with additional functionality in Explorer context menu. 
+Now you can get temp links or open them directly in your app default for that file extension
+* Installer can autorun setting window.
+
 ### 2016-01-19
 * Release 1.4.0
 * Implemented access check. Only mounter and SYSTEM accounts can access drive.
