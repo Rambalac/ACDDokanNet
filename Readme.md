@@ -1,6 +1,5 @@
 ACD Dokan.NET
 =============
-
 This is [Dokan.NET](https://github.com/dokan-dev/dokan-dotnet) based driver for Amazon Cloud Drive. 
 In other words you can use Amazon Cloud Drive as real disk drive in Windows. 
 Not just in Windows Explorer, but in any application.
@@ -12,11 +11,11 @@ and if you already logged into Amazon Cloud Drive you don't need to enter anythi
 
 Shell Extension
 ---------------
-
 ![Context Menu](/images/Context Menu.png)
-Now you can get temp links in Windows Explorer for selected files or open temp link of one selected file in your app used for that file extension. 
-Also you can open folders in browser on Amazon Cloud Drive web site.
 
+Now you can get temp links in Windows Explorer for selected files or open temp link of one selected file in your app used for that file extension. 
+
+Also you can open folders in browser on Amazon Cloud Drive web site.
 
 Pros
 ----
