@@ -8,13 +8,15 @@ using System.Threading.Tasks;
 
 namespace Azi.ACDDokanNet.Gui
 {
-    public class ViewModel : INotifyPropertyChanged
+    public class ViewModel : INotifyPropertyChanged, IDisposable
     {
         private Timer refreshTimer;
 
         private bool mounting = false;
 
         private bool unmounting = false;
+
+        private bool disposedValue = false; // To detect redundant calls
 
         public ViewModel()
         {
@@ -127,6 +129,16 @@ namespace Azi.ACDDokanNet.Gui
 
         private App App => App.Current;
 
+        // This code added to correctly implement the disposable pattern.
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(true);
+
+            // TODO: uncomment the following line if the finalizer is overridden above.
+            // GC.SuppressFinalize(this);
+        }
+
         internal void OnPropertyChanged(string name)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
@@ -184,6 +196,21 @@ namespace Azi.ACDDokanNet.Gui
             {
                 unmounting = false;
                 NotifyMount();
+            }
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    refreshTimer.Dispose();
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
+                // TODO: set large fields to null.
+                disposedValue = true;
             }
         }
 
