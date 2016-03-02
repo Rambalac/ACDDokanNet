@@ -20,7 +20,7 @@ Also you can open folders in browser on Amazon Cloud Drive web site.
 Pros
 ----
 * Amazon Cloud Drive is presented as real drive working not only in Windows Explorer but in many other apps (with issues). 
-* Driver presents Amazon Cloud Drive as it is with folders and files. 
+* Driver presents Amazon Cloud Drive as it is with folders and files. You will see the same content as on Amazon Cloud Drive web site. 
 * Driver does not create any special files on your Amazon Cloud Drive.
 * Same Amazon Cloud Drive can be used on multiple PCs with this Driver or in Web simultaneously (with issues). 
 
