@@ -13,7 +13,7 @@ Shell Extension
 ---------------
 ![Context Menu](/images/Context Menu.png)
 
-Now you can get temp links in Windows Explorer for selected files or open temp link of one selected file in your app used for that file extension. 
+Now you can get temp links in Windows Explorer for selected files or open temp link of one selected file in your app used for that file extension. Temp links will work for few days only, Amazon Cloud Drive does not provide any way to create permanent links to files.
 
 Also you can open folders in browser on Amazon Cloud Drive web site.
 
