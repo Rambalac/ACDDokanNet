@@ -46,37 +46,37 @@
         "Entry"
         {
         "MsmKey" = "8:_5F9BDB72478E3EE813B93F33178730A7"
+        "OwnerKey" = "8:_2EFC3F670129473ABDA61FA74453FC25"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_6BF5B7BB1057DA67F07DD8F08457D7B1"
+        "OwnerKey" = "8:_53F41B713F854086BDCC162F04C2B52B"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_6BF5B7BB1057DA67F07DD8F08457D7B1"
+        "OwnerKey" = "8:_2EFC3F670129473ABDA61FA74453FC25"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_6FA25ECCA6B7606D3A4D01BAEF25761F"
+        "OwnerKey" = "8:_53F41B713F854086BDCC162F04C2B52B"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_6FA25ECCA6B7606D3A4D01BAEF25761F"
+        "OwnerKey" = "8:_2EFC3F670129473ABDA61FA74453FC25"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_7502FE2C68B58727C8F6CE8A97AA9221"
         "OwnerKey" = "8:_CD686A87095A493EB1695DE555CF41B6"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_5F9BDB72478E3EE813B93F33178730A7"
-        "OwnerKey" = "8:_2EFC3F670129473ABDA61FA74453FC25"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_6BF5B7BB1057DA67F07DD8F08457D7B1"
-        "OwnerKey" = "8:_53F41B713F854086BDCC162F04C2B52B"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_6BF5B7BB1057DA67F07DD8F08457D7B1"
-        "OwnerKey" = "8:_2EFC3F670129473ABDA61FA74453FC25"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_6FA25ECCA6B7606D3A4D01BAEF25761F"
-        "OwnerKey" = "8:_53F41B713F854086BDCC162F04C2B52B"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_6FA25ECCA6B7606D3A4D01BAEF25761F"
-        "OwnerKey" = "8:_2EFC3F670129473ABDA61FA74453FC25"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -112,6 +112,12 @@
         "Entry"
         {
         "MsmKey" = "8:_79A97F620DC0B03C901C7AD31ED12F1F"
+        "OwnerKey" = "8:_6BF5B7BB1057DA67F07DD8F08457D7B1"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_79A97F620DC0B03C901C7AD31ED12F1F"
         "OwnerKey" = "8:_2EE93E5C5C6848188AC0B82186EA0709"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -125,12 +131,6 @@
         {
         "MsmKey" = "8:_79A97F620DC0B03C901C7AD31ED12F1F"
         "OwnerKey" = "8:_2EFC3F670129473ABDA61FA74453FC25"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_79A97F620DC0B03C901C7AD31ED12F1F"
-        "OwnerKey" = "8:_6BF5B7BB1057DA67F07DD8F08457D7B1"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -214,6 +214,12 @@
         "Entry"
         {
         "MsmKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_7502FE2C68B58727C8F6CE8A97AA9221"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_UNDEFINED"
         "OwnerKey" = "8:_2EFC3F670129473ABDA61FA74453FC25"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -268,6 +274,12 @@
         "Entry"
         {
         "MsmKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_79A97F620DC0B03C901C7AD31ED12F1F"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_UNDEFINED"
         "OwnerKey" = "8:_6FA25ECCA6B7606D3A4D01BAEF25761F"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -275,12 +287,6 @@
         {
         "MsmKey" = "8:_UNDEFINED"
         "OwnerKey" = "8:_D2CE32D4F9359082A816DC942EAB9454"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_79A97F620DC0B03C901C7AD31ED12F1F"
         "MsmSig" = "8:_UNDEFINED"
         }
     }
@@ -472,7 +478,7 @@
             {
             "AssemblyRegister" = "3:1"
             "AssemblyIsInGAC" = "11:FALSE"
-            "AssemblyAsmDisplayName" = "8:amazon-clouddrive-dokan, Version=1.5.0.24434, Culture=neutral, processorArchitecture=MSIL"
+            "AssemblyAsmDisplayName" = "8:amazon-clouddrive-dokan, Version=1.5.0.24711, Culture=neutral, processorArchitecture=MSIL"
                 "ScatterAssemblies"
                 {
                     "_53F41B713F854086BDCC162F04C2B52B"
@@ -534,7 +540,7 @@
             {
             "AssemblyRegister" = "3:1"
             "AssemblyIsInGAC" = "11:FALSE"
-            "AssemblyAsmDisplayName" = "8:ShellExtension, Version=1.5.0.24434, Culture=neutral, PublicKeyToken=8b4d87bf50774967, processorArchitecture=MSIL"
+            "AssemblyAsmDisplayName" = "8:ShellExtension, Version=1.5.0.24711, Culture=neutral, PublicKeyToken=8b4d87bf50774967, processorArchitecture=MSIL"
                 "ScatterAssemblies"
                 {
                     "_6BF5B7BB1057DA67F07DD8F08457D7B1"
@@ -575,6 +581,37 @@
                     }
                 }
             "SourcePath" = "8:DokanNet.dll"
+            "TargetName" = "8:"
+            "Tag" = "8:"
+            "Folder" = "8:_BACA36414E1C4DC887DF0F110676394C"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:TRUE"
+            "IsolateTo" = "8:"
+            }
+            "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_7502FE2C68B58727C8F6CE8A97AA9221"
+            {
+            "AssemblyRegister" = "3:1"
+            "AssemblyIsInGAC" = "11:FALSE"
+            "AssemblyAsmDisplayName" = "8:Trinet.Core.IO.Ntfs, Version=3.5.0.0, Culture=neutral, processorArchitecture=MSIL"
+                "ScatterAssemblies"
+                {
+                    "_7502FE2C68B58727C8F6CE8A97AA9221"
+                    {
+                    "Name" = "8:Trinet.Core.IO.Ntfs.dll"
+                    "Attributes" = "3:512"
+                    }
+                }
+            "SourcePath" = "8:Trinet.Core.IO.Ntfs.dll"
             "TargetName" = "8:"
             "Tag" = "8:"
             "Folder" = "8:_BACA36414E1C4DC887DF0F110676394C"
@@ -751,7 +788,7 @@
             {
             "AssemblyRegister" = "3:1"
             "AssemblyIsInGAC" = "11:FALSE"
-            "AssemblyAsmDisplayName" = "8:Tools, Version=1.4.0.24434, Culture=neutral, processorArchitecture=MSIL"
+            "AssemblyAsmDisplayName" = "8:Tools, Version=1.4.0.24711, Culture=neutral, processorArchitecture=MSIL"
                 "ScatterAssemblies"
                 {
                     "_F8C03544C09959EDA982A5FF316FD9B3"
@@ -791,17 +828,6 @@
             "Condition" = "8:"
             "Transitive" = "11:FALSE"
             "Property" = "8:ProgramMenuFolder"
-                "Folders"
-                {
-                }
-            }
-            "{C7E34266-2C30-44B9-A9A3-4E394ABD6E18}:_60659DFA2D2A4979BAD4517557847FC0"
-            {
-            "Name" = "8:#1927"
-            "AlwaysCreate" = "11:FALSE"
-            "Condition" = "8:"
-            "Transitive" = "11:FALSE"
-            "Property" = "8:GAC"
                 "Folders"
                 {
                 }
@@ -988,6 +1014,20 @@
         }
         "Shortcut"
         {
+            "{970C0BB2-C7D0-45D7-ABFA-7EC378858BC0}:_1A9B738A38034D4D913758494666A90C"
+            {
+            "Name" = "8:ACD.DokanNet Settings"
+            "Arguments" = "8:"
+            "Description" = "8:"
+            "ShowCmd" = "3:1"
+            "IconIndex" = "3:0"
+            "Transitive" = "11:FALSE"
+            "Target" = "8:_2EFC3F670129473ABDA61FA74453FC25"
+            "Folder" = "8:_33DA5EE35DA24469BD06E5320E350C7D"
+            "WorkingFolder" = "8:_BACA36414E1C4DC887DF0F110676394C"
+            "Icon" = "8:"
+            "Feature" = "8:"
+            }
         }
         "UserInterface"
         {
