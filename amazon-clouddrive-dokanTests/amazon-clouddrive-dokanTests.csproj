@@ -35,8 +35,8 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="AmazonCloudDriveApi, Version=1.0.5.27458, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\AmazonCloudDriveApi.1.0.5\lib\net45\AmazonCloudDriveApi.dll</HintPath>
+    <Reference Include="AmazonCloudDriveApi, Version=1.1.0.20597, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\AmazonCloudDriveApi.1.1.0\lib\net45\AmazonCloudDriveApi.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">

@@ -80,8 +80,8 @@
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="AmazonCloudDriveApi, Version=1.0.5.27458, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\AmazonCloudDriveApi.1.0.5\lib\net45\AmazonCloudDriveApi.dll</HintPath>
+    <Reference Include="AmazonCloudDriveApi, Version=1.1.0.20597, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\AmazonCloudDriveApi.1.1.0\lib\net45\AmazonCloudDriveApi.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.WindowsAPICodePack, Version=1.1.0.0, Culture=neutral, processorArchitecture=MSIL">
