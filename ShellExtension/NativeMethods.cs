@@ -4,7 +4,7 @@ using System.Text;
 
 namespace ShellExtension
 {
-    class NativeMethods
+    public static class NativeMethods
     {
         private enum AssocF
         {
@@ -54,9 +54,6 @@ namespace ShellExtension
             ASSOCSTR_MAX = 24
         }
 
-        [DllImport("Shlwapi.dll", CharSet = CharSet.Unicode)]
-        private static extern uint AssocQueryString(AssocF flags, AssocStr str, string pszAssoc, string pszExtra, [Out] StringBuilder pszOut, ref uint pcchOut);
-
         public static string AssocQueryString(string extension)
         {
             const int S_OK = 0;
@@ -78,5 +75,8 @@ namespace ShellExtension
 
             return sb.ToString();
         }
+
+        [DllImport("Shlwapi.dll", CharSet = CharSet.Unicode)]
+        private static extern uint AssocQueryString(AssocF flags, AssocStr str, string pszAssoc, string pszExtra, [Out] StringBuilder pszOut, ref uint pcchOut);
     }
 }

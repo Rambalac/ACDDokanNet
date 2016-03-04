@@ -1,8 +1,8 @@
-﻿using Azi.Tools;
-using Microsoft.WindowsAPICodePack.Dialogs;
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Windows;
+using Azi.Tools;
+using Microsoft.WindowsAPICodePack.Dialogs;
 
 namespace Azi.ACDDokanNet.Gui
 {

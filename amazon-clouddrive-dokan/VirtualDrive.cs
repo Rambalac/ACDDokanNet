@@ -1,14 +1,14 @@
-﻿using DokanNet;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.IO;
-using System.Security.AccessControl;
-using FileAccess = DokanNet.FileAccess;
-using Azi.Tools;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Security.AccessControl;
 using System.Security.Principal;
+using Azi.Tools;
+using DokanNet;
 using ShellExtension;
+using FileAccess = DokanNet.FileAccess;
 
 namespace Azi.ACDDokanNet
 {

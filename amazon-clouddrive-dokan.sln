@@ -27,6 +27,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "amazon-clouddrive-dokanTest
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShellExtension", "ShellExtension\ShellExtension.csproj", "{8DAC61EF-E07B-4BD2-8D79-5865EF2799BB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShellExtension.Tests", "ShellExtension.Tests\ShellExtension.Tests.csproj", "{925A9045-6E71-422D-A3D5-4E4F852C438D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -81,6 +83,14 @@ Global
 		{8DAC61EF-E07B-4BD2-8D79-5865EF2799BB}.Release|Any CPU.Build.0 = Release|Any CPU
 		{8DAC61EF-E07B-4BD2-8D79-5865EF2799BB}.Release|x64.ActiveCfg = Release|Any CPU
 		{8DAC61EF-E07B-4BD2-8D79-5865EF2799BB}.Release|x64.Build.0 = Release|Any CPU
+		{925A9045-6E71-422D-A3D5-4E4F852C438D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{925A9045-6E71-422D-A3D5-4E4F852C438D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{925A9045-6E71-422D-A3D5-4E4F852C438D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{925A9045-6E71-422D-A3D5-4E4F852C438D}.Debug|x64.Build.0 = Debug|Any CPU
+		{925A9045-6E71-422D-A3D5-4E4F852C438D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{925A9045-6E71-422D-A3D5-4E4F852C438D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{925A9045-6E71-422D-A3D5-4E4F852C438D}.Release|x64.ActiveCfg = Release|Any CPU
+		{925A9045-6E71-422D-A3D5-4E4F852C438D}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

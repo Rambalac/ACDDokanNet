@@ -1,12 +1,12 @@
-﻿using Azi.Amazon.CloudDrive;
-using Azi.Tools;
-using Microsoft.Win32;
-using System;
+﻿using System;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
+using Azi.Amazon.CloudDrive;
+using Azi.Tools;
+using Microsoft.Win32;
 using Application = System.Windows.Application;
 
 namespace Azi.ACDDokanNet.Gui

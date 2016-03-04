@@ -1,7 +1,7 @@
-﻿using Azi.Amazon.CloudDrive.JsonObjects;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Threading;
+using Azi.Amazon.CloudDrive.JsonObjects;
 
 namespace Azi.ACDDokanNet
 {

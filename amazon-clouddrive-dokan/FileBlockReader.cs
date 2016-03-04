@@ -1,8 +1,8 @@
-﻿using Azi.Tools;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Threading;
+using Azi.Tools;
 
 namespace Azi.ACDDokanNet
 {
