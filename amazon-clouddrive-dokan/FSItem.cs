@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Threading;
 using Azi.Amazon.CloudDrive.JsonObjects;
+using System.Collections.Generic;
 
 namespace Azi.ACDDokanNet
 {
@@ -66,27 +67,6 @@ namespace Azi.ACDDokanNet
 
         public byte[] Info { get; internal set; }
 
-        /// <summary>
-        /// Construct FSItem using information from AmazonNode
-        /// </summary>
-        /// <param name="itemPath">Item path</param>
-        /// <param name="node">Amazon Node info</param>
-        /// <returns>New constructed item</returns>
-        public static FSItem FromNode(string itemPath, AmazonNode node)
-        {
-            return new FSItem
-            {
-                Length = node.contentProperties?.size ?? 0,
-                Id = node.id,
-                Path = itemPath,
-                IsDir = node.kind == AmazonNodeKind.FOLDER,
-                CreationTime = node.createdDate,
-                LastAccessTime = node.modifiedDate,
-                LastWriteTime = node.modifiedDate,
-                ParentIds = new ConcurrentBag<string>(node.parents)
-            };
-        }
-
         public static FSItem MakeNotExistingDummy(string path)
         {
             return new FSItem
@@ -113,11 +93,6 @@ namespace Azi.ACDDokanNet
             };
         }
 
-        public static FSItem FromRoot(AmazonNode amazonNode)
-        {
-            return FromNode("\\", amazonNode);
-        }
-
         public void MakeNotUploading()
         {
             IsUploading = false;
@@ -129,5 +104,53 @@ namespace Azi.ACDDokanNet
         }
 
         public bool IsExpired(int expirationSeconds) => DateTime.UtcNow > FetchTime.AddSeconds(expirationSeconds);
+
+        public class Builder
+        {
+            public DateTime CreationTime { get; internal set; }
+
+            public string Id { get; internal set; }
+
+            public bool IsDir { get; internal set; }
+
+            public DateTime LastAccessTime { get; internal set; }
+
+            public DateTime LastWriteTime { get; internal set; }
+
+            public long Length { get; internal set; }
+
+            public string Name { get; set; }
+
+            public ConcurrentBag<string> ParentIds { get; internal set; }
+
+            public string Path { get; internal set; }
+
+            public FSItem Build()
+            {
+                return new FSItem
+                {
+                    Id = Id,
+                    CreationTime = CreationTime,
+                    IsDir = IsDir,
+                    LastAccessTime = LastAccessTime,
+                    LastWriteTime = LastWriteTime,
+                    Length = Length,
+                    ParentIds = new ConcurrentBag<string>(ParentIds),
+                    Path = Path
+                };
+            }
+
+            public Builder FilePath(string filePath)
+            {
+                Path = filePath;
+                return this;
+            }
+
+            internal FSItem BuildRoot()
+            {
+                Path = "\\";
+                return Build();
+            }
+        }
     }
 }

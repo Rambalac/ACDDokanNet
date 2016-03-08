@@ -326,7 +326,7 @@ namespace Azi.ACDDokanNet.Gui
                           return;
                       }
 
-                      provider = new FSProvider(amazon);
+                      provider = new FSProvider(new AmazonCloud(amazon));
                       provider.CachePath = Environment.ExpandEnvironmentVariables(Gui.Properties.Settings.Default.CacheFolder);
                       provider.SmallFilesCacheSize = Gui.Properties.Settings.Default.SmallFilesCacheLimit * (1 << 20);
                       provider.SmallFileSizeLimit = Gui.Properties.Settings.Default.SmallFileSizeLimit * (1 << 20);

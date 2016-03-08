@@ -25,11 +25,18 @@ namespace ShellExtension
             get { return base.SelectedItemPaths; }
         }
 
-        protected static ACDDokanNetItemInfo ReadInfo(string path)
+        protected static object ReadInfo(string path)
         {
             using (var info = FileSystem.GetAlternateDataStream(path, ACDDokanNetInfoStreamName).OpenText())
             {
-                return JsonConvert.DeserializeObject<ACDDokanNetItemInfo>(info.ReadToEnd());
+                string text = info.ReadToEnd();
+                var type = JsonConvert.DeserializeObject<NodeExtendedInfo>(text);
+                if (type.Type == nameof(ACDDokanNetItemInfo))
+                {
+                    return JsonConvert.DeserializeObject<ACDDokanNetItemInfo>(text);
+                }
+
+                return null;
             }
         }
 
@@ -46,17 +53,26 @@ namespace ShellExtension
             menu.Items.Add("-");
             if (SelectedItemPaths.Count() == 1)
             {
-                if (File.Exists(SelectedItemPaths.Single()))
+                var info = ReadInfo(SelectedItemPaths.Single());
+                if (File.Exists(SelectedItemPaths.Single()) && info is INodeExtendedInfoTempLink)
                 {
                     menu.Items.Add(new ToolStripMenuItem("Open as temp link", null, OpenAsUrl));
                 }
 
-                menu.Items.Add(new ToolStripMenuItem("Open in Browser", null, OpenInBrowser));
+                if (info is INodeExtendedInfoWebLink)
+                {
+                    menu.Items.Add(new ToolStripMenuItem("Open in Browser", null, OpenInBrowser));
+                }
             }
 
-            if (SelectedItemPaths.Any(File.Exists))
+            var firstFile = SelectedItemPaths.FirstOrDefault(File.Exists);
+            if (firstFile != null)
             {
-                menu.Items.Add(new ToolStripMenuItem("Copy temp links", null, CopyTempLink));
+                var info = ReadInfo(firstFile);
+                if (info is INodeExtendedInfoTempLink)
+                {
+                    menu.Items.Add(new ToolStripMenuItem("Copy temp links", null, CopyTempLink));
+                }
             }
 
             // Return the menu.
@@ -65,7 +81,12 @@ namespace ShellExtension
 
         protected void OpenAsUrl(object sender, EventArgs e)
         {
-            var info = ReadInfo(SelectedItemPaths.Single());
+            var info = ReadInfo(SelectedItemPaths.Single()) as INodeExtendedInfoTempLink;
+            if (info == null)
+            {
+                return;
+            }
+
             if (info.TempLink == null)
             {
                 return;
@@ -88,12 +109,18 @@ namespace ShellExtension
         protected void OpenInBrowser(object sender, EventArgs e)
         {
             var info = ReadInfo(SelectedItemPaths.Single());
-            Process.Start(info.TempLink ?? info.WebLink);
+            var infoTemp = info as INodeExtendedInfoTempLink;
+            var infoWeb = info as INodeExtendedInfoWebLink;
+            string link = infoTemp?.TempLink ?? infoWeb?.WebLink;
+            if (link != null)
+            {
+                Process.Start(infoTemp?.TempLink ?? infoWeb?.WebLink);
+            }
         }
 
         protected void CopyTempLink(object sender, EventArgs e)
         {
-            Clipboard.SetText(string.Join("\r\n", SelectedItemPaths.Select(path => ReadInfo(path))
+            Clipboard.SetText(string.Join("\r\n", SelectedItemPaths.Select(path => ReadInfo(path) as INodeExtendedInfoTempLink)
                 .Where(info => info.TempLink != null).Select(info => info.TempLink)));
         }
     }

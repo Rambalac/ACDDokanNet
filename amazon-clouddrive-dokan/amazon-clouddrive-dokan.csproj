@@ -71,6 +71,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AbstractBlockStream.cs" />
+    <Compile Include="AmazonCloud.cs" />
     <Compile Include="Block.cs" />
     <Compile Include="BufferedAmazonBlockReader.cs" />
     <Compile Include="ByteArrayBlockReader.cs" />
@@ -81,6 +82,7 @@
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="HardLink.cs" />
     <Compile Include="IBlockStream.cs" />
+    <Compile Include="IHttpCloud.cs" />
     <Compile Include="ItemsTreeCache.cs" />
     <Compile Include="NativeMethods.cs" />
     <Compile Include="NewFileBlockWriter.cs" />

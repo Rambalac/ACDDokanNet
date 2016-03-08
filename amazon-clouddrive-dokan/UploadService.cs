@@ -26,20 +26,20 @@ namespace Azi.ACDDokanNet
 
         private readonly BlockingCollection<UploadInfo> uploads = new BlockingCollection<UploadInfo>();
         private readonly CancellationTokenSource cancellation = new CancellationTokenSource();
-        private readonly AmazonDrive amazon;
+        private readonly IHttpCloud amazon;
         private readonly int uploadLimit;
         private string cachePath;
         private bool disposedValue = false; // To detect redundant calls
         private Task serviceTask;
 
-        public UploadService(int limit, AmazonDrive amazon)
+        public UploadService(int limit, IHttpCloud amazon)
         {
             uploadLimit = limit;
             uploadLimitSemaphore = new SemaphoreSlim(limit);
             this.amazon = amazon;
         }
 
-        public delegate void OnUploadFinishedDelegate(UploadInfo item, AmazonNode amazonNode);
+        public delegate void OnUploadFinishedDelegate(UploadInfo item, FSItem.Builder amazonNode);
 
         public delegate void OnUploadFailedDelegate(UploadInfo item, FailReason reason);
 
@@ -246,7 +246,7 @@ namespace Azi.ACDDokanNet
                 }
 
                 Log.Trace("Started upload: " + item.Path);
-                AmazonNode node;
+                FSItem.Builder node;
                 if (!item.Overwrite)
                 {
                     node = await amazon.Files.UploadNew(
@@ -268,8 +268,9 @@ namespace Azi.ACDDokanNet
                     throw new NullReferenceException("File node is null: " + item.Path);
                 }
 
+                node.Path = item.Path;
                 OnUploadFinished(item, node);
-                Log.Trace("Finished upload: " + item.Path + " id:" + node.id);
+                Log.Trace("Finished upload: " + item.Path + " id:" + node.Id);
                 return;
             }
             catch (HttpWebException ex)

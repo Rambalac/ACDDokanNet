@@ -23,7 +23,9 @@ namespace Azi.ACDDokanNet.Tests
 
             DeleteDir("TempCache");
 
-            Provider = new FSProvider(Amazon);
+            var cloud = new AmazonCloud(Amazon);
+
+            Provider = new FSProvider(cloud);
             Provider.CachePath = "TempCache";
             Provider.SmallFilesCacheSize = 20 * (1 << 20);
             Provider.SmallFileSizeLimit = 1000 * (1 << 20);

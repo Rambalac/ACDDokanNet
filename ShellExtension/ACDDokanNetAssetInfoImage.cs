@@ -2,6 +2,7 @@
 
 namespace ShellExtension
 {
+
     public class ACDDokanNetAssetInfoImage
     {
         public int Width { get; set; }

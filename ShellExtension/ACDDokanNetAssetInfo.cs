@@ -2,7 +2,7 @@
 
 namespace ShellExtension
 {
-    public class ACDDokanNetAssetInfo
+    public class ACDDokanNetAssetInfo : INodeExtendedInfoTempLink, INodeExtendedInfoWebLink
     {
         public string WebLink => "https://www.amazon.com/clouddrive/folder/" + Id;
 

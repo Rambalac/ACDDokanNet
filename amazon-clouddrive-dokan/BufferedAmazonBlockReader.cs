@@ -14,11 +14,11 @@ namespace Azi.ACDDokanNet
         private const int KeepLastBlocks = 5;
 
         private readonly ConcurrentDictionary<long, Block> blocks = new ConcurrentDictionary<long, Block>(5, KeepLastBlocks * 5);
-        private AmazonDrive amazon;
+        private IHttpCloud amazon;
         private FSItem item;
         private long lastBlock = 0;
 
-        public BufferedAmazonBlockReader(FSItem item, AmazonDrive amazon)
+        public BufferedAmazonBlockReader(FSItem item, IHttpCloud amazon)
         {
             this.item = item;
             this.amazon = amazon;

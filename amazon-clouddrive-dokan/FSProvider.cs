@@ -16,9 +16,7 @@ namespace Azi.ACDDokanNet
 {
     public class FSProvider : IDisposable
     {
-        private static readonly AmazonNodeKind[] FsItemKinds = { AmazonNodeKind.FILE, AmazonNodeKind.FOLDER };
-
-        private readonly AmazonDrive amazon;
+        private readonly IHttpCloud amazon;
 
         private readonly ItemsTreeCache itemsTreeCache = new ItemsTreeCache();
 
@@ -30,7 +28,7 @@ namespace Azi.ACDDokanNet
 
         private bool disposedValue = false; // To detect redundant calls
 
-        public FSProvider(AmazonDrive amazon)
+        public FSProvider(IHttpCloud amazon)
         {
             this.amazon = amazon;
             SmallFilesCache = new SmallFilesCache(amazon);
@@ -73,9 +71,9 @@ namespace Azi.ACDDokanNet
                 Interlocked.Decrement(ref uploadingCount);
                 OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
 
-                var newitem = FSItem.FromNode(item.Path, node);
+                var newitem = node.FilePath(item.Path).Build();
                 var olditemPath = Path.Combine(UploadService.CachePath, item.Id);
-                var newitemPath = Path.Combine(SmallFilesCache.CachePath, node.id);
+                var newitemPath = Path.Combine(SmallFilesCache.CachePath, node.Id);
 
                 if (!File.Exists(newitemPath))
                 {
@@ -108,7 +106,7 @@ namespace Azi.ACDDokanNet
 
         public StatisticsUpdated OnStatisticsUpdated { get; set; }
 
-        public long AvailableFreeSpace => amazon.Account.GetQuota().Result.available;
+        public long AvailableFreeSpace => amazon.AvailableFreeSpace;
 
         public string CachePath
         {
@@ -136,11 +134,11 @@ namespace Azi.ACDDokanNet
             }
         }
 
-        public long TotalSize => amazon.Account.GetQuota().Result.quota;
+        public long TotalSize => amazon.TotalSize;
 
-        public long TotalFreeSpace => amazon.Account.GetQuota().Result.available;
+        public long TotalFreeSpace => amazon.TotalFreeSpace;
 
-        public long TotalUsedSpace => amazon.Account.GetUsage().Result.total.total.bytes;
+        public long TotalUsedSpace => amazon.TotalUsedSpace;
 
         public string VolumeName => FileSystemName;
 
@@ -207,7 +205,7 @@ namespace Azi.ACDDokanNet
             var name = Path.GetFileName(filePath);
             var node = amazon.Nodes.CreateFolder(dirNode.Id, name).Result;
 
-            itemsTreeCache.Add(FSItem.FromNode(filePath, node));
+            itemsTreeCache.Add(node.FilePath(filePath).Build());
         }
 
         public IBlockStream OpenFile(string filePath, FileMode mode, FileAccess fileAccess, FileShare share, FileOptions options)
@@ -349,15 +347,10 @@ namespace Azi.ACDDokanNet
                 curdir = string.Empty;
             }
 
-            foreach (var node in nodes.Where(n => FsItemKinds.Contains(n.kind)))
+            foreach (var node in nodes)
             {
-                if (node.status != AmazonNodeStatus.AVAILABLE)
-                {
-                    continue;
-                }
-
-                var path = curdir + "\\" + node.name;
-                items.Add(FSItem.FromNode(path, node));
+                var path = curdir + "\\" + node.Name;
+                items.Add(node.FilePath(path).Build());
             }
 
             // Log.Warn("Got real dir:\r\n  " + string.Join("\r\n  ", items.Select(i => i.Path)));
@@ -388,23 +381,7 @@ namespace Azi.ACDDokanNet
 
         public async Task BuildItemInfo(FSItem item)
         {
-            var node = await amazon.Nodes.GetNodeExtended(item.Id);
-            var info = new ACDDokanNetItemInfo
-            {
-                Id = item.Id,
-                TempLink = node.tempLink,
-                Assets = node.assets?.Select(i => new ACDDokanNetAssetInfo { Id = i.id, TempLink = i.tempLink }).ToList()
-            };
-
-            if (node.video != null)
-            {
-                info.Video = new ACDDokanNetAssetInfoImage { Width = node.video.width, Height = node.video.height };
-            }
-
-            if (node.image != null)
-            {
-                info.Image = new ACDDokanNetAssetInfoImage { Width = node.image.width, Height = node.image.height };
-            }
+            var info = await amazon.Nodes.GetNodeExtended(item.Id);
 
             string str = JsonConvert.SerializeObject(info);
             item.Info = Encoding.UTF8.GetBytes(str);
@@ -430,7 +407,7 @@ namespace Azi.ACDDokanNet
             {
                 if (item.Length > 0)
                 {
-                    item = FSItem.FromNode(Path.Combine(oldDir, newName), amazon.Nodes.Rename(item.Id, newName).Result);
+                    item = amazon.Nodes.Rename(item.Id, newName).Result.FilePath(Path.Combine(oldDir, newName)).Build();
                 }
                 else
                 {
@@ -453,7 +430,7 @@ namespace Azi.ACDDokanNet
                 Task.WaitAll(oldDirNodeTask, newDirNodeTask);
                 if (item.Length > 0)
                 {
-                    item = FSItem.FromNode(newPath, amazon.Nodes.Move(item.Id, oldDirNodeTask.Result.Id, newDirNodeTask.Result.Id).Result);
+                    item = amazon.Nodes.Move(item.Id, oldDirNodeTask.Result.Id, newDirNodeTask.Result.Id).Result.FilePath(newPath).Build();
                     if (item == null)
                     {
                         throw new InvalidOperationException("Can not move");
@@ -552,7 +529,7 @@ namespace Azi.ACDDokanNet
         {
             if (itemPath == "\\" || itemPath == string.Empty)
             {
-                return FSItem.FromRoot(await amazon.Nodes.GetRoot());
+                return (await amazon.Nodes.GetRoot()).BuildRoot();
             }
 
             var cached = itemsTreeCache.GetItem(itemPath);
@@ -584,7 +561,7 @@ namespace Azi.ACDDokanNet
             while (item == null);
             if (item == null)
             {
-                item = FSItem.FromRoot(await amazon.Nodes.GetRoot());
+                item = (await amazon.Nodes.GetRoot()).BuildRoot();
             }
 
             foreach (var name in folders)
@@ -597,7 +574,7 @@ namespace Azi.ACDDokanNet
                 curpath = curpath + "\\" + name;
 
                 var newnode = await amazon.Nodes.GetChild(item.Id, name);
-                if (newnode == null || newnode.status != AmazonNodeStatus.AVAILABLE)
+                if (newnode == null)
                 {
                     itemsTreeCache.AddItemOnly(FSItem.MakeNotExistingDummy(curpath));
 
@@ -605,7 +582,7 @@ namespace Azi.ACDDokanNet
                     return null;
                 }
 
-                item = FSItem.FromNode(curpath, newnode);
+                item = newnode.FilePath(curpath).Build();
                 itemsTreeCache.Add(item);
             }
 

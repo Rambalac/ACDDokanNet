@@ -18,14 +18,14 @@ namespace Azi.ACDDokanNet
         private static ConcurrentDictionary<AmazonDrive, SmallFilesCache> instances = new ConcurrentDictionary<AmazonDrive, SmallFilesCache>(10, 3);
         private static ConcurrentDictionary<string, Downloader> downloaders = new ConcurrentDictionary<string, Downloader>(10, 3);
 
-        private readonly AmazonDrive amazon;
+        private readonly IHttpCloud amazon;
 
         private long totalSize = 0;
         private bool cleaning = false;
 
         private ConcurrentDictionary<string, CacheEntry> access = new ConcurrentDictionary<string, CacheEntry>(10, 1000);
 
-        public SmallFilesCache(AmazonDrive a)
+        public SmallFilesCache(IHttpCloud a)
         {
             amazon = a;
         }

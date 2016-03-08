@@ -76,7 +76,10 @@
     <Compile Include="ACDDokanNetItemInfo.cs" />
     <Compile Include="ContextMenu.cs" />
     <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="INodeExtendedInfoTempLink.cs" />
+    <Compile Include="INodeExtendedInfoWebLink.cs" />
     <Compile Include="NativeMethods.cs" />
+    <Compile Include="NodeExtendedInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
