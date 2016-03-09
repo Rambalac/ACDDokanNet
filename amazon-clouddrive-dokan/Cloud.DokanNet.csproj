@@ -52,10 +52,6 @@
     </ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="AmazonCloudDriveApi, Version=1.1.0.20597, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\AmazonCloudDriveApi.1.1.0\lib\net45\AmazonCloudDriveApi.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="DokanNet, Version=1.0.8.0, Culture=neutral, PublicKeyToken=3709aaa01df28a9e, processorArchitecture=MSIL">
       <HintPath>..\packages\DokanNet.1.0.8.0\lib\net40\DokanNet.dll</HintPath>
       <Private>True</Private>
@@ -71,18 +67,15 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AbstractBlockStream.cs" />
-    <Compile Include="AmazonCloud.cs" />
     <Compile Include="Block.cs" />
     <Compile Include="BufferedAmazonBlockReader.cs" />
     <Compile Include="ByteArrayBlockReader.cs" />
     <Compile Include="Downloader.cs" />
     <Compile Include="FileBlockReader.cs" />
-    <Compile Include="FSItem.cs" />
     <Compile Include="FSProvider.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="HardLink.cs" />
     <Compile Include="IBlockStream.cs" />
-    <Compile Include="IHttpCloud.cs" />
     <Compile Include="ItemsTreeCache.cs" />
     <Compile Include="NativeMethods.cs" />
     <Compile Include="NewFileBlockWriter.cs" />
@@ -104,9 +97,13 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ShellExtension\ShellExtension.csproj">
-      <Project>{8dac61ef-e07b-4bd2-8d79-5865ef2799bb}</Project>
-      <Name>ShellExtension</Name>
+    <ProjectReference Include="..\AmazonCloudDrive\AmazonCloudDrive.csproj">
+      <Project>{43097c04-9303-428d-a06c-1d2bf1d6647d}</Project>
+      <Name>AmazonCloudDrive</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Cloud.Common\Cloud.Common.csproj">
+      <Project>{93841375-56d7-4b34-aa7c-ba69f29f8b66}</Project>
+      <Name>Cloud.Common</Name>
     </ProjectReference>
     <ProjectReference Include="..\Tools\Tools.csproj">
       <Project>{199cdb28-7472-41bd-bb1f-bf345451a68d}</Project>

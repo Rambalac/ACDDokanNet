@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace ShellExtension
+namespace Azi.ShellExtension
 {
     public static class NativeMethods
     {

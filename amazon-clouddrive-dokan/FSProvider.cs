@@ -6,17 +6,15 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Azi.Amazon.CloudDrive;
-using Azi.Amazon.CloudDrive.JsonObjects;
 using Azi.Tools;
 using Newtonsoft.Json;
-using ShellExtension;
+using Azi.Cloud.Common;
 
 namespace Azi.ACDDokanNet
 {
     public class FSProvider : IDisposable
     {
-        private readonly IHttpCloud amazon;
+        private readonly IHttpCloud cloud;
 
         private readonly ItemsTreeCache itemsTreeCache = new ItemsTreeCache();
 
@@ -28,10 +26,10 @@ namespace Azi.ACDDokanNet
 
         private bool disposedValue = false; // To detect redundant calls
 
-        public FSProvider(IHttpCloud amazon)
+        public FSProvider(IHttpCloud cloud)
         {
-            this.amazon = amazon;
-            SmallFilesCache = new SmallFilesCache(amazon);
+            this.cloud = cloud;
+            SmallFilesCache = new SmallFilesCache(cloud);
             SmallFilesCache.OnDownloadStarted = (id) =>
             {
                 Interlocked.Increment(ref downloadingCount);
@@ -48,7 +46,7 @@ namespace Azi.ACDDokanNet
                 OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
             };
 
-            UploadService = new UploadService(2, amazon);
+            UploadService = new UploadService(2, cloud);
             UploadService.OnUploadFailed = (uploaditem, reason) =>
             {
                 Interlocked.Decrement(ref uploadingCount);
@@ -106,7 +104,7 @@ namespace Azi.ACDDokanNet
 
         public StatisticsUpdated OnStatisticsUpdated { get; set; }
 
-        public long AvailableFreeSpace => amazon.AvailableFreeSpace;
+        public long AvailableFreeSpace => cloud.AvailableFreeSpace;
 
         public string CachePath
         {
@@ -134,11 +132,11 @@ namespace Azi.ACDDokanNet
             }
         }
 
-        public long TotalSize => amazon.TotalSize;
+        public long TotalSize => cloud.TotalSize;
 
-        public long TotalFreeSpace => amazon.TotalFreeSpace;
+        public long TotalFreeSpace => cloud.TotalFreeSpace;
 
-        public long TotalUsedSpace => amazon.TotalUsedSpace;
+        public long TotalUsedSpace => cloud.TotalUsedSpace;
 
         public string VolumeName => FileSystemName;
 
@@ -203,7 +201,7 @@ namespace Azi.ACDDokanNet
             var dirNode = GetItem(dir);
 
             var name = Path.GetFileName(filePath);
-            var node = amazon.Nodes.CreateFolder(dirNode.Id, name).Result;
+            var node = cloud.Nodes.CreateFolder(dirNode.Id, name).Result;
 
             itemsTreeCache.Add(node.FilePath(filePath).Build());
         }
@@ -235,7 +233,7 @@ namespace Azi.ACDDokanNet
 
                 Interlocked.Increment(ref downloadingCount);
                 OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
-                var buffered = new BufferedAmazonBlockReader(item, amazon);
+                var buffered = new BufferedAmazonBlockReader(item, cloud);
                 buffered.OnClose = () =>
                   {
                       Interlocked.Decrement(ref downloadingCount);
@@ -339,7 +337,7 @@ namespace Azi.ACDDokanNet
             }
 
             var folderNode = GetItem(folderPath);
-            var nodes = await amazon.Nodes.GetChildren(folderNode?.Id);
+            var nodes = await cloud.Nodes.GetChildren(folderNode?.Id);
             var items = new List<FSItem>(nodes.Count);
             var curdir = folderPath;
             if (curdir == "\\")
@@ -381,7 +379,7 @@ namespace Azi.ACDDokanNet
 
         public async Task BuildItemInfo(FSItem item)
         {
-            var info = await amazon.Nodes.GetNodeExtended(item.Id);
+            var info = await cloud.Nodes.GetNodeExtended(item.Id);
 
             string str = JsonConvert.SerializeObject(info);
             item.Info = Encoding.UTF8.GetBytes(str);
@@ -407,7 +405,7 @@ namespace Azi.ACDDokanNet
             {
                 if (item.Length > 0)
                 {
-                    item = amazon.Nodes.Rename(item.Id, newName).Result.FilePath(Path.Combine(oldDir, newName)).Build();
+                    item = cloud.Nodes.Rename(item.Id, newName).Result.FilePath(Path.Combine(oldDir, newName)).Build();
                 }
                 else
                 {
@@ -430,7 +428,7 @@ namespace Azi.ACDDokanNet
                 Task.WaitAll(oldDirNodeTask, newDirNodeTask);
                 if (item.Length > 0)
                 {
-                    item = amazon.Nodes.Move(item.Id, oldDirNodeTask.Result.Id, newDirNodeTask.Result.Id).Result.FilePath(newPath).Build();
+                    item = cloud.Nodes.Move(item.Id, oldDirNodeTask.Result.Id, newDirNodeTask.Result.Id).Result.FilePath(newPath).Build();
                     if (item == null)
                     {
                         throw new InvalidOperationException("Can not move");
@@ -494,22 +492,18 @@ namespace Azi.ACDDokanNet
             {
                 if (item.ParentIds.Count == 1)
                 {
-                    amazon.Nodes.Trash(item.Id).Wait();
+                    cloud.Nodes.Trash(item.Id).Wait();
                 }
                 else
                 {
                     var dir = Path.GetDirectoryName(filePath);
                     var dirItem = GetItem(dir);
-                    amazon.Nodes.Remove(dirItem.Id, item.Id).Wait();
+                    cloud.Nodes.Remove(dirItem.Id, item.Id).Wait();
                 }
             }
-            catch (AggregateException ex)
+            catch (CloudException ex) when (ex.Error == HttpStatusCode.NotFound || ex.Error == HttpStatusCode.Conflict)
             {
-                var webex = ex.InnerException as HttpWebException;
-                if (webex == null || (webex.StatusCode != HttpStatusCode.NotFound && webex.StatusCode != HttpStatusCode.Conflict))
-                {
-                    throw ex.InnerException;
-                }
+                Log.Warn(ex.Error.ToString());
             }
         }
 
@@ -529,7 +523,7 @@ namespace Azi.ACDDokanNet
         {
             if (itemPath == "\\" || itemPath == string.Empty)
             {
-                return (await amazon.Nodes.GetRoot()).BuildRoot();
+                return (await cloud.Nodes.GetRoot()).BuildRoot();
             }
 
             var cached = itemsTreeCache.GetItem(itemPath);
@@ -561,7 +555,7 @@ namespace Azi.ACDDokanNet
             while (item == null);
             if (item == null)
             {
-                item = (await amazon.Nodes.GetRoot()).BuildRoot();
+                item = (await cloud.Nodes.GetRoot()).BuildRoot();
             }
 
             foreach (var name in folders)
@@ -573,7 +567,7 @@ namespace Azi.ACDDokanNet
 
                 curpath = curpath + "\\" + name;
 
-                var newnode = await amazon.Nodes.GetChild(item.Id, name);
+                var newnode = await cloud.Nodes.GetChild(item.Id, name);
                 if (newnode == null)
                 {
                     itemsTreeCache.AddItemOnly(FSItem.MakeNotExistingDummy(curpath));

@@ -35,10 +35,6 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="AmazonCloudDriveApi, Version=1.1.0.20597, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\AmazonCloudDriveApi.1.1.0\lib\net45\AmazonCloudDriveApi.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.8.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
@@ -90,9 +86,9 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\amazon-clouddrive-dokan\amazon-clouddrive-dokan.csproj">
+    <ProjectReference Include="..\amazon-clouddrive-dokan\Cloud.DokanNet.csproj">
       <Project>{213AA535-DB16-4CF9-B3F1-324FF9347F8D}</Project>
-      <Name>amazon-clouddrive-dokan</Name>
+      <Name>Cloud.DokanNet</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

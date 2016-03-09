@@ -9,8 +9,9 @@ using Newtonsoft.Json;
 using SharpShell.Attributes;
 using SharpShell.SharpContextMenu;
 using Trinet.Core.IO.Ntfs;
+using Azi.Cloud.Common;
 
-namespace ShellExtension
+namespace Azi.ShellExtension
 {
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Interoperability", "CA1405:ComVisibleTypeBaseTypesShouldBeComVisible", Justification = "Must be COM visible")]
     [ComVisible(true)]
@@ -18,8 +19,6 @@ namespace ShellExtension
     [COMServerAssociation(AssociationType.Directory)]
     public class ContextMenu : SharpContextMenu
     {
-        public const string ACDDokanNetInfoStreamName = "ACDDokanNetInfo";
-
         protected new virtual IEnumerable<string> SelectedItemPaths
         {
             get { return base.SelectedItemPaths; }
@@ -27,7 +26,7 @@ namespace ShellExtension
 
         protected static object ReadInfo(string path)
         {
-            using (var info = FileSystem.GetAlternateDataStream(path, ACDDokanNetInfoStreamName).OpenText())
+            using (var info = FileSystem.GetAlternateDataStream(path, ACDDokanNetItemInfo.ACDDokanNetItemInfoStreamName).OpenText())
             {
                 string text = info.ReadToEnd();
                 var type = JsonConvert.DeserializeObject<NodeExtendedInfo>(text);
@@ -42,7 +41,7 @@ namespace ShellExtension
 
         protected override bool CanShowMenu()
         {
-            return SelectedItemPaths.All((path) => FileSystem.AlternateDataStreamExists(path, ACDDokanNetInfoStreamName));
+            return SelectedItemPaths.All((path) => FileSystem.AlternateDataStreamExists(path, ACDDokanNetItemInfo.ACDDokanNetItemInfoStreamName));
         }
 
         protected override ContextMenuStrip CreateMenu()

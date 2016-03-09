@@ -7,8 +7,8 @@ using System.Security.AccessControl;
 using System.Security.Principal;
 using Azi.Tools;
 using DokanNet;
-using ShellExtension;
 using FileAccess = DokanNet.FileAccess;
+using Azi.Cloud.Common;
 
 namespace Azi.ACDDokanNet
 {
@@ -317,7 +317,7 @@ namespace Azi.ACDDokanNet
 
                 switch (streamName)
                 {
-                    case ContextMenu.ACDDokanNetInfoStreamName:
+                    case ACDDokanNetItemInfo.ACDDokanNetItemInfoStreamName:
                         if (item.Info == null)
                         {
                             provider.BuildItemInfo(item).Wait();
@@ -623,7 +623,7 @@ namespace Azi.ACDDokanNet
                 {
                     var infostream = new FileInformation
                     {
-                        FileName = $":{ContextMenu.ACDDokanNetInfoStreamName}:$DATA",
+                        FileName = $":{ACDDokanNetItemInfo.ACDDokanNetItemInfoStreamName}:$DATA",
                         Length = 1
                     };
                     streams.Add(infostream);

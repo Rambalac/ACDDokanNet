@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.IO;
 using System.Threading;
 using Azi.Tools;
+using Azi.Cloud.Common;
 
 namespace Azi.ACDDokanNet
 {

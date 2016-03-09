@@ -6,8 +6,8 @@ using System.Linq;
 using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
-using Azi.Amazon.CloudDrive;
 using Azi.Tools;
+using Azi.Cloud.Common;
 
 namespace Azi.ACDDokanNet
 {
@@ -15,7 +15,7 @@ namespace Azi.ACDDokanNet
     {
         private static string cachePath = null;
 
-        private static ConcurrentDictionary<AmazonDrive, SmallFilesCache> instances = new ConcurrentDictionary<AmazonDrive, SmallFilesCache>(10, 3);
+        private static ConcurrentDictionary<IHttpCloud, SmallFilesCache> instances = new ConcurrentDictionary<IHttpCloud, SmallFilesCache>(10, 3);
         private static ConcurrentDictionary<string, Downloader> downloaders = new ConcurrentDictionary<string, Downloader>(10, 3);
 
         private readonly IHttpCloud amazon;

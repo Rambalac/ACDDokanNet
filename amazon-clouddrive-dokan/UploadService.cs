@@ -4,10 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Azi.Amazon.CloudDrive;
-using Azi.Amazon.CloudDrive.JsonObjects;
 using Azi.Tools;
 using Newtonsoft.Json;
+using Azi.Cloud.Common;
 
 namespace Azi.ACDDokanNet
 {
@@ -26,17 +25,17 @@ namespace Azi.ACDDokanNet
 
         private readonly BlockingCollection<UploadInfo> uploads = new BlockingCollection<UploadInfo>();
         private readonly CancellationTokenSource cancellation = new CancellationTokenSource();
-        private readonly IHttpCloud amazon;
+        private readonly IHttpCloud cloud;
         private readonly int uploadLimit;
         private string cachePath;
         private bool disposedValue = false; // To detect redundant calls
         private Task serviceTask;
 
-        public UploadService(int limit, IHttpCloud amazon)
+        public UploadService(int limit, IHttpCloud cloud)
         {
             uploadLimit = limit;
             uploadLimitSemaphore = new SemaphoreSlim(limit);
-            this.amazon = amazon;
+            this.cloud = cloud;
         }
 
         public delegate void OnUploadFinishedDelegate(UploadInfo item, FSItem.Builder amazonNode);
@@ -249,14 +248,14 @@ namespace Azi.ACDDokanNet
                 FSItem.Builder node;
                 if (!item.Overwrite)
                 {
-                    node = await amazon.Files.UploadNew(
+                    node = await cloud.Files.UploadNew(
                         item.ParentId,
                         Path.GetFileName(item.Path),
                         () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, true));
                 }
                 else
                 {
-                    node = await amazon.Files.Overwrite(
+                    node = await cloud.Files.Overwrite(
                         item.Id,
                         () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, true));
                 }
@@ -273,9 +272,9 @@ namespace Azi.ACDDokanNet
                 Log.Trace("Finished upload: " + item.Path + " id:" + node.Id);
                 return;
             }
-            catch (HttpWebException ex)
+            catch (CloudException ex)
             {
-                if (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
+                if (ex.Error == System.Net.HttpStatusCode.Conflict)
                 {
                     Log.Error($"Upload conflict: {item.Path}\r\n{ex}");
                     return;

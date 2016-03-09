@@ -4,7 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
-using Azi.Amazon.CloudDrive;
 using Azi.Tools;
 using Microsoft.Win32;
 using Application = System.Windows.Application;
@@ -14,7 +13,7 @@ namespace Azi.ACDDokanNet.Gui
     /// <summary>
     /// Interaction logic for App.xaml
     /// </summary>
-    public partial class App : Application, IDisposable, ITokenUpdateListener
+    public partial class App : Application, IDisposable, IAuthUpdateListener
     {
         public static new App Current => Application.Current as App;
 
@@ -207,35 +206,6 @@ namespace Azi.ACDDokanNet.Gui
         private object mountLock = new object();
         private VirtualDriveWrapper cloudDrive;
         private FSProvider provider;
-
-        private async Task<AmazonDrive> Authenticate(CancellationToken cs, bool interactiveAuth = true)
-        {
-            var settings = Gui.Properties.Settings.Default;
-            var amazon = new AmazonDrive(AmazonSecret.ClientId, AmazonSecret.ClientSecret);
-            amazon.OnTokenUpdate = this;
-
-            if (!string.IsNullOrWhiteSpace(settings.AuthRenewToken))
-            {
-                if (await amazon.Authentication(
-                    settings.AuthToken,
-                    settings.AuthRenewToken,
-                    settings.AuthTokenExpiration))
-                {
-                    return amazon;
-                }
-            }
-
-            if (interactiveAuth)
-            {
-                if (await amazon.SafeAuthenticationAsync(CloudDriveScope.ReadAll | CloudDriveScope.Write, TimeSpan.FromMinutes(10), cs))
-                {
-                    return amazon;
-                }
-            }
-
-            cs.ThrowIfCancellationRequested();
-            return null;
-        }
 
         internal void ClearCredentials()
         {

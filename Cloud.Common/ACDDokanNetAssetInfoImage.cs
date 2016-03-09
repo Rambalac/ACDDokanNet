@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace ShellExtension
+﻿namespace Azi.Cloud.Common
 {
 
     public class ACDDokanNetAssetInfoImage

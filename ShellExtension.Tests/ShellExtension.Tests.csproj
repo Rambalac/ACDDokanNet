@@ -70,9 +70,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ShellExtension\ShellExtension.csproj">
+    <ProjectReference Include="..\ShellExtension\Cloud.ShellExtension.csproj">
       <Project>{8DAC61EF-E07B-4BD2-8D79-5865EF2799BB}</Project>
-      <Name>ShellExtension</Name>
+      <Name>Cloud.ShellExtension</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

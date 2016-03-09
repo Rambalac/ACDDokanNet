@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Threading;
-using Azi.Amazon.CloudDrive.JsonObjects;
-using System.Collections.Generic;
 
-namespace Azi.ACDDokanNet
+namespace Azi.Cloud.Common
 {
     public class FSItem
     {
@@ -34,7 +32,7 @@ namespace Azi.ACDDokanNet
         // To replacement to cache files in path that does not exist
         public bool NotExistingDummy { get; private set; } = false;
 
-        public string Path { get; internal set; }
+        public string Path { get; set; }
 
         public ConcurrentBag<string> ParentIds { get; private set; }
 
@@ -49,7 +47,7 @@ namespace Azi.ACDDokanNet
                 return Interlocked.Read(ref length);
             }
 
-            internal set
+            set
             {
                 Interlocked.Exchange(ref length, value);
             }
@@ -59,13 +57,13 @@ namespace Azi.ACDDokanNet
 
         public string Name => System.IO.Path.GetFileName(Path);
 
-        public DateTime LastAccessTime { get; internal set; }
+        public DateTime LastAccessTime { get; set; }
 
-        public DateTime LastWriteTime { get; internal set; }
+        public DateTime LastWriteTime { get; set; }
 
-        public DateTime CreationTime { get; internal set; }
+        public DateTime CreationTime { get; set; }
 
-        public byte[] Info { get; internal set; }
+        public byte[] Info { get; set; }
 
         public static FSItem MakeNotExistingDummy(string path)
         {
@@ -107,23 +105,23 @@ namespace Azi.ACDDokanNet
 
         public class Builder
         {
-            public DateTime CreationTime { get; internal set; }
+            public DateTime CreationTime { get; set; }
 
-            public string Id { get; internal set; }
+            public string Id { get; set; }
 
-            public bool IsDir { get; internal set; }
+            public bool IsDir { get; set; }
 
-            public DateTime LastAccessTime { get; internal set; }
+            public DateTime LastAccessTime { get; set; }
 
-            public DateTime LastWriteTime { get; internal set; }
+            public DateTime LastWriteTime { get; set; }
 
-            public long Length { get; internal set; }
+            public long Length { get; set; }
 
             public string Name { get; set; }
 
-            public ConcurrentBag<string> ParentIds { get; internal set; }
+            public ConcurrentBag<string> ParentIds { get; set; }
 
-            public string Path { get; internal set; }
+            public string Path { get; set; }
 
             public FSItem Build()
             {
@@ -146,7 +144,7 @@ namespace Azi.ACDDokanNet
                 return this;
             }
 
-            internal FSItem BuildRoot()
+            public FSItem BuildRoot()
             {
                 Path = "\\";
                 return Build();

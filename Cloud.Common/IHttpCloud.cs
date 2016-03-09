@@ -1,14 +1,21 @@
-﻿using System;
+﻿using Cloud.Common;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
-using Azi.Amazon.CloudDrive.JsonObjects;
 
-namespace Azi.ACDDokanNet
+namespace Azi.Cloud.Common
 {
     public interface IHttpCloud
     {
+        Task AuthenticateNew(CancellationToken cs);
+
+        Task AuthenticateSaved(CancellationToken cs, string save);
+
+        IAuthUpdateListener OnAuthUpdated { get; set; }
+
         long AvailableFreeSpace { get; }
 
         long TotalFreeSpace { get; }

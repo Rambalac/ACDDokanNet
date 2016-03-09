@@ -3,8 +3,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Azi.Amazon.CloudDrive;
 using Azi.Tools;
+using Azi.Cloud.Common;
 
 namespace Azi.ACDDokanNet
 {
@@ -14,14 +14,14 @@ namespace Azi.ACDDokanNet
         private const int KeepLastBlocks = 5;
 
         private readonly ConcurrentDictionary<long, Block> blocks = new ConcurrentDictionary<long, Block>(5, KeepLastBlocks * 5);
-        private IHttpCloud amazon;
+        private IHttpCloud cloud;
         private FSItem item;
         private long lastBlock = 0;
 
-        public BufferedAmazonBlockReader(FSItem item, IHttpCloud amazon)
+        public BufferedAmazonBlockReader(FSItem item, IHttpCloud cloud)
         {
             this.item = item;
-            this.amazon = amazon;
+            this.cloud = cloud;
         }
 
         public override void Flush()
@@ -103,7 +103,7 @@ namespace Azi.ACDDokanNet
             int left = count;
             while (left > 0)
             {
-                int red = amazon.Files.Download(item.Id, result, offset, pos, left).Result;
+                int red = cloud.Files.Download(item.Id, result, offset, pos, left).Result;
                 if (red == 0)
                 {
                     Log.Error("Download 0");

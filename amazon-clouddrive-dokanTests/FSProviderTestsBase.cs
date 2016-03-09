@@ -1,7 +1,5 @@
-﻿using Xunit;
-using System;
+﻿using System;
 using System.Threading.Tasks;
-using Azi.Amazon.CloudDrive;
 using System.IO;
 using System.Threading;
 

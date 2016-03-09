@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using Azi.Tools;
 using System.Threading;
+using Azi.Cloud.Common;
 
 namespace Azi.ACDDokanNet
 {
