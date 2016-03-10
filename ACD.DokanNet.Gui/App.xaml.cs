@@ -216,7 +216,7 @@ namespace Azi.ACDDokanNet.Gui
 
             if (!string.IsNullOrWhiteSpace(settings.AuthRenewToken))
             {
-                if (await amazon.Authentication(
+                if (await amazon.AuthenticationByTokens(
                     settings.AuthToken,
                     settings.AuthRenewToken,
                     settings.AuthTokenExpiration))
@@ -227,7 +227,7 @@ namespace Azi.ACDDokanNet.Gui
 
             if (interactiveAuth)
             {
-                if (await amazon.SafeAuthenticationAsync(CloudDriveScope.ReadAll | CloudDriveScope.Write, TimeSpan.FromMinutes(10), cs))
+                if (await amazon.AuthenticationByExternalBrowser(CloudDriveScope.ReadAll | CloudDriveScope.Write, TimeSpan.FromMinutes(10), cs, "http://localhost:{0}/signin/"))
                 {
                     return amazon;
                 }

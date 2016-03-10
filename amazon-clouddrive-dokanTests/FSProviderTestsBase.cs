@@ -63,7 +63,7 @@ namespace Azi.ACDDokanNet.Tests
 
             if (!string.IsNullOrWhiteSpace(settings.AuthRenewToken))
             {
-                if (await amazon.Authentication(
+                if (await amazon.AuthenticationByTokens(
                     settings.AuthToken,
                     settings.AuthRenewToken,
                     settings.AuthTokenExpiration))
@@ -72,7 +72,7 @@ namespace Azi.ACDDokanNet.Tests
                 }
             }
 
-            if (await amazon.SafeAuthenticationAsync(CloudDriveScope.ReadAll | CloudDriveScope.Write, TimeSpan.FromMinutes(10)))
+            if (await amazon.AuthenticationByExternalBrowser(CloudDriveScope.ReadAll | CloudDriveScope.Write, TimeSpan.FromMinutes(10)))
             {
                 return amazon;
             }
