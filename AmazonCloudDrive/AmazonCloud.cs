@@ -1,25 +1,31 @@
-﻿using Azi.Amazon.CloudDrive;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Azi.Amazon.CloudDrive.JsonObjects;
 using System.Collections.Concurrent;
 using System.Net;
 using Azi.Cloud.Common;
-using Azi.Tools;
-using Cloud.Common;
 using System.Threading;
 using Newtonsoft.Json;
+using Azi.Amazon.CloudDrive.JsonObjects;
+using Azi.Amazon.CloudDrive;
+using Azi.Tools;
 
 namespace Azi.Cloud.DokanNet.AmazonCloudDrive
 {
-    public sealed class AmazonCloud : IHttpCloud, IHttpCloudFiles, IHttpCloudNodes, ITokenUpdateListener
+    public sealed class AmazonCloud : IHttpCloud, IHttpCloudFiles, IHttpCloudNodes
     {
         private static readonly AmazonNodeKind[] FsItemKinds = { AmazonNodeKind.FILE, AmazonNodeKind.FOLDER };
 
         private AmazonDrive amazon;
+
+        private TokenUpdateListener tokenUpdateListener;
+
+        public AmazonCloud()
+        {
+            tokenUpdateListener = new TokenUpdateListener(this);
+        }
 
         public IHttpCloudFiles Files => this;
 
@@ -130,7 +136,6 @@ namespace Azi.Cloud.DokanNet.AmazonCloudDrive
             try
             {
                 return FromNode(await amazon.Nodes.Move(itemId, oldParentId, newParentId));
-
             }
             catch (Exception ex)
             {
@@ -264,40 +269,56 @@ namespace Azi.Cloud.DokanNet.AmazonCloudDrive
                 throw ProcessException(ex);
             }
         }
-        public Task AuthenticateNew(CancellationToken cs)
+
+        public Task<bool> AuthenticateNew(CancellationToken cs)
         {
             var amazon = new AmazonDrive(AmazonSecret.ClientId, AmazonSecret.ClientSecret);
             return Task.Run(async () =>
             {
-                if (await amazon.SafeAuthenticationAsync(CloudDriveScope.ReadAll | CloudDriveScope.Write, TimeSpan.FromMinutes(10), cs))
+                if (await amazon.AuthenticationByExternalBrowser(CloudDriveScope.ReadAll | CloudDriveScope.Write, TimeSpan.FromMinutes(10), cs))
                 {
                     this.amazon = amazon;
                 }
-                else throw new CloudException(HttpStatusCode.Unauthorized, null);
+                else
+                {
+                    return false;
+                }
 
                 cs.ThrowIfCancellationRequested();
+                return true;
             });
         }
 
-        public Task AuthenticateSaved(CancellationToken cs, string save)
+        public Task<bool> AuthenticateSaved(CancellationToken cs, string save)
         {
             var amazon = new AmazonDrive(AmazonSecret.ClientId, AmazonSecret.ClientSecret);
-            amazon.OnTokenUpdate = this;
-            var authinfo = JsonConvert.DeserializeObject<AuthInfo>(save);
-
-            return Task.Run(async () =>
+            amazon.OnTokenUpdate = tokenUpdateListener;
+            try
             {
-                if (await amazon.Authentication(
-                authinfo.AuthToken,
-                authinfo.AuthRenewToken,
-                authinfo.AuthTokenExpiration))
-                {
-                    this.amazon = amazon;
-                }
-                else throw new CloudException(HttpStatusCode.Unauthorized, null);
+                var authinfo = JsonConvert.DeserializeObject<AuthInfo>(save);
 
-                cs.ThrowIfCancellationRequested();
-            });
+                return Task.Run(async () =>
+                {
+                    if (await amazon.AuthenticationByTokens(
+                    authinfo.AuthToken,
+                    authinfo.AuthRenewToken,
+                    authinfo.AuthTokenExpiration))
+                    {
+                        this.amazon = amazon;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+
+                    cs.ThrowIfCancellationRequested();
+                    return true;
+                });
+            }
+            catch (JsonReaderException)
+            {
+                return Task.FromResult(false);
+            }
         }
 
         /// <summary>
@@ -325,23 +346,37 @@ namespace Azi.Cloud.DokanNet.AmazonCloudDrive
             var webex = (ex as HttpWebException) ?? ex.InnerException as HttpWebException;
             if (webex == null)
             {
-                if (ex is AggregateException) return ex.InnerException;
+                if (ex is AggregateException)
+                {
+                    return ex.InnerException;
+                }
+
                 return ex;
             }
 
             return new CloudException(webex.StatusCode, ex);
         }
 
-        void ITokenUpdateListener.OnTokenUpdated(string access_token, string refresh_token, DateTime expires_in)
+        private class TokenUpdateListener : ITokenUpdateListener
         {
-            var authinfo = new AuthInfo
+            private readonly AmazonCloud ac;
+
+            public TokenUpdateListener(AmazonCloud ac)
             {
-                AuthToken = access_token,
-                AuthRenewToken = refresh_token,
-                AuthTokenExpiration = expires_in
-            };
-            var str = JsonConvert.SerializeObject(authinfo);
-            OnAuthUpdated?.OnAuthUpdated(this, str);
+                this.ac = ac;
+            }
+
+            public void OnTokenUpdated(string access_token, string refresh_token, DateTime expires_in)
+            {
+                var authinfo = new AuthInfo
+                {
+                    AuthToken = access_token,
+                    AuthRenewToken = refresh_token,
+                    AuthTokenExpiration = expires_in
+                };
+                var str = JsonConvert.SerializeObject(authinfo);
+                ac.OnAuthUpdated?.OnAuthUpdated(ac, str);
+            }
         }
     }
 }

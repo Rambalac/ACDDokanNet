@@ -24,6 +24,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <PlatformTarget>AnyCPU</PlatformTarget>
+    <CodeAnalysisRuleSet />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -33,6 +34,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <PlatformTarget>AnyCPU</PlatformTarget>
+    <CodeAnalysisRuleSet />
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
@@ -65,7 +67,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AmazonSecret.cs" />
     <Compile Include="FSProviderTests.cs" />
     <Compile Include="FSProviderTestsBase.cs" />
     <Compile Include="GlobalSuppressions.cs" />
@@ -90,14 +91,17 @@
       <Project>{213AA535-DB16-4CF9-B3F1-324FF9347F8D}</Project>
       <Name>Cloud.DokanNet</Name>
     </ProjectReference>
+    <ProjectReference Include="..\AmazonCloudDrive\AmazonCloudDrive.csproj">
+      <Project>{43097c04-9303-428d-a06c-1d2bf1d6647d}</Project>
+      <Name>AmazonCloudDrive</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Cloud.Common\Cloud.Common.csproj">
+      <Project>{93841375-56D7-4B34-AA7C-BA69F29F8B66}</Project>
+      <Name>Cloud.Common</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
-  </ItemGroup>
-  <ItemGroup>
-    <Analyzer Include="..\packages\StyleCop.Analyzers.1.0.0\analyzers\dotnet\cs\Newtonsoft.Json.dll" />
-    <Analyzer Include="..\packages\StyleCop.Analyzers.1.0.0\analyzers\dotnet\cs\StyleCop.Analyzers.CodeFixes.dll" />
-    <Analyzer Include="..\packages\StyleCop.Analyzers.1.0.0\analyzers\dotnet\cs\StyleCop.Analyzers.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

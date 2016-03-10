@@ -7,6 +7,8 @@ using System.Windows.Forms;
 using Azi.Tools;
 using Microsoft.Win32;
 using Application = System.Windows.Application;
+using Azi.Cloud.Common;
+using Azi.Cloud.DokanNet.AmazonCloudDrive;
 
 namespace Azi.ACDDokanNet.Gui
 {
@@ -288,15 +290,18 @@ namespace Azi.ACDDokanNet.Gui
 
                           mountedLetter = driveLetter;
                       }
-                      AmazonDrive amazon = await Authenticate(cs, interactiveAuth);
-                      if (amazon == null)
+                      var cloud = new AmazonCloud();
+                      cloud.OnAuthUpdated = this;
+                      await Authenticate(cloud, cs, interactiveAuth);
+
+                      if (cloud == null)
                       {
                           Log.Error("Authentication failed");
                           mountedEvent.SetException(new InvalidOperationException("Authentication failed"));
                           return;
                       }
 
-                      provider = new FSProvider(new AmazonCloud(amazon));
+                      provider = new FSProvider(cloud);
                       provider.CachePath = Environment.ExpandEnvironmentVariables(Gui.Properties.Settings.Default.CacheFolder);
                       provider.SmallFilesCacheSize = Gui.Properties.Settings.Default.SmallFilesCacheLimit * (1 << 20);
                       provider.SmallFileSizeLimit = Gui.Properties.Settings.Default.SmallFileSizeLimit * (1 << 20);
@@ -357,6 +362,27 @@ namespace Azi.ACDDokanNet.Gui
             return await mountedEvent.Task;
         }
 
+        private async Task<bool> Authenticate(IHttpCloud cloud, CancellationToken cs, bool interactiveAuth)
+        {
+            var settings = Gui.Properties.Settings.Default;
+            var authinfo = settings.AuthToken;
+            if (string.IsNullOrWhiteSpace(authinfo))
+            {
+                if (!interactiveAuth)
+                {
+                    return false;
+                }
+
+                await cloud.AuthenticateNew(cs);
+
+                return true;
+            }
+
+            await cloud.AuthenticateSaved(cs, authinfo);
+
+            return true;
+        }
+
         private void Application_Exit(object sender, ExitEventArgs e)
         {
             if (notifyIcon != null)
@@ -371,15 +397,6 @@ namespace Azi.ACDDokanNet.Gui
 
             VirtualDriveWrapper.Unmount((char)mountedLetter);
             mountTask.Wait();
-        }
-
-        public void OnTokenUpdated(string access_token, string refresh_token, DateTime expires_in)
-        {
-            var settings = Gui.Properties.Settings.Default;
-            settings.AuthToken = access_token;
-            settings.AuthRenewToken = refresh_token;
-            settings.AuthTokenExpiration = expires_in;
-            settings.Save();
         }
 
         private bool disposedValue = false; // To detect redundant calls
@@ -414,6 +431,13 @@ namespace Azi.ACDDokanNet.Gui
 
             // TODO: uncomment the following line if the finalizer is overridden above.
             // GC.SuppressFinalize(this);
+        }
+
+        public void OnAuthUpdated(IHttpCloud sender, string authinfo)
+        {
+            var settings = Gui.Properties.Settings.Default;
+            settings.AuthToken = authinfo;
+            settings.Save();
         }
     }
 }

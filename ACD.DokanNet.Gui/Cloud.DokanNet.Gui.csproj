@@ -40,6 +40,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <CodeAnalysisRuleSet>..\Cloud.DokanNet.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -50,6 +51,7 @@
     </DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <CodeAnalysisRuleSet>..\Cloud.DokanNet.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup>
     <SignAssembly>false</SignAssembly>
@@ -67,7 +69,8 @@
     <DebugType>full</DebugType>
     <PlatformTarget>x64</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>
+    </CodeAnalysisRuleSet>
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
@@ -76,7 +79,8 @@
     <DebugType>pdbonly</DebugType>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>
+    </CodeAnalysisRuleSet>
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
@@ -114,7 +118,6 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="MountWaitBox.xaml.cs">
       <DependentUpon>MountWaitBox.xaml</DependentUpon>
     </Compile>
@@ -171,6 +174,14 @@
     <ProjectReference Include="..\amazon-clouddrive-dokan\Cloud.DokanNet.csproj">
       <Project>{213aa535-db16-4cf9-b3f1-324ff9347f8d}</Project>
       <Name>Cloud.DokanNet</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\AmazonCloudDrive\AmazonCloudDrive.csproj">
+      <Project>{43097c04-9303-428d-a06c-1d2bf1d6647d}</Project>
+      <Name>AmazonCloudDrive</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Cloud.Common\Cloud.Common.csproj">
+      <Project>{93841375-56d7-4b34-aa7c-ba69f29f8b66}</Project>
+      <Name>Cloud.Common</Name>
     </ProjectReference>
     <ProjectReference Include="..\Tools\Tools.csproj">
       <Project>{199cdb28-7472-41bd-bb1f-bf345451a68d}</Project>

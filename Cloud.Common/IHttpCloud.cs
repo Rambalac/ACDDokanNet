@@ -1,5 +1,4 @@
-﻿using Cloud.Common;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -10,10 +9,6 @@ namespace Azi.Cloud.Common
 {
     public interface IHttpCloud
     {
-        Task AuthenticateNew(CancellationToken cs);
-
-        Task AuthenticateSaved(CancellationToken cs, string save);
-
         IAuthUpdateListener OnAuthUpdated { get; set; }
 
         long AvailableFreeSpace { get; }
@@ -27,6 +22,10 @@ namespace Azi.Cloud.Common
         IHttpCloudFiles Files { get; }
 
         IHttpCloudNodes Nodes { get; }
+
+        Task<bool> AuthenticateNew(CancellationToken cs);
+
+        Task<bool> AuthenticateSaved(CancellationToken cs, string save);
     }
 
     public interface IHttpCloudFiles
