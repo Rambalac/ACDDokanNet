@@ -31,7 +31,7 @@ namespace Azi.ACDDokanNet.Gui
         {
             if (e.ChangedButton == MouseButton.Left)
             {
-                this.DragMove();
+                DragMove();
             }
         }
     }

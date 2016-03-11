@@ -7,7 +7,7 @@
     <ProjectGuid>{93841375-56D7-4B34-AA7C-BA69F29F8B66}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Cloud.Common</RootNamespace>
+    <RootNamespace>Azi.Cloud.Common</RootNamespace>
     <AssemblyName>Cloud.Common</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -37,6 +37,10 @@
     </DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.8.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -51,6 +55,7 @@
     <Compile Include="ACDDokanNetAssetInfoImage.cs" />
     <Compile Include="ACDDokanNetItemInfo.cs" />
     <Compile Include="CloudException.cs" />
+    <Compile Include="CloudMount.cs" />
     <Compile Include="FSItem.cs" />
     <Compile Include="IAuthUpdateListener.cs" />
     <Compile Include="IHttpCloud.cs" />

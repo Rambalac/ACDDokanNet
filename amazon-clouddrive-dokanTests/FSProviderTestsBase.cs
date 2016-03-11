@@ -46,7 +46,7 @@ namespace Azi.ACDDokanNet.Tests
             // GC.SuppressFinalize(this);
         }
 
-        protected async Task<IHttpCloud> Authenticate()
+        protected async Task<IHttpCloud> Authenticate() 
         {
             var settings = Properties.Settings.Default;
             var amazon = new AmazonCloud();

@@ -24,7 +24,9 @@ namespace Azi.Cloud.DokanNet.AmazonCloudDrive
 
         public AmazonCloud()
         {
+            amazon = new AmazonDrive(AmazonSecret.ClientId, AmazonSecret.ClientSecret);
             tokenUpdateListener = new TokenUpdateListener(this);
+            amazon.OnTokenUpdate = tokenUpdateListener;
         }
 
         public IHttpCloudFiles Files => this;
@@ -196,6 +198,11 @@ namespace Azi.Cloud.DokanNet.AmazonCloudDrive
             try
             {
                 var node = await amazon.Nodes.GetChild(id, name);
+                if (node == null)
+                {
+                    return null;
+                }
+
                 return (node.status == AmazonNodeStatus.AVAILABLE) ? FromNode(node) : null;
             }
             catch (Exception ex)
@@ -272,14 +279,9 @@ namespace Azi.Cloud.DokanNet.AmazonCloudDrive
 
         public Task<bool> AuthenticateNew(CancellationToken cs)
         {
-            var amazon = new AmazonDrive(AmazonSecret.ClientId, AmazonSecret.ClientSecret);
             return Task.Run(async () =>
             {
-                if (await amazon.AuthenticationByExternalBrowser(CloudDriveScope.ReadAll | CloudDriveScope.Write, TimeSpan.FromMinutes(10), cs))
-                {
-                    this.amazon = amazon;
-                }
-                else
+                if (!await amazon.AuthenticationByExternalBrowser(CloudDriveScope.ReadAll | CloudDriveScope.Write, TimeSpan.FromMinutes(10), cs))
                 {
                     return false;
                 }
@@ -291,22 +293,16 @@ namespace Azi.Cloud.DokanNet.AmazonCloudDrive
 
         public Task<bool> AuthenticateSaved(CancellationToken cs, string save)
         {
-            var amazon = new AmazonDrive(AmazonSecret.ClientId, AmazonSecret.ClientSecret);
-            amazon.OnTokenUpdate = tokenUpdateListener;
             try
             {
                 var authinfo = JsonConvert.DeserializeObject<AuthInfo>(save);
 
                 return Task.Run(async () =>
                 {
-                    if (await amazon.AuthenticationByTokens(
+                    if (!await amazon.AuthenticationByTokens(
                     authinfo.AuthToken,
                     authinfo.AuthRenewToken,
                     authinfo.AuthTokenExpiration))
-                    {
-                        this.amazon = amazon;
-                    }
-                    else
                     {
                         return false;
                     }

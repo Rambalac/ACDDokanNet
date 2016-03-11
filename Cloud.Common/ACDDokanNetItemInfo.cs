@@ -6,7 +6,6 @@ namespace Azi.Cloud.Common
     {
         public const string ACDDokanNetItemInfoStreamName = "ACDDokanNetInfo";
 
-
         public string Type => nameof(ACDDokanNetItemInfo);
 
         public IList<ACDDokanNetAssetInfo> Assets { get; set; }

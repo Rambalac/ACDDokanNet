@@ -2,12 +2,12 @@
 
 namespace Azi.Cloud.DokanNet.AmazonCloudDrive
 {
-    internal class AuthInfo
+    public class AuthInfo
     {
-        public string AuthRenewToken { get; internal set; }
+        public string AuthRenewToken { get; set; }
 
-        public string AuthToken { get; internal set; }
+        public string AuthToken { get; set; }
 
-        public DateTime AuthTokenExpiration { get; internal set; }
+        public DateTime AuthTokenExpiration { get; set; }
     }
 }
