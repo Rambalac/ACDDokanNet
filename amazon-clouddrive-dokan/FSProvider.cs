@@ -428,7 +428,7 @@ namespace Azi.ACDDokanNet
             item = WaitForReal(item, 25000);
             if (oldName != newName)
             {
-                if (item.Length > 0)
+                if (item.Length > 0 || item.IsDir)
                 {
                     item = FSItem.FromNode(Path.Combine(oldDir, newName), amazon.Nodes.Rename(item.Id, newName).Result);
                 }
@@ -451,7 +451,7 @@ namespace Azi.ACDDokanNet
                 var oldDirNodeTask = FetchNode(oldDir);
                 var newDirNodeTask = FetchNode(newDir);
                 Task.WaitAll(oldDirNodeTask, newDirNodeTask);
-                if (item.Length > 0)
+                if (item.Length > 0 || item.IsDir)
                 {
                     item = FSItem.FromNode(newPath, amazon.Nodes.Move(item.Id, oldDirNodeTask.Result.Id, newDirNodeTask.Result.Id).Result);
                     if (item == null)
