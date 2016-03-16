@@ -30,6 +30,8 @@ namespace Azi.ACDDokanNet
 
         private bool disposedValue = false; // To detect redundant calls
 
+        private StatisticsUpdated onStatisticsUpdated;
+
         public FSProvider(AmazonDrive amazon)
         {
             this.amazon = amazon;
@@ -106,7 +108,19 @@ namespace Azi.ACDDokanNet
 
         public UploadService UploadService { get; private set; }
 
-        public StatisticsUpdated OnStatisticsUpdated { get; set; }
+        public StatisticsUpdated OnStatisticsUpdated
+        {
+            get
+            {
+                return onStatisticsUpdated;
+            }
+
+            set
+            {
+                onStatisticsUpdated = value;
+                onStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+            }
+        }
 
         public long AvailableFreeSpace => amazon.Account.GetQuota().Result.available;
 
@@ -133,6 +147,7 @@ namespace Azi.ACDDokanNet
                 cachePath = val;
                 SmallFilesCache.CachePath = val;
                 UploadService.CachePath = val;
+                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
             }
         }
 
