@@ -26,6 +26,8 @@ namespace Azi.ACDDokanNet
 
         private bool disposedValue = false; // To detect redundant calls
 
+        private StatisticsUpdated onStatisticsUpdated;
+
         public FSProvider(IHttpCloud cloud)
         {
             this.cloud = cloud;
@@ -102,7 +104,19 @@ namespace Azi.ACDDokanNet
 
         public UploadService UploadService { get; private set; }
 
-        public StatisticsUpdated OnStatisticsUpdated { get; set; }
+        public StatisticsUpdated OnStatisticsUpdated
+        {
+            get
+            {
+                return onStatisticsUpdated;
+            }
+
+            set
+            {
+                onStatisticsUpdated = value;
+                onStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+            }
+        }
 
         public long AvailableFreeSpace => cloud.AvailableFreeSpace;
 
@@ -129,6 +143,7 @@ namespace Azi.ACDDokanNet
                 cachePath = val;
                 SmallFilesCache.CachePath = val;
                 UploadService.CachePath = val;
+                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
             }
         }
 
@@ -346,10 +361,10 @@ namespace Azi.ACDDokanNet
             }
 
             foreach (var node in nodes)
-            {
+                {
                 var path = curdir + "\\" + node.Name;
                 items.Add(node.FilePath(path).Build());
-            }
+                }
 
             // Log.Warn("Got real dir:\r\n  " + string.Join("\r\n  ", items.Select(i => i.Path)));
             itemsTreeCache.AddDirItems(folderPath, items);
@@ -403,7 +418,7 @@ namespace Azi.ACDDokanNet
             item = WaitForReal(item, 25000);
             if (oldName != newName)
             {
-                if (item.Length > 0)
+                if (item.Length > 0 || item.IsDir)
                 {
                     item = cloud.Nodes.Rename(item.Id, newName).Result.FilePath(Path.Combine(oldDir, newName)).Build();
                 }
@@ -426,7 +441,7 @@ namespace Azi.ACDDokanNet
                 var oldDirNodeTask = FetchNode(oldDir);
                 var newDirNodeTask = FetchNode(newDir);
                 Task.WaitAll(oldDirNodeTask, newDirNodeTask);
-                if (item.Length > 0)
+                if (item.Length > 0 || item.IsDir)
                 {
                     item = cloud.Nodes.Move(item.Id, oldDirNodeTask.Result.Id, newDirNodeTask.Result.Id).Result.FilePath(newPath).Build();
                     if (item == null)
@@ -502,7 +517,7 @@ namespace Azi.ACDDokanNet
                 }
             }
             catch (CloudException ex) when (ex.Error == HttpStatusCode.NotFound || ex.Error == HttpStatusCode.Conflict)
-            {
+                {
                 Log.Warn(ex.Error.ToString());
             }
         }

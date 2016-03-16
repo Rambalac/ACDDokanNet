@@ -10,7 +10,7 @@ namespace Azi.ACDDokanNet
 {
     public class BufferedAmazonBlockReader : AbstractBlockStream
     {
-        private const int BlockSize = 4 * 1024 * 1024;
+        private const int BlockSize = 1 * 1024 * 1024;
         private const int KeepLastBlocks = 5;
 
         private readonly ConcurrentDictionary<long, Block> blocks = new ConcurrentDictionary<long, Block>(5, KeepLastBlocks * 5);

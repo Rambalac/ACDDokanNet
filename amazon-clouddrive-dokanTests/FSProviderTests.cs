@@ -1,6 +1,8 @@
 ﻿using Xunit;
 using System.IO;
 using System.Threading;
+using System.Linq;
+using System.Diagnostics;
 
 namespace Azi.ACDDokanNet.Tests
 {
@@ -135,6 +137,70 @@ namespace Azi.ACDDokanNet.Tests
             int red = Amazon.Files.Download(info.Id, buf2, 0, 0, 17).Result;
 
             Assert.Equal(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2, 1 }, buf2);
+        }
+
+        [Fact]
+        public void OpenNewBigFileAndReadTest()
+        {
+            var path = Testdir + "TestFile.txt";
+            const int size = 1500000;
+            byte[] buffer = Enumerable.Range(1, size).Select(b => (byte)(b & 255)).ToArray();
+            using (var file = Provider.OpenFile(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, FileOptions.None))
+            {
+                file.Write(0, buffer, 0, buffer.Length);
+                Debug.WriteLine("Uploaded");
+            }
+
+            while (Provider.GetItem(path).IsUploading)
+            {
+                Thread.Sleep(500);
+            }
+
+            var info = Provider.GetItem(path);
+            Assert.Equal(buffer.Length, info.Length);
+
+            var newbuf = new byte[buffer.Length];
+            var redtotal = 0;
+            using (var file = Provider.OpenFile(path, FileMode.Open, FileAccess.Read, FileShare.None, FileOptions.None))
+            {
+                int red;
+                var nextred = 1000000;
+                do
+                {
+                    red = file.Read(redtotal, newbuf, redtotal, 4096);
+                    redtotal += red;
+                    if (redtotal > nextred)
+                    {
+                        Debug.WriteLine($"Downloaded: {redtotal / 1000000}M");
+                        nextred += 1000000;
+                    }
+                } while (red > 0);
+            }
+
+            Assert.Equal(buffer.Length, redtotal);
+
+            Assert.Equal(Enumerable.Range(1, size).Select(b => (byte)(b & 255)), newbuf);
+        }
+
+        [Fact]
+        public void ReadWrongStreamTest()
+        {
+            var path = Testdir + "TestFile.txt";
+            using (var file = Provider.OpenFile(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, FileOptions.None))
+            {
+                file.Write(0, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, 0, 10);
+            }
+
+            while (Provider.GetItem(path).IsUploading)
+            {
+                Thread.Sleep(500);
+            }
+
+            var info = Provider.GetItem(path);
+            Assert.Equal(10, info.Length);
+
+            var file2 = Provider.OpenFile(path + "\\:ACDDokanNetInfo:$DATA", FileMode.Open, FileAccess.Read, FileShare.None, FileOptions.None);
+            Assert.Null(file2);
         }
 
         [Fact]

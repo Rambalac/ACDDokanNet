@@ -227,7 +227,7 @@ namespace Azi.ACDDokanNet
                 var fileinfo = new FileInfo(Path.Combine(info.DirectoryName, Path.GetFileNameWithoutExtension(info.Name)));
                 var item = FSItem.MakeUploading(uploadinfo.Path, fileinfo.Name, uploadinfo.ParentId, fileinfo.Length);
                 OnUploadResumed(item);
-                AddUpload(item);
+                uploads.Add(uploadinfo);
             }
         }
 

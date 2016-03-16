@@ -237,6 +237,8 @@ namespace Azi.ACDDokanNet
             try
             {
                 string streamName = null;
+                fileName = fileName.Replace("\\:", ":");
+
                 if (fileName.Contains(':'))
                 {
                     var names = fileName.Split(':');
@@ -298,6 +300,7 @@ namespace Azi.ACDDokanNet
             }
 
             string streamName = null;
+            fileName = fileName.Replace("\\:", ":");
             if (fileName.Contains(':'))
             {
                 var names = fileName.Split(':');
@@ -309,25 +312,8 @@ namespace Azi.ACDDokanNet
 
             if (streamName != null && item != null)
             {
-                Log.Trace($"Opening alternate stream {fileName}:{streamName}");
-                if (mode != FileMode.Open)
-                {
-                    return DokanResult.AccessDenied;
+                return CheckStreams(fileName, mode, info, streamName, item);
                 }
-
-                switch (streamName)
-                {
-                    case ACDDokanNetItemInfo.ACDDokanNetItemInfoStreamName:
-                        if (item.Info == null)
-                        {
-                            provider.BuildItemInfo(item).Wait();
-                        }
-
-                        return OpenAsByteArray(item.Info, info);
-                }
-
-                return DokanResult.AccessDenied;
-            }
 
             bool readWriteAttributes = (access & DataAccess) == 0;
             switch (mode)
@@ -663,6 +649,42 @@ namespace Azi.ACDDokanNet
             }
 
             provider.CreateDir(fileName);
+            return DokanResult.Success;
+        }
+
+        private NtStatus CheckStreams(string fileName, FileMode mode, DokanFileInfo info, string streamName, FSItem item)
+        {
+            Log.Trace($"Opening alternate stream {fileName}:{streamName}");
+
+            switch (streamName)
+            {
+                case ContextMenu.ACDDokanNetInfoStreamName:
+                    if (mode != FileMode.Open)
+                    {
+                        return NtStatus.AccessDenied;
+                    }
+
+                    if (item.Info == null)
+                    {
+                        provider.BuildItemInfo(item).Wait();
+                    }
+
+                    return OpenAsByteArray(item.Info, info);
+                case "Zone.Identifier":
+                    if (mode != FileMode.CreateNew)
+                    {
+                        return DokanResult.PathNotFound;
+                    }
+
+                    return OpenAsDummyWrite(info);
+            }
+
+            return DokanResult.AccessDenied;
+        }
+
+        private NtStatus OpenAsDummyWrite(DokanFileInfo info)
+        {
+            info.Context = new DummyBlockStream();
             return DokanResult.Success;
         }
 

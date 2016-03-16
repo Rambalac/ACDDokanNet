@@ -30,6 +30,7 @@ namespace Azi.ACDDokanNet.Gui
             }
             catch (Exception ex)
             {
+                Log.Error(ex);
                 MessageBox.Show(this, ex.Message);
             }
 
