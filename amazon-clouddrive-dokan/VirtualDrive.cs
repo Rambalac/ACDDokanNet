@@ -609,7 +609,7 @@ namespace Azi.ACDDokanNet
                 {
                     var infostream = new FileInformation
                     {
-                        FileName = $":{ACDDokanNetItemInfo.ACDDokanNetItemInfoStreamName}:$DATA",
+                        FileName = $":{CloudDokanNetItemInfo.CloudDokanNetItemInfoStreamName}:$DATA",
                         Length = 1
                     };
                     streams.Add(infostream);
@@ -658,7 +658,7 @@ namespace Azi.ACDDokanNet
 
             switch (streamName)
             {
-                case ContextMenu.ACDDokanNetInfoStreamName:
+                case CloudDokanNetItemInfo.CloudDokanNetItemInfoStreamName:
                     if (mode != FileMode.Open)
                     {
                         return NtStatus.AccessDenied;

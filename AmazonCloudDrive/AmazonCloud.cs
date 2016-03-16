@@ -252,21 +252,21 @@ namespace Azi.Cloud.DokanNet.AmazonCloudDrive
             try
             {
                 var node = await amazon.Nodes.GetNodeExtended(id);
-                var info = new ACDDokanNetItemInfo
+                var info = new CloudDokanNetItemInfo
                 {
                     Id = id,
                     TempLink = node.tempLink,
-                    Assets = node.assets?.Select(i => new ACDDokanNetAssetInfo { Id = i.id, TempLink = i.tempLink }).ToList()
+                    Assets = node.assets?.Select(i => new CloudDokanNetAssetInfo { Id = i.id, TempLink = i.tempLink }).ToList()
                 };
 
                 if (node.video != null)
                 {
-                    info.Video = new ACDDokanNetAssetInfoImage { Width = node.video.width, Height = node.video.height };
+                    info.Video = new CloudDokanNetAssetInfoImage { Width = node.video.width, Height = node.video.height };
                 }
 
                 if (node.image != null)
                 {
-                    info.Image = new ACDDokanNetAssetInfoImage { Width = node.image.width, Height = node.image.height };
+                    info.Image = new CloudDokanNetAssetInfoImage { Width = node.image.width, Height = node.image.height };
                 }
 
                 return info;

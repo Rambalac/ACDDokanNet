@@ -1,7 +1,7 @@
 ﻿namespace Azi.Cloud.Common
 {
 
-    public class ACDDokanNetAssetInfoImage
+    public class CloudDokanNetAssetInfoImage
     {
         public int Width { get; set; }
 

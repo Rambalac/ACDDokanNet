@@ -26,13 +26,13 @@ namespace Azi.ShellExtension
 
         protected static object ReadInfo(string path)
         {
-            using (var info = FileSystem.GetAlternateDataStream(path, ACDDokanNetItemInfo.ACDDokanNetItemInfoStreamName).OpenText())
+            using (var info = FileSystem.GetAlternateDataStream(path, CloudDokanNetItemInfo.CloudDokanNetItemInfoStreamName).OpenText())
             {
                 string text = info.ReadToEnd();
                 var type = JsonConvert.DeserializeObject<NodeExtendedInfo>(text);
-                if (type.Type == nameof(ACDDokanNetItemInfo))
+                if (type.Type == nameof(CloudDokanNetItemInfo))
                 {
-                    return JsonConvert.DeserializeObject<ACDDokanNetItemInfo>(text);
+                    return JsonConvert.DeserializeObject<CloudDokanNetItemInfo>(text);
                 }
 
                 return null;
@@ -41,7 +41,7 @@ namespace Azi.ShellExtension
 
         protected override bool CanShowMenu()
         {
-            return SelectedItemPaths.All((path) => FileSystem.AlternateDataStreamExists(path, ACDDokanNetItemInfo.ACDDokanNetItemInfoStreamName));
+            return SelectedItemPaths.All((path) => FileSystem.AlternateDataStreamExists(path, CloudDokanNetItemInfo.CloudDokanNetItemInfoStreamName));
         }
 
         protected override ContextMenuStrip CreateMenu()
