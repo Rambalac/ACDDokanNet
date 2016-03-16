@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace Azi.ACDDokanNet.Tests.Properties {
+namespace Azi.Cloud.DokanNet.Tests.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]

@@ -4,7 +4,7 @@ using System.Linq;
 using Azi.Tools;
 using DokanNet;
 
-namespace Azi.ACDDokanNet
+namespace Azi.Cloud.DokanNet
 {
     public class VirtualDriveWrapper
     {

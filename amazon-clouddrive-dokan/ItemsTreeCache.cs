@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 
-namespace Azi.ACDDokanNet
+namespace Azi.Cloud.DokanNet
 {
     public class ItemsTreeCache : IDisposable
     {

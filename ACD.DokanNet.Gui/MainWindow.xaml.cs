@@ -4,7 +4,7 @@ using System.Windows;
 using Azi.Tools;
 using Microsoft.WindowsAPICodePack.Dialogs;
 
-namespace Azi.ACDDokanNet.Gui
+namespace Azi.Cloud.DokanNet.Gui
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -16,31 +16,6 @@ namespace Azi.ACDDokanNet.Gui
         public MainWindow()
         {
             InitializeComponent();
-        }
-
-        private async void MountButton_Click(object sender, RoutedEventArgs e)
-        {
-            var dlg = new MountWaitBox(this);
-            var cs = new System.Threading.CancellationTokenSource();
-            dlg.Cancellation = cs;
-            dlg.Show();
-            try
-            {
-                await Model.Mount(cs.Token);
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex);
-                MessageBox.Show(this, ex.Message);
-            }
-
-            dlg.Close();
-            Activate();
-        }
-
-        private async void UnmountButton_Click(object sender, RoutedEventArgs e)
-        {
-            await Model.Unmount();
         }
 
         private void ChangeCacheDir(object sender, RoutedEventArgs e)
@@ -68,12 +43,6 @@ namespace Azi.ACDDokanNet.Gui
                     Model.CacheFolder = dlg.FileName;
                 }
             }
-        }
-
-        private async void LogoutButton_Click(object sender, RoutedEventArgs e)
-        {
-            await Model.Unmount();
-            App.Current.ClearCredentials();
         }
 
         private void ClearSmallFilesCache(object sender, RoutedEventArgs e)

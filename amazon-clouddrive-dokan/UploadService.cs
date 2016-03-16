@@ -8,7 +8,7 @@ using Azi.Tools;
 using Newtonsoft.Json;
 using Azi.Cloud.Common;
 
-namespace Azi.ACDDokanNet
+namespace Azi.Cloud.DokanNet
 {
     public enum FailReason
     {

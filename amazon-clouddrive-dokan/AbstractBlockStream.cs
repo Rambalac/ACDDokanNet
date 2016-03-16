@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading;
 
-namespace Azi.ACDDokanNet
+namespace Azi.Cloud.DokanNet
 {
     public abstract class AbstractBlockStream : IBlockStream
     {

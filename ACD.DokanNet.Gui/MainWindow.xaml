@@ -3,9 +3,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:Azi.ACDDokanNet.Gui"
-        xmlns:p="clr-namespace:Azi.ACDDokanNet.Gui.Properties"
-        x:Class="Azi.ACDDokanNet.Gui.MainWindow"
+        xmlns:local="clr-namespace:Azi.Cloud.DokanNet.Gui"
+        xmlns:p="clr-namespace:Azi.Cloud.DokanNet.Gui.Properties"
+        x:Class="Azi.Cloud.DokanNet.Gui.MainWindow"
         mc:Ignorable="d"
         Title="ACD Dokan.Net Settings" ResizeMode="NoResize" SizeToContent="WidthAndHeight" Closing="Window_Closing">
     <Window.Resources>
@@ -20,29 +20,20 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="82"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
-            <GroupBox Header="Mounting" Padding="5" >
-                <Grid >
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition/>
-                    </Grid.RowDefinitions>
-                    <ComboBox x:Name="comboBox" ItemsSource="{Binding DriveLetters}" IsEnabled="{Binding IsUnmounted}" SelectedItem="{Binding SelectedDriveLetter}"/>
-                    <Button x:Name="mountButton" IsEnabled="{Binding CanMount}" Content="Mount" Margin="3,0,0,0" Padding="5,1" Click="MountButton_Click" Grid.Column="1" />
-                    <Button x:Name="logoutButton" Content="Logout" Margin="3,0,0,0" Padding="5,1" IsEnabled="{Binding CanUnmount}" Click="LogoutButton_Click" Grid.Column="2" />
-                    <Button x:Name="unmountButton" Content="Unmount" Margin="3,0,0,0" Padding="5,1" IsEnabled="{Binding CanUnmount}" Click="UnmountButton_Click" Grid.Column="3" />
-                    <CheckBox x:Name="automountCheckBox" IsChecked="{Binding IsAutomount}" Content="Mount on login" IsEnabled="{Binding IsMounted}" Margin="0,5,0,0" Grid.Row="1" Grid.ColumnSpan="3"/>
-                </Grid>
+            <GroupBox Header="Clouds" Padding="5" >
+                <ListBox ItemsSource="{Binding Path=Clouds}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <local:CloudItemControl DataContext="{Binding}"/>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
             </GroupBox>
+            <Button Content="Add" HorizontalAlignment="Right" Padding="5,-3" Height="18" Margin="0,0,10,0" VerticalAlignment="Top"/>
             <GroupBox Header="Transferring" Padding="5" Grid.Row="1">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -63,7 +54,7 @@
 
                 </Grid>
             </GroupBox>
-            <Border BorderThickness="1" Grid.Row="2" BorderBrush="#FFD5DFE5" CornerRadius="3" Margin="1.5,15,1.5,0" Padding="5">
+            <Border BorderThickness="1" Grid.Row="2" BorderBrush="#FFD5DFE5" CornerRadius="3" Margin="2,15,2,0" Padding="5">
                 <Expander Header="Options" Margin="0,-18,0,0" Background="White">
                     <Expander.Clip>
                         <GeometryGroup>
@@ -114,7 +105,7 @@
                             <Button Content="Open GitHub Issue" Grid.Column="2" Click="OpenIssue_Click"/>
                         </Grid>
                     </Grid>
-            </Expander>
+                </Expander>
             </Border>
 
         </Grid>

@@ -3,7 +3,7 @@ using Azi.Tools;
 using System.Threading;
 using Azi.Cloud.Common;
 
-namespace Azi.ACDDokanNet
+namespace Azi.Cloud.DokanNet
 {
     public class NewFileBlockWriter : AbstractBlockStream
     {

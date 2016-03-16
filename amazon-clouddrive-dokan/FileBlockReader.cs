@@ -4,7 +4,7 @@ using System.IO;
 using System.Threading;
 using Azi.Tools;
 
-namespace Azi.ACDDokanNet
+namespace Azi.Cloud.DokanNet
 {
     public class FileBlockReader : AbstractBlockStream
     {

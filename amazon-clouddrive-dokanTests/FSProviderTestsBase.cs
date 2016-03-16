@@ -3,9 +3,9 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Threading;
 using Azi.Cloud.Common;
-using Azi.Cloud.DokanNet.AmazonCloudDrive;
+using Azi.Cloud.AmazonCloudDrive;
 
-namespace Azi.ACDDokanNet.Tests
+namespace Azi.Cloud.DokanNet.Tests
 {
     public abstract class FSProviderTestsBase : IDisposable, IAuthUpdateListener
     {

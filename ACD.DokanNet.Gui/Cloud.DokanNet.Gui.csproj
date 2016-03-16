@@ -7,7 +7,7 @@
     <ProjectGuid>{B1639C0F-0459-4690-87AE-66EBED228F0F}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Azi.ACDDokanNet.Gui</RootNamespace>
+    <RootNamespace>Azi.Cloud.DokanNet.Gui</RootNamespace>
     <AssemblyName>ACD.DokanNet.Gui</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -118,6 +118,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="CloudItemControl.xaml.cs">
+      <DependentUpon>CloudItemControl.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="CloudModel.cs" />
     <Compile Include="MountWaitBox.xaml.cs">
       <DependentUpon>MountWaitBox.xaml</DependentUpon>
     </Compile>
@@ -127,6 +131,10 @@
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
     <Compile Include="ViewModel.cs" />
+    <Page Include="CloudItemControl.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

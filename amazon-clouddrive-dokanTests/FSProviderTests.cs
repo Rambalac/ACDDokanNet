@@ -4,7 +4,7 @@ using System.Threading;
 using System.Linq;
 using System.Diagnostics;
 
-namespace Azi.ACDDokanNet.Tests
+namespace Azi.Cloud.DokanNet.Tests
 {
 
     public class FSProviderTests : FSProviderTestsBase

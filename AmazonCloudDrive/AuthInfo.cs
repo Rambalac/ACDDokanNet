@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Azi.Cloud.DokanNet.AmazonCloudDrive
+namespace Azi.Cloud.AmazonCloudDrive
 {
     public class AuthInfo
     {

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Azi.Tools;
 using Azi.Cloud.Common;
 
-namespace Azi.ACDDokanNet
+namespace Azi.Cloud.DokanNet
 {
     public class BufferedAmazonBlockReader : AbstractBlockStream
     {

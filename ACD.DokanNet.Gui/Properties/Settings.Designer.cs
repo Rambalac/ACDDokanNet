@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace Azi.ACDDokanNet.Gui.Properties {
+namespace Azi.Cloud.DokanNet.Gui.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]

@@ -8,9 +8,9 @@ using Azi.Tools;
 using Microsoft.Win32;
 using Application = System.Windows.Application;
 using Azi.Cloud.Common;
-using Azi.Cloud.DokanNet.AmazonCloudDrive;
+using Azi.Cloud.AmazonCloudDrive;
 
-namespace Azi.ACDDokanNet.Gui
+namespace Azi.Cloud.DokanNet.Gui
 {
     /// <summary>
     /// Interaction logic for App.xaml
@@ -25,7 +25,7 @@ namespace Azi.ACDDokanNet.Gui
 
         public FSProvider.StatisticsUpdated OnProviderStatisticsUpdated { get; set; }
 
-        public Action OnMountChanged { get; set; }
+        public event Action<string> OnMountChanged;
 
         public long SmallFileSizeLimit
         {
@@ -416,12 +416,6 @@ namespace Azi.ACDDokanNet.Gui
                 disposedValue = true;
             }
         }
-
-        // TODO: override a finalizer only if Dispose(bool disposing) above has code to free unmanaged resources.
-        // ~App() {
-        //   // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-        //   Dispose(false);
-        // }
 
         // This code added to correctly implement the disposable pattern.
         public void Dispose()

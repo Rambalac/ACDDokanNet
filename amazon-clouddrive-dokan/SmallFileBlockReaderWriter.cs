@@ -5,7 +5,7 @@ using System.Threading;
 using Azi.Tools;
 using Azi.Cloud.Common;
 
-namespace Azi.ACDDokanNet
+namespace Azi.Cloud.DokanNet
 {
     public class SmallFileBlockReaderWriter : AbstractBlockStream
     {

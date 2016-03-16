@@ -10,7 +10,7 @@ using DokanNet;
 using FileAccess = DokanNet.FileAccess;
 using Azi.Cloud.Common;
 
-namespace Azi.ACDDokanNet
+namespace Azi.Cloud.DokanNet
 {
     internal class VirtualDrive : IDokanOperations
     {

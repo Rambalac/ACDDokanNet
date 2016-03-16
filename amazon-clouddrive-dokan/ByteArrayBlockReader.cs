@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Azi.ACDDokanNet
+namespace Azi.Cloud.DokanNet
 {
     internal class ByteArrayBlockReader : AbstractBlockStream
     {

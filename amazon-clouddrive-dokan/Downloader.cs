@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Azi.Cloud.Common;
 
-namespace Azi.ACDDokanNet
+namespace Azi.Cloud.DokanNet
 {
     public class Downloader
     {

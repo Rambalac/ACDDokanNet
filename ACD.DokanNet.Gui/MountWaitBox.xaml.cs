@@ -2,7 +2,7 @@
 using System.Windows;
 using System.Windows.Input;
 
-namespace Azi.ACDDokanNet.Gui
+namespace Azi.Cloud.DokanNet.Gui
 {
     /// <summary>
     /// Interaction logic for MountWaitBox.xaml

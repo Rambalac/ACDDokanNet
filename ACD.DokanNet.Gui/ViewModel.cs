@@ -6,15 +6,11 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Azi.ACDDokanNet.Gui
+namespace Azi.Cloud.DokanNet.Gui
 {
     public class ViewModel : INotifyPropertyChanged, IDisposable
     {
         private Timer refreshTimer;
-
-        private bool mounting = false;
-
-        private bool unmounting = false;
 
         private bool disposedValue = false; // To detect redundant calls
 
@@ -30,9 +26,9 @@ namespace Azi.ACDDokanNet.Gui
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        public IList<char> DriveLetters => VirtualDriveWrapper.GetFreeDriveLettes();
+        public IList<CloudModel> Clouds { get; set; }
 
-        public bool IsAutomount
+        public bool IsAutorun
         {
             get
             {
@@ -42,28 +38,6 @@ namespace Azi.ACDDokanNet.Gui
             set
             {
                 App.SetAutorun(value);
-            }
-        }
-
-        public char SelectedDriveLetter
-        {
-            get
-            {
-                var saved = Properties.Settings.Default.LastDriveLetter;
-                var free = VirtualDriveWrapper.GetFreeDriveLettes();
-                if (!free.Any() || free.Contains(saved))
-                {
-                    return saved;
-                }
-
-                return free[0];
-            }
-
-            set
-            {
-                Properties.Settings.Default.LastDriveLetter = value;
-                Properties.Settings.Default.Save();
-                NotifyMount();
             }
         }
 
@@ -80,14 +54,6 @@ namespace Azi.ACDDokanNet.Gui
                 OnPropertyChanged(nameof(CacheFolder));
             }
         }
-
-        public bool CanMount => (!mounting) && !(App?.IsMounted ?? false) && DriveLetters.Contains(SelectedDriveLetter);
-
-        public bool CanUnmount => (!unmounting) && (App?.IsMounted ?? false);
-
-        public bool IsMounted => !mounting && !unmounting && (App?.IsMounted ?? false);
-
-        public bool IsUnmounted => !unmounting && !mounting && !(App?.IsMounted ?? false);
 
         public int UploadingFilesCount { get; private set; }
 
@@ -119,12 +85,6 @@ namespace Azi.ACDDokanNet.Gui
             }
         }
 
-        public bool ReadOnly
-        {
-            get { return Properties.Settings.Default.ReadOnly; }
-            set { Properties.Settings.Default.ReadOnly = value; }
-        }
-
         public string Version => Assembly.GetEntryAssembly().GetName().Version.ToString();
 
         private App App => App.Current;
@@ -134,69 +94,11 @@ namespace Azi.ACDDokanNet.Gui
         {
             // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
             Dispose(true);
-
-            // TODO: uncomment the following line if the finalizer is overridden above.
-            // GC.SuppressFinalize(this);
         }
 
         internal void OnPropertyChanged(string name)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-        }
-
-        internal async Task Mount(CancellationToken cs)
-        {
-            if (App == null)
-            {
-                throw new NullReferenceException();
-            }
-
-            mounting = true;
-            NotifyMount();
-            try
-            {
-                try
-                {
-                    var letter = await App.Mount(SelectedDriveLetter, ReadOnly, cs);
-                    if (letter != null)
-                    {
-                        SelectedDriveLetter = (char)letter;
-                    }
-                }
-                catch (TimeoutException)
-                {
-                    // Ignore if timeout
-                }
-                catch (OperationCanceledException)
-                {
-                    // Ignore if aborted
-                }
-            }
-            finally
-            {
-                mounting = false;
-                NotifyMount();
-            }
-        }
-
-        internal async Task Unmount()
-        {
-            if (App == null)
-            {
-                throw new NullReferenceException();
-            }
-
-            unmounting = true;
-            NotifyMount();
-            try
-            {
-                await App.Unmount();
-            }
-            finally
-            {
-                unmounting = false;
-                NotifyMount();
-            }
         }
 
         protected virtual void Dispose(bool disposing)
@@ -214,22 +116,17 @@ namespace Azi.ACDDokanNet.Gui
             }
         }
 
-        private void RefreshLetters(object state)
+        private void NotifyMount(string obj)
         {
-            if (!CanMount)
-            {
-                return;
-            }
-
-            OnPropertyChanged(nameof(DriveLetters));
+            RefreshLetters(null);
         }
 
-        private void NotifyMount()
+        private void RefreshLetters(object state)
         {
-            OnPropertyChanged(nameof(CanMount));
-            OnPropertyChanged(nameof(CanUnmount));
-            OnPropertyChanged(nameof(IsMounted));
-            OnPropertyChanged(nameof(IsUnmounted));
+            foreach (var cloud in Clouds)
+            {
+                cloud.OnPropertyChanged(nameof(cloud.DriveLetters));
+            }
         }
 
         private void ProviderStatisticsUpdated(int downloading, int uploading)

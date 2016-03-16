@@ -12,7 +12,7 @@ using Azi.Amazon.CloudDrive.JsonObjects;
 using Azi.Amazon.CloudDrive;
 using Azi.Tools;
 
-namespace Azi.Cloud.DokanNet.AmazonCloudDrive
+namespace Azi.Cloud.AmazonCloudDrive
 {
     public sealed class AmazonCloud : IHttpCloud, IHttpCloudFiles, IHttpCloudNodes
     {

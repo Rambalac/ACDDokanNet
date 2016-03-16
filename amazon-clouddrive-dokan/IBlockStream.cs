@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Azi.ACDDokanNet
+namespace Azi.Cloud.DokanNet
 {
     public interface IBlockStream : IDisposable
     {

@@ -3,6 +3,7 @@ using System.Net;
 
 namespace Azi.Cloud.Common
 {
+    [Serializable]
     public class CloudException : Exception
     {
         public CloudException(HttpStatusCode error, Exception ex)
