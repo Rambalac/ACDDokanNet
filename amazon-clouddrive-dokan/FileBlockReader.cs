@@ -65,7 +65,7 @@ namespace Azi.ACDDokanNet
                 file.Position = position;
                 do
                 {
-                    red = file.Read(buffer, offset, count);
+                    red = file.Read(buffer, offset, Math.Min(count, buffer.Length - offset));
                     totalred += red;
                     offset += red;
                     count -= red;

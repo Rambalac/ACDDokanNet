@@ -26,7 +26,7 @@ namespace Azi.ACDDokanNet.Tests
             Provider = new FSProvider(Amazon);
             Provider.CachePath = "TempCache";
             Provider.SmallFilesCacheSize = 20 * (1 << 20);
-            Provider.SmallFileSizeLimit = 1000 * (1 << 20);
+            Provider.SmallFileSizeLimit = 1 * (1 << 20);
 
             Provider.DeleteDir("\\ACDDokanNetTest");
             Provider.CreateDir("\\ACDDokanNetTest");
