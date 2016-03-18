@@ -21,27 +21,26 @@ namespace Azi.Cloud.DokanNet.Gui
     /// </summary>
     public partial class CloudItemControl : UserControl
     {
-        private CloudModel Model => (CloudModel)DataContext;
+        private CloudMount Model => (CloudMount)DataContext;
 
         public CloudItemControl()
         {
             InitializeComponent();
         }
 
-        private async void UnmountButton_Click(object sender, RoutedEventArgs e)
+        private void UnmountButton_Click(object sender, RoutedEventArgs e)
         {
-            await Model.Unmount();
+            Model.Unmount();
         }
 
         private async void MountButton_Click(object sender, RoutedEventArgs e)
         {
             var dlg = new MountWaitBox(Window.GetWindow(this));
-            var cs = new System.Threading.CancellationTokenSource();
-            dlg.Cancellation = cs;
+            dlg.Cancellation = Model.MountCancellation;
             dlg.Show();
             try
             {
-                await Model.Mount(cs.Token);
+                await Model.StartMount();
             }
             catch (Exception ex)
             {
@@ -53,10 +52,9 @@ namespace Azi.Cloud.DokanNet.Gui
             Window.GetWindow(this).Activate();
         }
 
-        private async void LogoutButton_Click(object sender, RoutedEventArgs e)
+        private void DeleteButton_Click(object sender, RoutedEventArgs e)
         {
-            await Model.Unmount();
-            App.Current.ClearCredentials();
+            Model.Delete();
         }
     }
 }

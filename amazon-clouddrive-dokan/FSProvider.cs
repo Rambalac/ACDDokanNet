@@ -170,6 +170,10 @@ namespace Azi.Cloud.DokanNet
             }
         }
 
+        public int DownloadingCount => downloadingCount;
+
+        public int UploadingCount => uploadingCount;
+
         public void DeleteFile(string filePath)
         {
             var item = GetItem(filePath);
@@ -361,10 +365,10 @@ namespace Azi.Cloud.DokanNet
             }
 
             foreach (var node in nodes)
-                {
+            {
                 var path = curdir + "\\" + node.Name;
                 items.Add(node.FilePath(path).Build());
-                }
+            }
 
             // Log.Warn("Got real dir:\r\n  " + string.Join("\r\n  ", items.Select(i => i.Path)));
             itemsTreeCache.AddDirItems(folderPath, items);
@@ -517,7 +521,7 @@ namespace Azi.Cloud.DokanNet
                 }
             }
             catch (CloudException ex) when (ex.Error == HttpStatusCode.NotFound || ex.Error == HttpStatusCode.Conflict)
-                {
+            {
                 Log.Warn(ex.Error.ToString());
             }
         }

@@ -22,7 +22,7 @@
             <TextBox x:Name="cloudNameTextBox" Grid.Column="1" TextWrapping="NoWrap" Margin="3,3,0,0" Grid.ColumnSpan="4"/>
             <ComboBox x:Name="comboBox" ItemsSource="{Binding DriveLetters}" IsEnabled="{Binding IsUnmounted}" SelectedItem="{Binding SelectedDriveLetter}" Margin="3,3,0,0" Grid.Column="1" Grid.Row="1"/>
             <Button x:Name="mountButton" IsEnabled="{Binding CanMount}" Content="Mount" Margin="3,3,0,0" Padding="5,1" Click="MountButton_Click" Grid.Column="2" Grid.Row="1" />
-            <Button x:Name="logoutButton" Content="Delete" Padding="5,1" IsEnabled="{Binding CanUnmount}" Margin="3,3,0,0" Click="LogoutButton_Click" Grid.Column="4" Grid.Row="1" />
+            <Button x:Name="logoutButton" Content="Delete" Padding="5,1" IsEnabled="{Binding CanUnmount}" Margin="3,3,0,0" Click="DeleteButton_Click" Grid.Column="4" Grid.Row="1" />
             <CheckBox x:Name="automountCheckBox" IsChecked="{Binding IsAutomount}" Content="Mount on start" IsEnabled="{Binding IsMounted}" Margin="3,3,0,0" Grid.Row="1" Grid.Column="3" VerticalAlignment="Center"/>
 
         </Grid>

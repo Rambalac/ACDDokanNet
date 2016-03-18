@@ -23,6 +23,8 @@ namespace Azi.Cloud.Common
 
         IHttpCloudNodes Nodes { get; }
 
+        string Name { get; set; }
+
         Task<bool> AuthenticateNew(CancellationToken cs);
 
         Task<bool> AuthenticateSaved(CancellationToken cs, string save);

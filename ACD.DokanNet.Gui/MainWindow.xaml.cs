@@ -98,5 +98,10 @@ namespace Azi.Cloud.DokanNet.Gui
         {
             Process.Start("https://github.com/Rambalac/AmazonCloudDriveApi/issues/new");
         }
+
+        private void AvailableCloudsList_Clicked(object sender, EventArgs e)
+        {
+            cloudAdd_DropDownButton.IsOpen = false;
+        }
     }
 }

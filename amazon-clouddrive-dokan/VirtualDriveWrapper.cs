@@ -10,22 +10,24 @@ namespace Azi.Cloud.DokanNet
     {
         private readonly VirtualDrive virtualDrive;
 
+        private char mountLetter;
+
         public VirtualDriveWrapper(FSProvider provider)
         {
             virtualDrive = new VirtualDrive(provider);
             virtualDrive.OnMount = () =>
             {
-                Mounted?.Invoke();
+                Mounted?.Invoke(mountLetter);
             };
             virtualDrive.OnUnmount = () =>
             {
-                Unmounted?.Invoke();
+                Unmounted?.Invoke(mountLetter);
             };
         }
 
-        public Action Mounted { get; set; }
+        public Action<char> Mounted { get; set; }
 
-        public Action Unmounted { get; set; }
+        public Action<char> Unmounted { get; set; }
 
         public static IList<char> GetFreeDriveLettes()
         {
@@ -37,17 +39,18 @@ namespace Azi.Cloud.DokanNet
             Dokan.Unmount(letter);
         }
 
-        public void Mount(string path, bool readOnly)
+        public void Mount(char letter, bool readOnly)
         {
             try
             {
                 virtualDrive.ReadOnly = readOnly;
 #if DEBUG
-                virtualDrive.Mount(path, DokanOptions.DebugMode | DokanOptions.AltStream | DokanOptions.FixedDrive, 0, 800, TimeSpan.FromSeconds(30));
+                virtualDrive.Mount(letter + ":\\", DokanOptions.DebugMode | DokanOptions.AltStream | DokanOptions.FixedDrive, 0, 800, TimeSpan.FromSeconds(30));
 #else
-                virtualDrive.Mount(path, DokanOptions.AltStream | DokanOptions.FixedDrive, 0, 800, TimeSpan.FromSeconds(30));
+                virtualDrive.Mount(letter + ":\\", DokanOptions.AltStream | DokanOptions.FixedDrive, 0, 800, TimeSpan.FromSeconds(30));
 #endif
-                virtualDrive.MountPath = path;
+                virtualDrive.MountPath = letter + ":\\";
+                mountLetter = letter;
             }
             catch (DokanException e)
             {

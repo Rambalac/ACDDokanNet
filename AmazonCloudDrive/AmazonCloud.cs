@@ -29,6 +29,10 @@ namespace Azi.Cloud.AmazonCloudDrive
             amazon.OnTokenUpdate = tokenUpdateListener;
         }
 
+        public static string CloudServiceName => "Amazon Cloud Drive";
+
+        public static string CloudServiceIcon => "/Clouds.AmazonCloudDrive;Component/images/cd_icon.png";
+
         public IHttpCloudFiles Files => this;
 
         public IHttpCloudNodes Nodes => this;
@@ -94,6 +98,8 @@ namespace Azi.Cloud.AmazonCloudDrive
         }
 
         public IAuthUpdateListener OnAuthUpdated { get; set; }
+
+        public string Name { get; set; }
 
         async Task<FSItem.Builder> IHttpCloudNodes.CreateFolder(string parentid, string name)
         {

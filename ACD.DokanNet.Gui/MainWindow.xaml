@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Azi.Cloud.DokanNet.Gui"
         xmlns:p="clr-namespace:Azi.Cloud.DokanNet.Gui.Properties"
+        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
         x:Class="Azi.Cloud.DokanNet.Gui.MainWindow"
         mc:Ignorable="d"
         Title="ACD Dokan.Net Settings" ResizeMode="NoResize" SizeToContent="WidthAndHeight" Closing="Window_Closing">
@@ -24,8 +25,8 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
-            <GroupBox Header="Clouds" Padding="5" >
-                <ListBox ItemsSource="{Binding Path=Clouds}">
+            <GroupBox Header="Clouds" Padding="5">
+                <ListBox ItemsSource="{Binding Clouds}">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <local:CloudItemControl DataContext="{Binding}"/>
@@ -33,7 +34,11 @@
                     </ListBox.ItemTemplate>
                 </ListBox>
             </GroupBox>
-            <Button Content="Add" HorizontalAlignment="Right" Padding="5,-3" Height="18" Margin="0,0,10,0" VerticalAlignment="Top"/>
+            <xctk:DropDownButton Name="cloudAdd_DropDownButton" Content="Add" HorizontalAlignment="Right" Padding="5,-3" Height="18" Margin="0,0,10,0" VerticalAlignment="Top" IsEnabled="{Binding HasFreeLetters}">
+                <xctk:DropDownButton.DropDownContent>
+                    <local:AvailableCloudsList Clicked="AvailableCloudsList_Clicked"/>
+                </xctk:DropDownButton.DropDownContent>
+            </xctk:DropDownButton>
             <GroupBox Header="Transferring" Padding="5" Grid.Row="1">
                 <Grid>
                     <Grid.ColumnDefinitions>

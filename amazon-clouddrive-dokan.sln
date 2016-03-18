@@ -17,12 +17,16 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tools", "Tools\Tools.csproj", "{199CDB28-7472-41BD-BB1F-BF345451A68D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cloud.DokanNet.Gui", "ACD.DokanNet.Gui\Cloud.DokanNet.Gui.csproj", "{B1639C0F-0459-4690-87AE-66EBED228F0F}"
+	ProjectSection(ProjectDependencies) = postProject
+		{43097C04-9303-428D-A06C-1D2BF1D6647D} = {43097C04-9303-428D-A06C-1D2BF1D6647D}
+	EndProjectSection
 EndProject
 Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "ACDDokanNetInstaller", "ACDDokanNetInstaller\ACDDokanNetInstaller.vdproj", "{CD0ECDAA-982F-4E35-8BA9-E319D8D1F95F}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "images", "images", "{C40D9D1E-23C5-46BF-B902-4DF1677F7C95}"
 	ProjectSection(SolutionItems) = preProject
 		images\Amazon Cloud Drive as real drive.png = images\Amazon Cloud Drive as real drive.png
+		ACD.DokanNet.Gui\images\cd_icon.png = ACD.DokanNet.Gui\images\cd_icon.png
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cloud.DokanNet.Tests", "amazon-clouddrive-dokanTests\Cloud.DokanNet.Tests.csproj", "{07444044-FB75-4639-AF4B-044A48EAD482}"

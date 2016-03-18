@@ -47,11 +47,10 @@
     </StartupObject>
   </PropertyGroup>
   <PropertyGroup>
-    <SignAssembly>false</SignAssembly>
+    <SignAssembly>true</SignAssembly>
   </PropertyGroup>
   <PropertyGroup>
-    <AssemblyOriginatorKeyFile>
-    </AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>ACDDokanNet.pfx</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationIcon>
@@ -96,6 +95,7 @@
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
+    <None Include="ACDDokanNet.pfx" />
     <None Include="packages.config" />
     <AppDesigner Include="Properties\" />
   </ItemGroup>
@@ -103,10 +103,6 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\AmazonCloudDrive\AmazonCloudDrive.csproj">
-      <Project>{43097c04-9303-428d-a06c-1d2bf1d6647d}</Project>
-      <Name>AmazonCloudDrive</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Cloud.Common\Cloud.Common.csproj">
       <Project>{93841375-56d7-4b34-aa7c-ba69f29f8b66}</Project>
       <Name>Cloud.Common</Name>

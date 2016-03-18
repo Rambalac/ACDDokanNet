@@ -1,16 +1,16 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Azi.Cloud.Common
 {
-    public class CloudMount
+    [SettingsSerializeAs(SettingsSerializeAs.Xml)]
+    public class CloudInfo
     {
-        private IHttpCloud instance;
-
         public string ClassName { get; set; }
 
         public char DriveLetter { get; set; }
@@ -21,18 +21,8 @@ namespace Azi.Cloud.Common
 
         public string Name { get; set; }
 
-        [JsonIgnore]
-        public IHttpCloud Instance
-        {
-            get
-            {
-                if (instance == null)
-                {
-                    instance = Activator.CreateInstance(null, ClassName).Unwrap() as IHttpCloud;
-                }
+        public string Id { get; set; }
 
-                return instance;
-            }
-        }
+        public bool ReadOnly { get; set; }
     }
 }

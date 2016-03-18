@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
@@ -19,25 +20,40 @@ namespace Azi.Cloud.DokanNet.Gui
             if (App != null)
             {
                 App.OnProviderStatisticsUpdated = ProviderStatisticsUpdated;
-                App.OnMountChanged = NotifyMount;
+                App.OnMountChanged += NotifyMount;
                 refreshTimer = new Timer(RefreshLetters, null, 1000, 1000);
+
+                Clouds.CollectionChanged += Clouds_CollectionChanged;
             }
+        }
+
+        private void Clouds_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            OnPropertyChanged(nameof(Clouds));
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        public IList<CloudModel> Clouds { get; set; }
+        public ObservableCollection<CloudMount> Clouds => App?.Clouds;
 
         public bool IsAutorun
         {
             get
             {
-                return App.GetAutorun();
+                return App?.GetAutorun() ?? false;
             }
 
             set
             {
                 App.SetAutorun(value);
+            }
+        }
+
+        public bool HasFreeLetters
+        {
+            get
+            {
+                return VirtualDriveWrapper.GetFreeDriveLettes().Count > 0;
             }
         }
 
@@ -127,6 +143,8 @@ namespace Azi.Cloud.DokanNet.Gui
             {
                 cloud.OnPropertyChanged(nameof(cloud.DriveLetters));
             }
+
+            OnPropertyChanged(nameof(HasFreeLetters));
         }
 
         private void ProviderStatisticsUpdated(int downloading, int uploading)
