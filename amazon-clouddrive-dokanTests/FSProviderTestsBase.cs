@@ -1,9 +1,9 @@
 ﻿using Xunit;
 using System;
 using System.Threading.Tasks;
-using Azi.Amazon.CloudDrive;
 using System.IO;
 using System.Threading;
+using Azi.Amazon.CloudDrive;
 
 namespace Azi.ACDDokanNet.Tests
 {
@@ -72,7 +72,7 @@ namespace Azi.ACDDokanNet.Tests
                 }
             }
 
-            if (await amazon.AuthenticationByExternalBrowser(CloudDriveScope.ReadAll | CloudDriveScope.Write, TimeSpan.FromMinutes(10)))
+            if (await amazon.AuthenticationByExternalBrowser(CloudDriveScopes.ReadAll | CloudDriveScopes.Write, TimeSpan.FromMinutes(10)))
             {
                 return amazon;
             }

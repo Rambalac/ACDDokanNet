@@ -227,7 +227,7 @@ namespace Azi.ACDDokanNet.Gui
 
             if (interactiveAuth)
             {
-                if (await amazon.AuthenticationByExternalBrowser(CloudDriveScope.ReadAll | CloudDriveScope.Write, TimeSpan.FromMinutes(10), cs, "http://localhost:{0}/signin/"))
+                if (await amazon.AuthenticationByExternalBrowser(CloudDriveScopes.ReadAll | CloudDriveScopes.Write, TimeSpan.FromMinutes(10), cs, "http://localhost:{0}/signin/"))
                 {
                     return amazon;
                 }

@@ -51,14 +51,14 @@ namespace Azi.ACDDokanNet
         {
             try
             {
-                if (info.Context != null)
-                {
-                    var str = info.Context as IBlockStream;
-                    if (str != null)
-                    {
-                        str.Close();
-                    }
-                }
+                //if (info.Context != null)
+                //{
+                //    var str = info.Context as IBlockStream;
+                //    if (str != null)
+                //    {
+                //        str.Close();
+                //    }
+                //}
 
                 if (info.DeleteOnClose)
                 {
@@ -88,6 +88,7 @@ namespace Azi.ACDDokanNet
                     if (str != null)
                     {
                         str.Close();
+                        info.Context = null;
                     }
                 }
             }
