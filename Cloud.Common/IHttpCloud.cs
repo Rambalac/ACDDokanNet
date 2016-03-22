@@ -25,6 +25,10 @@ namespace Azi.Cloud.Common
 
         string Name { get; set; }
 
+        string CloudServiceName { get; }
+
+        string CloudServiceIcon { get; }
+
         Task<bool> AuthenticateNew(CancellationToken cs);
 
         Task<bool> AuthenticateSaved(CancellationToken cs, string save);

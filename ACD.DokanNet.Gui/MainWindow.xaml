@@ -8,7 +8,7 @@
         xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
         x:Class="Azi.Cloud.DokanNet.Gui.MainWindow"
         mc:Ignorable="d"
-        Title="ACD Dokan.Net Settings" ResizeMode="NoResize" SizeToContent="WidthAndHeight" Closing="Window_Closing">
+        Title="ACD Dokan.Net Settings" SizeToContent="WidthAndHeight" Closing="Window_Closing" MinWidth="280" MaxWidth="280" MinHeight="280">
     <Window.Resources>
 
     </Window.Resources>
@@ -18,21 +18,23 @@
     <Border Padding="5">
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
-                <RowDefinition Height="82"/>
+                <RowDefinition/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <GroupBox Header="Clouds" Padding="5">
-                <ListBox ItemsSource="{Binding Clouds}">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <local:CloudItemControl DataContext="{Binding}"/>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
+                <ScrollViewer VerticalScrollBarVisibility="Auto" CanContentScroll="True">
+                    <ItemsControl ItemsSource="{Binding Clouds}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="local:CloudMount">
+                                <local:CloudItemControl Content="{Binding}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
             </GroupBox>
             <xctk:DropDownButton Name="cloudAdd_DropDownButton" Content="Add" HorizontalAlignment="Right" Padding="5,-3" Height="18" Margin="0,0,10,0" VerticalAlignment="Top" IsEnabled="{Binding HasFreeLetters}">
                 <xctk:DropDownButton.DropDownContent>

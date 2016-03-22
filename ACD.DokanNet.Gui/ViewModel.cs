@@ -27,11 +27,6 @@ namespace Azi.Cloud.DokanNet.Gui
             }
         }
 
-        private void Clouds_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
-        {
-            OnPropertyChanged(nameof(Clouds));
-        }
-
         public event PropertyChangedEventHandler PropertyChanged;
 
         public ObservableCollection<CloudMount> Clouds => App?.Clouds;
@@ -130,6 +125,11 @@ namespace Azi.Cloud.DokanNet.Gui
                 // TODO: set large fields to null.
                 disposedValue = true;
             }
+        }
+
+        private void Clouds_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            OnPropertyChanged(nameof(Clouds));
         }
 
         private void NotifyMount(string obj)

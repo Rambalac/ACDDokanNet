@@ -29,7 +29,8 @@ namespace Azi.Cloud.DokanNet.Gui
                     AvailableClouds.AddRange(types.Where(t => t.IsClass)
                             .Select(t => new AvailableCloud
                             {
-                                ClassName = t.AssemblyQualifiedName,
+                                AssemblyName = t.Assembly.FullName,
+                                ClassName = t.FullName,
                                 Name = (string)t.GetProperty("CloudServiceName").GetValue(null),
                                 Icon = (string)t.GetProperty("CloudServiceIcon").GetValue(null)
                             }));
@@ -50,6 +51,8 @@ namespace Azi.Cloud.DokanNet.Gui
             public string Name { get; set; }
 
             public string Icon { get; set; }
+
+            public string AssemblyName { get; set; }
         }
     }
 }

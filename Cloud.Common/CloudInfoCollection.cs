@@ -9,7 +9,15 @@ using System.Threading.Tasks;
 namespace Azi.Cloud.Common
 {
     [SettingsSerializeAs(SettingsSerializeAs.Xml)]
-    public class CloudInfoCollection : Dictionary<string, CloudInfo>
+    public class CloudInfoCollection : List<CloudInfo>
     {
+        public CloudInfoCollection()
+        {
+        }
+
+        public CloudInfoCollection(IEnumerable<CloudInfo> clouds)
+            : base(clouds)
+        {
+        }
     }
 }

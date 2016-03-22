@@ -51,15 +51,14 @@ namespace Azi.Cloud.DokanNet
         {
             try
             {
-                //if (info.Context != null)
-                //{
+                // if (info.Context != null)
+                // {
                 //    var str = info.Context as IBlockStream;
                 //    if (str != null)
                 //    {
                 //        str.Close();
                 //    }
-                //}
-
+                // }
                 if (info.DeleteOnClose)
                 {
                     if (info.IsDirectory)

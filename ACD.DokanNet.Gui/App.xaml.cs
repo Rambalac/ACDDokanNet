@@ -43,7 +43,7 @@ namespace Azi.Cloud.DokanNet.Gui
                         settings.Save();
                     }
 
-                    clouds = new ObservableCollection<CloudMount>(settings.Clouds.Values.Select(s => new CloudMount(s)));
+                    clouds = new ObservableCollection<CloudMount>(settings.Clouds.Select(s => new CloudMount(s)));
                 }
 
                 return clouds;
@@ -66,7 +66,6 @@ namespace Azi.Cloud.DokanNet.Gui
                 // {
                 //    provider.SmallFileSizeLimit = value * (1 << 20);
                 // }
-
                 Gui.Properties.Settings.Default.SmallFileSizeLimit = value;
                 Gui.Properties.Settings.Default.Save();
             }
@@ -86,7 +85,6 @@ namespace Azi.Cloud.DokanNet.Gui
                 // {
                 //    provider.CachePath = Environment.ExpandEnvironmentVariables(value);
                 // }
-
                 Gui.Properties.Settings.Default.CacheFolder = value;
                 Gui.Properties.Settings.Default.Save();
             }
@@ -101,12 +99,11 @@ namespace Azi.Cloud.DokanNet.Gui
 
             set
             {
-                //TODO
-                //if (provider != null)
-                //{
+                // TODO
+                // if (provider != null)
+                // {
                 //    provider.SmallFilesCacheSize = value * (1 << 20);
-                //}
-
+                // }
                 Gui.Properties.Settings.Default.SmallFilesCacheLimit = value;
                 Gui.Properties.Settings.Default.Save();
             }
@@ -122,7 +119,7 @@ namespace Azi.Cloud.DokanNet.Gui
             }
 
             if (Clouds.Any(c => c.CloudInfo.Name == name))
-                {
+            {
                 int i = 1;
                 while (Clouds.Any(c => c.CloudInfo.Name == name + " " + i))
                 {
@@ -137,14 +134,15 @@ namespace Azi.Cloud.DokanNet.Gui
                 Id = Guid.NewGuid().ToString(),
                 Name = name,
                 ClassName = selectedItem.ClassName,
-                DriveLetter = letters[0],
+                AssemblyName = selectedItem.AssemblyName,
+                DriveLetter = letters[0]
             };
             var mount = new CloudMount(info);
             Clouds.Add(mount);
             var settings = Gui.Properties.Settings.Default;
-            settings.Clouds.Add(info.Id, info);
+            settings.Clouds = new CloudInfoCollection(Clouds.Select(c => c.CloudInfo));
             settings.Save();
-            }
+        }
 
         internal void DeleteCloud(CloudMount cloud)
         {
@@ -227,8 +225,15 @@ namespace Azi.Cloud.DokanNet.Gui
         {
             foreach (var cloud in Clouds)
             {
-                await cloud.StartMount(false);
-        }
+                try
+                {
+                    await cloud.StartMount(false);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex);
+                }
+            }
         }
 
         private async void Application_Startup(object sender, StartupEventArgs e)
@@ -257,6 +262,7 @@ namespace Azi.Cloud.DokanNet.Gui
             {
                 if (!shuttingdown)
                 {
+                    Shutdown(); // TODO remove
                     notifyIcon.ShowBalloonTip(5000, string.Empty, "Settings window is still accessible from here.\r\nTo close application totally click here with right button and select Exit.", ToolTipIcon.None);
                 }
             };
@@ -277,11 +283,11 @@ namespace Azi.Cloud.DokanNet.Gui
 
         internal void ClearCache()
         {
-            //TODO
-            //if (provider != null)
-            //{
+            // TODO
+            // if (provider != null)
+            // {
             //    provider.ClearSmallFilesCache();
-            //}
+            // }
         }
 
         private const string AppName = "ACDDokanNet";
@@ -321,7 +327,7 @@ namespace Azi.Cloud.DokanNet.Gui
             foreach (var cloud in Clouds)
             {
                 cloud.Unmount();
-        }
+            }
         }
 
         private bool disposedValue = false; // To detect redundant calls

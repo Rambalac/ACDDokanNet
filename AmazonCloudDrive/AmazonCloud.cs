@@ -33,6 +33,10 @@ namespace Azi.Cloud.AmazonCloudDrive
 
         public static string CloudServiceIcon => "/Clouds.AmazonCloudDrive;Component/images/cd_icon.png";
 
+        string IHttpCloud.CloudServiceIcon => CloudServiceIcon;
+
+        string IHttpCloud.CloudServiceName => CloudServiceName;
+
         public IHttpCloudFiles Files => this;
 
         public IHttpCloudNodes Nodes => this;

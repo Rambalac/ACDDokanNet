@@ -24,12 +24,29 @@ namespace Azi.Cloud.DokanNet.Gui
 
         public CloudMount(CloudInfo info)
         {
-            CloudInfo = info;
+            cloudInfo = info;
+            cloudInfo.PropertyChanged += CloudInfoCanged;
+        }
+
+        private void CloudInfoCanged(object sender, PropertyChangedEventArgs e)
+        {
+            var settings = Properties.Settings.Default;
+            settings.Save();
+
+            OnPropertyChanged(nameof(CloudInfo));
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        public CloudInfo CloudInfo { get; }
+        private readonly CloudInfo cloudInfo;
+
+        public CloudInfo CloudInfo
+        {
+            get
+            {
+                return cloudInfo;
+            }
+        }
 
         public IHttpCloud Instance
         {
@@ -37,7 +54,7 @@ namespace Azi.Cloud.DokanNet.Gui
             {
                 if (instance == null)
                 {
-                    instance = Activator.CreateInstance(null, CloudInfo.ClassName).Unwrap() as IHttpCloud;
+                    instance = Activator.CreateInstance(CloudInfo.AssemblyName, CloudInfo.ClassName).Unwrap() as IHttpCloud;
                 }
 
                 return instance;
@@ -90,7 +107,7 @@ namespace Azi.Cloud.DokanNet.Gui
         {
             Unmount();
             var settings = Properties.Settings.Default;
-            settings.Clouds.Remove(CloudInfo.Id);
+            settings.Clouds.RemoveAll(c => c.Id == CloudInfo.Id);
             settings.Save();
             App.DeleteCloud(this);
         }
@@ -99,7 +116,6 @@ namespace Azi.Cloud.DokanNet.Gui
         {
             var settings = Properties.Settings.Default;
             CloudInfo.AuthSave = authinfo;
-            settings.Clouds[CloudInfo.Id] = CloudInfo;
             settings.Save();
         }
 
@@ -118,7 +134,7 @@ namespace Azi.Cloud.DokanNet.Gui
                 {
                     var mountedEvent = new TaskCompletionSource<char>();
 
-                    var task = Task.Factory.StartNew(() => Mount(mountedEvent), TaskCreationOptions.LongRunning).Unwrap();
+                    var task = Task.Factory.StartNew(() => Mount(mountedEvent, interactiveAuth), TaskCreationOptions.LongRunning).Unwrap();
                     MountLetter = await mountedEvent.Task;
                 }
                 catch (TimeoutException)
