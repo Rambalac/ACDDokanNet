@@ -39,7 +39,6 @@ namespace Azi.Cloud.DokanNet.Gui
                     Log.Error(ex);
                 }
             }
-
         }
 
         public static List<AvailableCloud> AvailableClouds { get; }

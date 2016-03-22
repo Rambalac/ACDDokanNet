@@ -287,7 +287,7 @@ namespace Azi.Cloud.AmazonCloudDrive
         {
             return Task.Run(async () =>
             {
-                if (!await amazon.AuthenticationByExternalBrowser(CloudDriveScope.ReadAll | CloudDriveScope.Write, TimeSpan.FromMinutes(10), cs))
+                if (!await amazon.AuthenticationByExternalBrowser(CloudDriveScopes.ReadAll | CloudDriveScopes.Write, TimeSpan.FromMinutes(10), cs))
                 {
                     return false;
                 }
