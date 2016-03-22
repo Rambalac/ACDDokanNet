@@ -51,14 +51,14 @@ namespace Azi.Cloud.DokanNet
         {
             try
             {
-                if (info.Context != null)
-                {
-                    var str = info.Context as IBlockStream;
-                    if (str != null)
-                    {
-                        str.Close();
-                    }
-                }
+                //if (info.Context != null)
+                //{
+                //    var str = info.Context as IBlockStream;
+                //    if (str != null)
+                //    {
+                //        str.Close();
+                //    }
+                //}
 
                 if (info.DeleteOnClose)
                 {
@@ -88,6 +88,7 @@ namespace Azi.Cloud.DokanNet
                     if (str != null)
                     {
                         str.Close();
+                        info.Context = null;
                     }
                 }
             }

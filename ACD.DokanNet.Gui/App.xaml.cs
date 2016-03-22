@@ -122,7 +122,7 @@ namespace Azi.Cloud.DokanNet.Gui
             }
 
             if (Clouds.Any(c => c.CloudInfo.Name == name))
-            {
+                {
                 int i = 1;
                 while (Clouds.Any(c => c.CloudInfo.Name == name + " " + i))
                 {
@@ -144,7 +144,7 @@ namespace Azi.Cloud.DokanNet.Gui
             var settings = Gui.Properties.Settings.Default;
             settings.Clouds.Add(info.Id, info);
             settings.Save();
-        }
+            }
 
         internal void DeleteCloud(CloudMount cloud)
         {
@@ -228,7 +228,7 @@ namespace Azi.Cloud.DokanNet.Gui
             foreach (var cloud in Clouds)
             {
                 await cloud.StartMount(false);
-            }
+        }
         }
 
         private async void Application_Startup(object sender, StartupEventArgs e)
@@ -321,7 +321,7 @@ namespace Azi.Cloud.DokanNet.Gui
             foreach (var cloud in Clouds)
             {
                 cloud.Unmount();
-            }
+        }
         }
 
         private bool disposedValue = false; // To detect redundant calls
