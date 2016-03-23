@@ -4,16 +4,22 @@ using Azi.Tools;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace Azi.Cloud.DokanNet.Gui
 {
     [Serializable]
     public class CloudMount : INotifyPropertyChanged, IDisposable, IAuthUpdateListener
     {
+        private readonly CloudInfo cloudInfo;
+
+        private ManualResetEventSlim unmountingEvent;
+
         private IHttpCloud instance;
 
         private bool mounting = false;
@@ -28,17 +34,7 @@ namespace Azi.Cloud.DokanNet.Gui
             cloudInfo.PropertyChanged += CloudInfoCanged;
         }
 
-        private void CloudInfoCanged(object sender, PropertyChangedEventArgs e)
-        {
-            var settings = Properties.Settings.Default;
-            settings.Save();
-
-            OnPropertyChanged(nameof(CloudInfo));
-        }
-
         public event PropertyChangedEventHandler PropertyChanged;
-
-        private readonly CloudInfo cloudInfo;
 
         public CloudInfo CloudInfo
         {
@@ -84,7 +80,11 @@ namespace Azi.Cloud.DokanNet.Gui
 
         public bool IsMounted => !mounting && !unmounting && (MountLetter != null);
 
-        public bool IsUnmounted => !unmounting && !mounting && !(MountLetter != null);
+        public bool IsUnmounted => !unmounting && !unmounting && !(MountLetter != null);
+
+        public Visibility MountVisible => (!unmounting && (MountLetter == null)) ? Visibility.Visible : Visibility.Collapsed;
+
+        public Visibility UnmountVisible => (!mounting && (MountLetter != null)) ? Visibility.Visible : Visibility.Collapsed;
 
         public CancellationTokenSource MountCancellation { get; } = new CancellationTokenSource();
 
@@ -103,9 +103,9 @@ namespace Azi.Cloud.DokanNet.Gui
             Dispose(true);
         }
 
-        public void Delete()
+        public async Task Delete()
         {
-            Unmount();
+            await StartUnmount();
             var settings = Properties.Settings.Default;
             settings.Clouds.RemoveAll(c => c.Id == CloudInfo.Id);
             settings.Save();
@@ -117,6 +117,7 @@ namespace Azi.Cloud.DokanNet.Gui
             var settings = Properties.Settings.Default;
             CloudInfo.AuthSave = authinfo;
             settings.Save();
+            Debug.WriteLine("Auth updated: " + CloudInfo.Name);
         }
 
         public async Task StartMount(bool interactiveAuth = true)
@@ -153,7 +154,7 @@ namespace Azi.Cloud.DokanNet.Gui
             }
         }
 
-        public void Unmount()
+        public async Task StartUnmount()
         {
             if (MountLetter == null)
             {
@@ -169,7 +170,16 @@ namespace Azi.Cloud.DokanNet.Gui
             NotifyMount();
             try
             {
-                VirtualDriveWrapper.Unmount((char)MountLetter);
+                await Task.Factory.StartNew(() =>
+                {
+                    using (unmountingEvent = new ManualResetEventSlim(false))
+                    {
+                        VirtualDriveWrapper.Unmount((char)MountLetter);
+                        unmountingEvent.Wait();
+                    }
+                });
+
+                MountLetter = null;
             }
             finally
             {
@@ -197,6 +207,14 @@ namespace Azi.Cloud.DokanNet.Gui
             }
         }
 
+        private void CloudInfoCanged(object sender, PropertyChangedEventArgs e)
+        {
+            var settings = Properties.Settings.Default;
+            settings.Save();
+
+            OnPropertyChanged(nameof(CloudInfo));
+        }
+
         private async Task Mount(TaskCompletionSource<char> mountedEvent, bool interactiveAuth = true)
         {
             try
@@ -221,6 +239,10 @@ namespace Azi.Cloud.DokanNet.Gui
                 {
                     mountedEvent.SetResult(letter);
                 };
+                cloudDrive.Unmounted = (letter) =>
+                  {
+                      unmountingEvent.Set();
+                  };
 
                 App.MountChanged(CloudInfo);
 
@@ -281,6 +303,7 @@ namespace Azi.Cloud.DokanNet.Gui
             var authinfo = CloudInfo.AuthSave;
             if (string.IsNullOrWhiteSpace(authinfo))
             {
+                Debug.WriteLine("No auth info: " + CloudInfo.Name);
                 if (!interactiveAuth)
                 {
                     return false;
@@ -308,6 +331,8 @@ namespace Azi.Cloud.DokanNet.Gui
 
         private void NotifyMount()
         {
+            OnPropertyChanged(nameof(MountVisible));
+            OnPropertyChanged(nameof(UnmountVisible));
             OnPropertyChanged(nameof(CanMount));
             OnPropertyChanged(nameof(CanUnmount));
             OnPropertyChanged(nameof(IsMounted));

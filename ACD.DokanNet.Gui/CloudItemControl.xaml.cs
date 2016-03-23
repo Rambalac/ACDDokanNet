@@ -28,9 +28,9 @@ namespace Azi.Cloud.DokanNet.Gui
             InitializeComponent();
         }
 
-        private void UnmountButton_Click(object sender, RoutedEventArgs e)
+        private async void UnmountButton_Click(object sender, RoutedEventArgs e)
         {
-            Model.Unmount();
+            await Model.StartUnmount();
         }
 
         private async void MountButton_Click(object sender, RoutedEventArgs e)

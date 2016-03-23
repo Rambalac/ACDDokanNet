@@ -44,13 +44,13 @@ namespace Azi.Cloud.DokanNet
             try
             {
                 virtualDrive.ReadOnly = readOnly;
-#if DEBUG
-                virtualDrive.Mount(letter + ":\\", DokanOptions.DebugMode | DokanOptions.AltStream | DokanOptions.FixedDrive, 0, 800, TimeSpan.FromSeconds(30));
-#else
-                virtualDrive.Mount(letter + ":\\", DokanOptions.AltStream | DokanOptions.FixedDrive, 0, 800, TimeSpan.FromSeconds(30));
-#endif
                 virtualDrive.MountPath = letter + ":\\";
                 mountLetter = letter;
+#if DEBUG
+                virtualDrive.Mount(virtualDrive.MountPath, DokanOptions.DebugMode | DokanOptions.AltStream | DokanOptions.FixedDrive, 0, 800, TimeSpan.FromSeconds(30));
+#else
+                virtualDrive.Mount(virtualDrive.MountPath, DokanOptions.AltStream | DokanOptions.FixedDrive, 0, 800, TimeSpan.FromSeconds(30));
+#endif
             }
             catch (DokanException e)
             {

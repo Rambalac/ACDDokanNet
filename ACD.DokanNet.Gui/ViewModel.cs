@@ -139,6 +139,11 @@ namespace Azi.Cloud.DokanNet.Gui
 
         private void RefreshLetters(object state)
         {
+            if (App == null)
+            {
+                return;
+            }
+
             foreach (var cloud in Clouds)
             {
                 cloud.OnPropertyChanged(nameof(cloud.DriveLetters));

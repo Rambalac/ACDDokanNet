@@ -8,17 +8,17 @@
         xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
         x:Class="Azi.Cloud.DokanNet.Gui.MainWindow"
         mc:Ignorable="d"
-        Title="ACD Dokan.Net Settings" SizeToContent="WidthAndHeight" Closing="Window_Closing" MinWidth="280" MaxWidth="280" MinHeight="280">
+        Title="ACD Dokan.Net Settings" SizeToContent="WidthAndHeight" Closing="Window_Closing" MinWidth="300" MaxWidth="300" MinHeight="280">
     <Window.Resources>
 
     </Window.Resources>
     <Window.DataContext>
         <local:ViewModel/>
     </Window.DataContext>
-    <Border Padding="5">
+    <Border Name="mainBorder" Padding="5">
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
+                <ColumnDefinition/>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
                 <RowDefinition/>

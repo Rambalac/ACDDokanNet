@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.IO;
+using System.Diagnostics;
 
 namespace Azi.Cloud.DokanNet.Gui
 {
@@ -39,6 +40,7 @@ namespace Azi.Cloud.DokanNet.Gui
                     var settings = Gui.Properties.Settings.Default;
                     if (settings.Clouds == null)
                     {
+                        Debug.WriteLine("No clouds!");
                         settings.Clouds = new CloudInfoCollection();
                         settings.Save();
                     }
@@ -223,7 +225,7 @@ namespace Azi.Cloud.DokanNet.Gui
 
         private async Task MountDefault()
         {
-            foreach (var cloud in Clouds)
+            foreach (var cloud in Clouds.Where(c => c.CloudInfo.AutoMount))
             {
                 try
                 {
@@ -262,7 +264,7 @@ namespace Azi.Cloud.DokanNet.Gui
             {
                 if (!shuttingdown)
                 {
-                    Shutdown(); // TODO remove
+                    //Shutdown(); // TODO remove
                     notifyIcon.ShowBalloonTip(5000, string.Empty, "Settings window is still accessible from here.\r\nTo close application totally click here with right button and select Exit.", ToolTipIcon.None);
                 }
             };
@@ -317,16 +319,17 @@ namespace Azi.Cloud.DokanNet.Gui
             }
         }
 
-        private void Application_Exit(object sender, ExitEventArgs e)
+        private async void Application_Exit(object sender, ExitEventArgs e)
         {
             if (notifyIcon != null)
             {
                 notifyIcon.Dispose();
+                notifyIcon = null;
             }
 
             foreach (var cloud in Clouds)
             {
-                cloud.Unmount();
+                await cloud.StartUnmount();
             }
         }
 
@@ -339,7 +342,10 @@ namespace Azi.Cloud.DokanNet.Gui
                 if (disposing)
                 {
                     startedMutex.Dispose();
-                    notifyIcon.Dispose();
+                    if (notifyIcon != null)
+                    {
+                        notifyIcon.Dispose();
+                    }
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
