@@ -2,7 +2,6 @@
 
 namespace Azi.Cloud.DokanNet
 {
-
     public static class HardLink
     {
         public static bool Create(string targetPath, string hardLinkPath)

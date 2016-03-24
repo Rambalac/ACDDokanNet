@@ -6,7 +6,6 @@ using System.Diagnostics;
 
 namespace Azi.Cloud.DokanNet.Tests
 {
-
     public class FSProviderTests : FSProviderTestsBase
     {
         [Fact]

@@ -15,7 +15,7 @@ namespace Azi.Cloud.DokanNet.Gui
 {
     public class AvailableCloudsModel
     {
-        static AvailableCloudsModel()
+        public AvailableCloudsModel()
         {
             AvailableClouds = new List<AvailableCloud>();
             foreach (var file in Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory, "Clouds.*.dll"))
@@ -42,7 +42,7 @@ namespace Azi.Cloud.DokanNet.Gui
             }
         }
 
-        public static List<AvailableCloud> AvailableClouds { get; }
+        public List<AvailableCloud> AvailableClouds { get; }
 
         public class AvailableCloud
         {

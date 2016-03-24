@@ -30,7 +30,7 @@ namespace Azi.Cloud.DokanNet.Gui
 
         private async void UnmountButton_Click(object sender, RoutedEventArgs e)
         {
-            await Model.StartUnmount();
+            await Model.UnmountAsync();
         }
 
         private async void MountButton_Click(object sender, RoutedEventArgs e)
@@ -40,7 +40,7 @@ namespace Azi.Cloud.DokanNet.Gui
             dlg.Show();
             try
             {
-                await Model.StartMount();
+                await Model.MountAsync();
             }
             catch (Exception ex)
             {
@@ -52,9 +52,9 @@ namespace Azi.Cloud.DokanNet.Gui
             Window.GetWindow(this).Activate();
         }
 
-        private void DeleteButton_Click(object sender, RoutedEventArgs e)
+        private async void DeleteButton_Click(object sender, RoutedEventArgs e)
         {
-            Model.Delete();
+            await Model.Delete();
         }
     }
 }

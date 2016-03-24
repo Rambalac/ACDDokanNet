@@ -13,6 +13,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.IO;
 using System.Diagnostics;
+using System.Collections.Specialized;
 
 namespace Azi.Cloud.DokanNet.Gui
 {
@@ -190,6 +191,13 @@ namespace Azi.Cloud.DokanNet.Gui
             };
         }
 
+        internal void SaveClouds()
+        {
+            var settings = Gui.Properties.Settings.Default;
+            settings.Clouds = new CloudInfoCollection(Clouds.Select(c => c.CloudInfo));
+            settings.Save();
+        }
+
         private void ShowBalloon()
         {
             notifyIcon.ShowBalloonTip(5000, "State", $"Downloading: {DownloadingCount}\r\nUploading: {UploadingCount}", ToolTipIcon.None);
@@ -215,11 +223,6 @@ namespace Azi.Cloud.DokanNet.Gui
             Shutdown();
         }
 
-        internal void MountChanged(CloudInfo cloudInfo)
-        {
-            // throw new NotImplementedException();
-        }
-
         private Mutex startedMutex;
         private bool shuttingdown = false;
 
@@ -229,7 +232,7 @@ namespace Azi.Cloud.DokanNet.Gui
             {
                 try
                 {
-                    await cloud.StartMount(false);
+                    await cloud.MountAsync(false);
                 }
                 catch (Exception ex)
                 {
@@ -264,7 +267,6 @@ namespace Azi.Cloud.DokanNet.Gui
             {
                 if (!shuttingdown)
                 {
-                    //Shutdown(); // TODO remove
                     notifyIcon.ShowBalloonTip(5000, string.Empty, "Settings window is still accessible from here.\r\nTo close application totally click here with right button and select Exit.", ToolTipIcon.None);
                 }
             };
@@ -319,7 +321,7 @@ namespace Azi.Cloud.DokanNet.Gui
             }
         }
 
-        private async void Application_Exit(object sender, ExitEventArgs e)
+        private void Application_Exit(object sender, ExitEventArgs e)
         {
             if (notifyIcon != null)
             {
@@ -329,8 +331,13 @@ namespace Azi.Cloud.DokanNet.Gui
 
             foreach (var cloud in Clouds)
             {
-                await cloud.StartUnmount();
+                cloud.UnmountAsync().Wait(500);
             }
+        }
+
+        internal void NotifyMountChanged(string id)
+        {
+            OnMountChanged?.Invoke(id);
         }
 
         private bool disposedValue = false; // To detect redundant calls

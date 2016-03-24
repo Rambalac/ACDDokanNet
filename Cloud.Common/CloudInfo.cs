@@ -12,25 +12,19 @@ namespace Azi.Cloud.Common
     [SettingsSerializeAs(SettingsSerializeAs.Xml)]
     public class CloudInfo : INotifyPropertyChanged
     {
-        public event PropertyChangedEventHandler PropertyChanged;
+        private string assemblyName;
+
+        private bool autoMount;
 
         private string className;
 
-        public string ClassName
-        {
-            get
-            {
-                return className;
-            }
+        private char driveLetter;
 
-            set
-            {
-                className = value;
-                OnPropertyChanged(nameof(ClassName));
-            }
-        }
+        private string name;
 
-        private string assemblyName;
+        private bool readOnly;
+
+        public event PropertyChangedEventHandler PropertyChanged;
 
         public string AssemblyName
         {
@@ -46,23 +40,7 @@ namespace Azi.Cloud.Common
             }
         }
 
-        private char driveLetter;
-
-        public char DriveLetter
-        {
-            get
-            {
-                return driveLetter;
-            }
-
-            set
-            {
-                driveLetter = value;
-                OnPropertyChanged(nameof(DriveLetter));
-            }
-        }
-
-        private bool autoMount;
+        public string AuthSave { get; set; }
 
         public bool AutoMount
         {
@@ -78,9 +56,35 @@ namespace Azi.Cloud.Common
             }
         }
 
-        public string AuthSave { get; set; }
+        public string ClassName
+        {
+            get
+            {
+                return className;
+            }
 
-        private string name;
+            set
+            {
+                className = value;
+                OnPropertyChanged(nameof(ClassName));
+            }
+        }
+
+        public char DriveLetter
+        {
+            get
+            {
+                return driveLetter;
+            }
+
+            set
+            {
+                driveLetter = value;
+                OnPropertyChanged(nameof(DriveLetter));
+            }
+        }
+
+        public string Id { get; set; }
 
         public string Name
         {
@@ -95,10 +99,6 @@ namespace Azi.Cloud.Common
                 OnPropertyChanged(nameof(Name));
             }
         }
-
-        public string Id { get; set; }
-
-        private bool readOnly;
 
         public bool ReadOnly
         {

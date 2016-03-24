@@ -25,20 +25,23 @@ namespace Azi.Cloud.Common
         {
         }
 
+        public DateTime CreationTime { get; set; }
+
+        public string Dir => System.IO.Path.GetDirectoryName(Path);
+
         public DateTime FetchTime { get; } = DateTime.UtcNow;
-
-        public bool IsUploading { get; internal set; } = false;
-
-        // To replacement to cache files in path that does not exist
-        public bool NotExistingDummy { get; private set; } = false;
-
-        public string Path { get; set; }
-
-        public ConcurrentBag<string> ParentIds { get; private set; }
 
         public string Id { get; internal set; }
 
+        public byte[] Info { get; set; }
+
         public bool IsDir { get; internal set; }
+
+        public bool IsUploading { get; internal set; } = false;
+
+        public DateTime LastAccessTime { get; set; }
+
+        public DateTime LastWriteTime { get; set; }
 
         public long Length
         {
@@ -53,17 +56,14 @@ namespace Azi.Cloud.Common
             }
         }
 
-        public string Dir => System.IO.Path.GetDirectoryName(Path);
-
         public string Name => System.IO.Path.GetFileName(Path);
 
-        public DateTime LastAccessTime { get; set; }
+        // To replacement to cache files in path that does not exist
+        public bool NotExistingDummy { get; private set; } = false;
 
-        public DateTime LastWriteTime { get; set; }
+        public ConcurrentBag<string> ParentIds { get; private set; }
 
-        public DateTime CreationTime { get; set; }
-
-        public byte[] Info { get; set; }
+        public string Path { get; set; }
 
         public static FSItem MakeNotExistingDummy(string path)
         {
@@ -91,6 +91,8 @@ namespace Azi.Cloud.Common
             };
         }
 
+        public bool IsExpired(int expirationSeconds) => DateTime.UtcNow > FetchTime.AddSeconds(expirationSeconds);
+
         public void MakeNotUploading()
         {
             IsUploading = false;
@@ -100,8 +102,6 @@ namespace Azi.Cloud.Common
         {
             IsUploading = true;
         }
-
-        public bool IsExpired(int expirationSeconds) => DateTime.UtcNow > FetchTime.AddSeconds(expirationSeconds);
 
         public class Builder
         {
