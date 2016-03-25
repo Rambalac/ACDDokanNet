@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Azi.Cloud.DokanNet.Gui</RootNamespace>
     <AssemblyName>ACD.DokanNet.Gui</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <WarningLevel>4</WarningLevel>
@@ -150,9 +150,6 @@
       <DependentUpon>CloudItemControl.xaml</DependentUpon>
     </Compile>
     <Compile Include="CloudMount.cs" />
-    <Compile Include="MountWaitBox.xaml.cs">
-      <DependentUpon>MountWaitBox.xaml</DependentUpon>
-    </Compile>
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -180,10 +177,6 @@
       <SubType>
       </SubType>
     </Compile>
-    <Page Include="MountWaitBox.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">
@@ -222,6 +215,10 @@
     <ProjectReference Include="..\Cloud.Common\Cloud.Common.csproj">
       <Project>{93841375-56d7-4b34-aa7c-ba69f29f8b66}</Project>
       <Name>Cloud.Common</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MicrosoftOneDrive\MicrosoftOneDrive.csproj">
+      <Project>{88e3c06f-d698-44b4-8a20-7951f786ae20}</Project>
+      <Name>MicrosoftOneDrive</Name>
     </ProjectReference>
     <ProjectReference Include="..\Tools\Tools.csproj">
       <Project>{199cdb28-7472-41bd-bb1f-bf345451a68d}</Project>

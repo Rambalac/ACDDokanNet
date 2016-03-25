@@ -7,166 +7,165 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Net;
 using System.Threading;
+using Microsoft.OneDrive.Sdk;
+using Microsoft.OneDrive.Sdk.WindowsForms;
+using System.Collections.Concurrent;
 
-namespace MicrosoftOneDrive
+namespace Azi.Cloud.MicrosoftOneDrive
 {
     public class MicrosoftOneDrive : IHttpCloud, IHttpCloudFiles, IHttpCloudNodes
     {
+        private IOneDriveClient oneDriveClient;
+
+        private static readonly string[] Scopes = { "onedrive.readwrite" };
+
         public static string CloudServiceName => "Microsoft OneDrive";
 
-        public static string CloudServiceIcon => "/Clouds.AmazonCloudDrive;Component/images/cd_icon.png";
- 
-        public long AvailableFreeSpace
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-        }
+        public static string CloudServiceIcon => "/Clouds.MicrosoftOneDrive;Component/images/cd_icon.png";
+
+        public long AvailableFreeSpace => 0;
 
         string IHttpCloud.CloudServiceIcon => CloudServiceIcon;
 
         string IHttpCloud.CloudServiceName => CloudServiceName;
 
-        public IHttpCloudFiles Files
+        public IHttpCloudFiles Files => this;
+
+        public IHttpCloudNodes Nodes => this;
+
+        public IAuthUpdateListener OnAuthUpdated { get; set; }
+
+        public long TotalFreeSpace => GetDrive().Quota.Remaining ?? 0;
+
+        public long TotalSize => GetDrive().Quota.Total ?? 0;
+
+        public long TotalUsedSpace => GetDrive().Quota.Used ?? 0;
+
+        public MicrosoftOneDrive()
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
+
         }
 
-        public string Name
+        public async Task<bool> AuthenticateNew(CancellationToken cs)
         {
-            get
-            {
-                throw new NotImplementedException();
-            }
-
-            set
-            {
-                throw new NotImplementedException();
-            }
+            return await Authenticate();
         }
 
-        public IHttpCloudNodes Nodes
+        private async Task<bool> Authenticate()
         {
-            get
+            if (oneDriveClient == null)
             {
-                throw new NotImplementedException();
-            }
-        }
-
-        public IAuthUpdateListener OnAuthUpdated
-        {
-            get
-            {
-                throw new NotImplementedException();
+                oneDriveClient = OneDriveClient.GetMicrosoftAccountClient(
+                MicrosoftSecret.ClientId,
+                "http://localhost:45674/authredirect",
+                Scopes,
+                webAuthenticationUi: new FormsWebAuthenticationUi());
             }
 
-            set
+            if (!oneDriveClient.IsAuthenticated)
             {
-                throw new NotImplementedException();
+                await oneDriveClient.AuthenticateAsync();
             }
+            return oneDriveClient.IsAuthenticated;
         }
 
-        public long TotalFreeSpace
+        public async Task<bool> AuthenticateSaved(CancellationToken cs, string save)
         {
-            get
+            return await Authenticate();
+        }
+
+        public async Task<FSItem.Builder> CreateFolder(string parentid, string name)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task Download(string id, Func<HttpWebResponse, Task> streammer, long? fileOffset = default(long?), int? length = default(int?))
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<int> Download(string id, byte[] result, int offset, long pos, int left)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<FSItem.Builder> GetChild(string id, string name)
+        {
+            var items = await oneDriveClient.Drive.Items["1234"].Children.Request().GetAsync();
+            var item = items.Where(i => i.Name == name).SingleOrDefault();
+            if (item == null) return null;
+            return FromNode(item);
+        }
+
+        public async Task<IList<FSItem.Builder>> GetChildren(string id)
+        {
+            var nodes = await oneDriveClient.Drive.Items[id].Children.Request().GetAsync();
+            return nodes.Select(n => FromNode(n)).ToList();
+        }
+
+        public async Task<object> GetNodeExtended(string id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<FSItem.Builder> GetRoot()
+        {
+            var rootItem = await oneDriveClient
+                             .Drive
+                             .Root
+                             .Request()
+                             .GetAsync();
+            return FromNode(rootItem);
+        }
+
+        public async Task<FSItem.Builder> Move(string itemId, string oldParentId, string newParentId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<FSItem.Builder> Overwrite(string id, Func<FileStream> p)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task Remove(string id1, string id2)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<FSItem.Builder> Rename(string id, string newName)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task Trash(string id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<FSItem.Builder> UploadNew(string parentId, string fileName, Func<FileStream> p)
+        {
+            throw new NotImplementedException();
+        }
+
+        private Drive GetDrive()
+        {
+            return oneDriveClient.Drive.Request().GetAsync().Result;
+        }
+
+        private static FSItem.Builder FromNode(Item node)
+        {
+            return new FSItem.Builder
             {
-                throw new NotImplementedException();
-            }
-        }
-
-        public long TotalSize
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        public long TotalUsedSpace
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        public Task<bool> AuthenticateNew(CancellationToken cs)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<bool> AuthenticateSaved(CancellationToken cs, string save)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<FSItem.Builder> CreateFolder(string parentid, string name)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task Download(string id, Func<HttpWebResponse, Task> streammer, long? fileOffset = default(long?), int? length = default(int?))
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<int> Download(string id, byte[] result, int offset, long pos, int left)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<FSItem.Builder> GetChild(string id, string name)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<IList<FSItem.Builder>> GetChildren(string id)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<object> GetNodeExtended(string id)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<FSItem.Builder> GetRoot()
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<FSItem.Builder> Move(string itemId, string oldParentId, string newParentId)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<FSItem.Builder> Overwrite(string id, Func<FileStream> p)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task Remove(string id1, string id2)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<FSItem.Builder> Rename(string id, string newName)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task Trash(string id)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<FSItem.Builder> UploadNew(string parentId, string fileName, Func<FileStream> p)
-        {
-            throw new NotImplementedException();
+                Length = node.Size ?? 0,
+                Id = node.Id,
+                IsDir = node.Folder != null,
+                CreationTime = node.CreatedDateTime?.LocalDateTime ?? DateTime.UtcNow,
+                LastAccessTime = node.LastModifiedDateTime?.LocalDateTime ?? DateTime.UtcNow,
+                LastWriteTime = node.LastModifiedDateTime?.LocalDateTime ?? DateTime.UtcNow,
+                ParentIds = new ConcurrentBag<string>(new[] { node.ParentReference.Id }),
+                Name = node.Name
+            };
         }
     }
 }

@@ -11,6 +11,7 @@ using Newtonsoft.Json;
 using Azi.Amazon.CloudDrive.JsonObjects;
 using Azi.Amazon.CloudDrive;
 using Azi.Tools;
+using System.Windows;
 
 namespace Azi.Cloud.AmazonCloudDrive
 {
@@ -102,8 +103,6 @@ namespace Azi.Cloud.AmazonCloudDrive
         }
 
         public IAuthUpdateListener OnAuthUpdated { get; set; }
-
-        public string Name { get; set; }
 
         async Task<FSItem.Builder> IHttpCloudNodes.CreateFolder(string parentid, string name)
         {
@@ -287,44 +286,28 @@ namespace Azi.Cloud.AmazonCloudDrive
             }
         }
 
-        public Task<bool> AuthenticateNew(CancellationToken cs)
+        public async Task<bool> AuthenticateNew(CancellationToken cs)
         {
-            return Task.Run(async () =>
-            {
-                if (!await amazon.AuthenticationByExternalBrowser(CloudDriveScopes.ReadAll | CloudDriveScopes.Write, TimeSpan.FromMinutes(10), cs))
-                {
-                    return false;
-                }
+            var dlg = new MountWaitBox();
+            var cts = new CancellationTokenSource();
+            dlg.Cancellation = cts;
+            dlg.Show();
 
-                cs.ThrowIfCancellationRequested();
-                return true;
-            });
+            var result = await amazon.AuthenticationByExternalBrowser(CloudDriveScopes.ReadAll | CloudDriveScopes.Write, TimeSpan.FromMinutes(10), cts.Token);
+
+            dlg.Close();
+            cs.ThrowIfCancellationRequested();
+            return result;
         }
 
-        public Task<bool> AuthenticateSaved(CancellationToken cs, string save)
+        public async Task<bool> AuthenticateSaved(CancellationToken cs, string save)
         {
-            try
-            {
-                var authinfo = JsonConvert.DeserializeObject<AuthInfo>(save);
+            var authinfo = JsonConvert.DeserializeObject<AuthInfo>(save);
 
-                return Task.Run(async () =>
-                {
-                    if (!await amazon.AuthenticationByTokens(
-                    authinfo.AuthToken,
-                    authinfo.AuthRenewToken,
-                    authinfo.AuthTokenExpiration))
-                    {
-                        return false;
-                    }
-
-                    cs.ThrowIfCancellationRequested();
-                    return true;
-                });
-            }
-            catch (JsonReaderException)
-            {
-                return Task.FromResult(false);
-            }
+            return await amazon.AuthenticationByTokens(
+            authinfo.AuthToken,
+            authinfo.AuthRenewToken,
+            authinfo.AuthTokenExpiration);
         }
 
         /// <summary>

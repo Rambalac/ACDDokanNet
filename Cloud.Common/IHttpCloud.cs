@@ -4,6 +4,7 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace Azi.Cloud.Common
 {
@@ -16,8 +17,6 @@ namespace Azi.Cloud.Common
         string CloudServiceName { get; }
 
         IHttpCloudFiles Files { get; }
-
-        string Name { get; set; }
 
         IHttpCloudNodes Nodes { get; }
 

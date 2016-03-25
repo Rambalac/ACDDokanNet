@@ -2,7 +2,7 @@
 using System.Windows;
 using System.Windows.Input;
 
-namespace Azi.Cloud.DokanNet.Gui
+namespace Azi.Cloud.AmazonCloudDrive
 {
     /// <summary>
     /// Interaction logic for MountWaitBox.xaml

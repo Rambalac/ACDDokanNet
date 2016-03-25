@@ -35,9 +35,6 @@ namespace Azi.Cloud.DokanNet.Gui
 
         private async void MountButton_Click(object sender, RoutedEventArgs e)
         {
-            var dlg = new MountWaitBox(Window.GetWindow(this));
-            dlg.Cancellation = Model.MountCancellation;
-            dlg.Show();
             try
             {
                 await Model.MountAsync();
@@ -48,7 +45,6 @@ namespace Azi.Cloud.DokanNet.Gui
                 MessageBox.Show(Window.GetWindow(this), ex.Message);
             }
 
-            dlg.Close();
             Window.GetWindow(this).Activate();
         }
 

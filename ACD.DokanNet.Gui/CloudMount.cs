@@ -128,10 +128,7 @@ namespace Azi.Cloud.DokanNet.Gui
             {
                 try
                 {
-                    var mountedEvent = new TaskCompletionSource<char>();
-
-                    var task = Task.Factory.StartNew(() => Mount(mountedEvent, interactiveAuth), TaskCreationOptions.LongRunning).Unwrap();
-                    MountLetter = await mountedEvent.Task;
+                    MountLetter = await Mount(interactiveAuth);
                 }
                 catch (TimeoutException)
                 {
@@ -208,7 +205,7 @@ namespace Azi.Cloud.DokanNet.Gui
             App.SaveClouds();
         }
 
-        private async Task Mount(TaskCompletionSource<char> mountedEvent, bool interactiveAuth = true)
+        private async Task<char> Mount(bool interactiveAuth = true)
         {
             try
             {
@@ -218,8 +215,7 @@ namespace Azi.Cloud.DokanNet.Gui
                 if (!authenticated)
                 {
                     Log.Error("Authentication failed");
-                    mountedEvent.SetException(new InvalidOperationException("Authentication failed"));
-                    return;
+                    throw new InvalidOperationException("Authentication failed");
                 }
 
                 Provider = new FSProvider(instance);
@@ -228,6 +224,9 @@ namespace Azi.Cloud.DokanNet.Gui
                 Provider.SmallFileSizeLimit = Properties.Settings.Default.SmallFileSizeLimit * (1 << 20);
                 Provider.OnStatisticsUpdated = ProviderStatisticsUpdated;
                 var cloudDrive = new VirtualDriveWrapper(Provider);
+
+                var mountedEvent = new TaskCompletionSource<char>();
+
                 cloudDrive.Mounted = (letter) =>
                 {
                     mountedEvent.SetResult(letter);
@@ -235,48 +234,52 @@ namespace Azi.Cloud.DokanNet.Gui
 
                 NotifyMount();
 
-                try
+                var task = Task.Run(() =>
                 {
-                    cloudDrive.Mount(CloudInfo.DriveLetter, CloudInfo.ReadOnly);
-                    unmountingEvent.Set();
-                }
-                catch (InvalidOperationException)
-                {
-                    Log.Warn($"Drive letter {CloudInfo.DriveLetter} is already used");
-                    Exception lastException = null;
-                    bool wasMounted = false;
-                    foreach (char letter in VirtualDriveWrapper.GetFreeDriveLettes())
+                    try
                     {
-                        try
+                        cloudDrive.Mount(CloudInfo.DriveLetter, CloudInfo.ReadOnly);
+                        unmountingEvent.Set();
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        Log.Warn($"Drive letter {CloudInfo.DriveLetter} is already used");
+                        Exception lastException = null;
+                        bool wasMounted = false;
+                        foreach (char letter in VirtualDriveWrapper.GetFreeDriveLettes())
                         {
-                            cloudDrive.Mount(letter, CloudInfo.ReadOnly);
-                            unmountingEvent.Set();
+                            try
+                            {
+                                cloudDrive.Mount(letter, CloudInfo.ReadOnly);
+                                unmountingEvent.Set();
 
-                            wasMounted = true;
-                            break;
+                                wasMounted = true;
+                                break;
+                            }
+                            catch (InvalidOperationException ex)
+                            {
+                                lastException = ex;
+                                Log.Warn($"Drive letter {letter} is already used");
+                            }
                         }
-                        catch (InvalidOperationException ex)
+
+                        if (!wasMounted)
                         {
-                            lastException = ex;
-                            Log.Warn($"Drive letter {letter} is already used");
+                            var message = "Could not find free letter";
+                            if (lastException != null && lastException.InnerException != null)
+                            {
+                                message = lastException.InnerException.Message;
+                            }
+
+                            mountedEvent.SetException(new InvalidOperationException(message));
                         }
                     }
-
-                    if (!wasMounted)
+                    catch (Exception ex)
                     {
-                        var message = "Could not find free letter";
-                        if (lastException != null && lastException.InnerException != null)
-                        {
-                            message = lastException.InnerException.Message;
-                        }
-
-                        mountedEvent.SetException(new InvalidOperationException(message));
+                        mountedEvent.SetException(ex);
                     }
-                }
-            }
-            catch (Exception ex)
-            {
-                mountedEvent.SetException(ex);
+                });
+                return await mountedEvent.Task;
             }
             finally
             {
