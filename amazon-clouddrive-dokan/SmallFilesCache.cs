@@ -18,7 +18,7 @@ namespace Azi.Cloud.DokanNet
         private static ConcurrentDictionary<IHttpCloud, SmallFilesCache> instances = new ConcurrentDictionary<IHttpCloud, SmallFilesCache>(10, 3);
         private static ConcurrentDictionary<string, Downloader> downloaders = new ConcurrentDictionary<string, Downloader>(10, 3);
 
-        private readonly IHttpCloud amazon;
+        private readonly IHttpCloud cloud;
 
         private long totalSize = 0;
         private bool cleaning = false;
@@ -27,7 +27,7 @@ namespace Azi.Cloud.DokanNet
 
         public SmallFilesCache(IHttpCloud a)
         {
-            amazon = a;
+            cloud = a;
         }
 
         public long CacheSize { get; internal set; }
@@ -231,34 +231,24 @@ namespace Azi.Cloud.DokanNet
                     OnDownloadStarted?.Invoke(item.Id);
                     while (writer.Length < item.Length)
                     {
-                        await amazon.Files.Download(item.Id, fileOffset: writer.Length, streammer: async (response) =>
+                        await cloud.Files.Download(item.Id, fileOffset: writer.Length, streammer: async (stream) =>
                         {
-                            var partial = response.StatusCode == System.Net.HttpStatusCode.PartialContent;
-                            ContentRangeHeaderValue contentRange = null;
-                            if (partial)
+                            int red = 0;
+                            long totalred = 0;
+                            do
                             {
-                                contentRange = response.Headers.GetContentRange();
-                                if (contentRange.From != writer.Length)
+                                red = await stream.ReadAsync(buf, 0, buf.Length);
+                                totalred += red;
+                                if (writer.Length == 0)
                                 {
-                                    throw new InvalidOperationException("Content range does not match request");
+                                    Log.Trace("Got first part: " + item.Id + " in " + start.ElapsedMilliseconds);
                                 }
-                            }
-                            using (var stream = response.GetResponseStream())
-                            {
-                                int red = 0;
-                                do
-                                {
-                                    red = await stream.ReadAsync(buf, 0, buf.Length);
-                                    if (writer.Length == 0)
-                                    {
-                                        Log.Trace("Got first part: " + item.Id + " in " + start.ElapsedMilliseconds);
-                                    }
 
-                                    writer.Write(buf, 0, red);
-                                    downloader.Downloaded = writer.Length;
-                                }
-                                while (red > 0);
+                                writer.Write(buf, 0, red);
+                                downloader.Downloaded = writer.Length;
                             }
+                            while (red > 0);
+                            return totalred;
                         });
                         if (writer.Length < item.Length)
                         {

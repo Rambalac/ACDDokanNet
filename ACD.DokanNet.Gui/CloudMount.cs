@@ -106,6 +106,7 @@ namespace Azi.Cloud.DokanNet.Gui
         public async Task Delete()
         {
             await UnmountAsync();
+            await Instance.SignOut(CloudInfo.AuthSave);
             App.DeleteCloud(this);
         }
 

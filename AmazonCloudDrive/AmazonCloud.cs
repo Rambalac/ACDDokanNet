@@ -12,6 +12,7 @@ using Azi.Amazon.CloudDrive.JsonObjects;
 using Azi.Amazon.CloudDrive;
 using Azi.Tools;
 using System.Windows;
+using System.Net.Http.Headers;
 
 namespace Azi.Cloud.AmazonCloudDrive
 {
@@ -220,11 +221,29 @@ namespace Azi.Cloud.AmazonCloudDrive
             }
         }
 
-        async Task IHttpCloudFiles.Download(string id, Func<HttpWebResponse, Task> streammer, long? fileOffset, int? length)
+        async Task IHttpCloudFiles.Download(string id, Func<Stream, Task<long>> streammer, long? fileOffset, int? length)
         {
             try
             {
-                await amazon.Files.Download(id, streammer, fileOffset, length);
+                long expectedOffset = fileOffset ?? 0;
+                await amazon.Files.Download(id, fileOffset: fileOffset, length: length, streammer: async (response) =>
+                {
+                    var partial = response.StatusCode == HttpStatusCode.PartialContent;
+                    ContentRangeHeaderValue contentRange = null;
+                    if (partial)
+                    {
+                        contentRange = response.Headers.GetContentRange();
+                        if (contentRange.From != expectedOffset)
+                        {
+                            throw new InvalidOperationException("Content range does not match request");
+                        }
+                    }
+
+                    using (var stream = response.GetResponseStream())
+                    {
+                        expectedOffset += await streammer(stream);
+                    }
+                });
             }
             catch (Exception ex)
             {
@@ -308,6 +327,11 @@ namespace Azi.Cloud.AmazonCloudDrive
             authinfo.AuthToken,
             authinfo.AuthRenewToken,
             authinfo.AuthTokenExpiration);
+        }
+
+        public async Task SignOut(string save)
+        {
+            await Task.FromResult(0);
         }
 
         /// <summary>

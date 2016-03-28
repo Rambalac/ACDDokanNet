@@ -15,9 +15,18 @@ namespace Azi.Cloud.MicrosoftOneDrive
 {
     public class MicrosoftOneDrive : IHttpCloud, IHttpCloudFiles, IHttpCloudNodes
     {
+        private static readonly string[] Scopes = { "onedrive.readwrite", "wl.signin" };
+
         private IOneDriveClient oneDriveClient;
 
-        private static readonly string[] Scopes = { "onedrive.readwrite" };
+        public MicrosoftOneDrive()
+        {
+            oneDriveClient = OneDriveClient.GetMicrosoftAccountClient(
+                MicrosoftSecret.ClientId,
+                "http://localhost:45674/authredirect",
+                Scopes,
+                webAuthenticationUi: new FormsWebAuthenticationUi());
+        }
 
         public static string CloudServiceName => "Microsoft OneDrive";
 
@@ -41,32 +50,9 @@ namespace Azi.Cloud.MicrosoftOneDrive
 
         public long TotalUsedSpace => GetDrive().Quota.Used ?? 0;
 
-        public MicrosoftOneDrive()
-        {
-
-        }
-
         public async Task<bool> AuthenticateNew(CancellationToken cs)
         {
             return await Authenticate();
-        }
-
-        private async Task<bool> Authenticate()
-        {
-            if (oneDriveClient == null)
-            {
-                oneDriveClient = OneDriveClient.GetMicrosoftAccountClient(
-                MicrosoftSecret.ClientId,
-                "http://localhost:45674/authredirect",
-                Scopes,
-                webAuthenticationUi: new FormsWebAuthenticationUi());
-            }
-
-            if (!oneDriveClient.IsAuthenticated)
-            {
-                await oneDriveClient.AuthenticateAsync();
-            }
-            return oneDriveClient.IsAuthenticated;
         }
 
         public async Task<bool> AuthenticateSaved(CancellationToken cs, string save)
@@ -74,32 +60,53 @@ namespace Azi.Cloud.MicrosoftOneDrive
             return await Authenticate();
         }
 
-        public async Task<FSItem.Builder> CreateFolder(string parentid, string name)
+        public async Task SignOut(string save)
         {
-            throw new NotImplementedException();
+            await oneDriveClient.SignOutAsync();
         }
 
-        public async Task Download(string id, Func<HttpWebResponse, Task> streammer, long? fileOffset = default(long?), int? length = default(int?))
+        public async Task<FSItem.Builder> CreateFolder(string parentid, string name)
         {
-            throw new NotImplementedException();
+            var item = await GetItem(parentid).Request().CreateAsync(new Item { Name = name });
+            return FromNode(item);
+        }
+
+        public async Task Download(string id, Func<Stream, Task<long>> streammer, long? fileOffset = default(long?), int? length = default(int?))
+        {
+            using (var stream = await GetItem(id).Content.Request().GetAsync())
+            {
+                if (fileOffset != null)
+                {
+                    stream.Position = fileOffset.Value;
+                    await streammer(stream);
+                }
+            }
         }
 
         public async Task<int> Download(string id, byte[] result, int offset, long pos, int left)
         {
-            throw new NotImplementedException();
+            using (var stream = await GetItem(id).Content.Request().GetAsync())
+            {
+                stream.Position = pos;
+                return await stream.ReadAsync(result, offset, left);
+            }
         }
 
         public async Task<FSItem.Builder> GetChild(string id, string name)
         {
-            var items = await oneDriveClient.Drive.Items["1234"].Children.Request().GetAsync();
+            var items = await GetItem(id).Children.Request().GetAsync();
             var item = items.Where(i => i.Name == name).SingleOrDefault();
-            if (item == null) return null;
+            if (item == null)
+            {
+                return null;
+            }
+
             return FromNode(item);
         }
 
         public async Task<IList<FSItem.Builder>> GetChildren(string id)
         {
-            var nodes = await oneDriveClient.Drive.Items[id].Children.Request().GetAsync();
+            var nodes = await GetItem(id).Children.Request().GetAsync();
             return nodes.Select(n => FromNode(n)).ToList();
         }
 
@@ -120,7 +127,11 @@ namespace Azi.Cloud.MicrosoftOneDrive
 
         public async Task<FSItem.Builder> Move(string itemId, string oldParentId, string newParentId)
         {
-            throw new NotImplementedException();
+            var item = await GetItem(itemId).Request().GetAsync();
+            item.ParentReference = new ItemReference { Id = newParentId };
+            var newitem = await GetItem(itemId).Request().UpdateAsync(item);
+            return FromNode(newitem);
+
         }
 
         public async Task<FSItem.Builder> Overwrite(string id, Func<FileStream> p)
@@ -128,29 +139,27 @@ namespace Azi.Cloud.MicrosoftOneDrive
             throw new NotImplementedException();
         }
 
-        public async Task Remove(string id1, string id2)
+        public Task Remove(string id1, string id2)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
         public async Task<FSItem.Builder> Rename(string id, string newName)
         {
-            throw new NotImplementedException();
+            var item = await GetItem(id).Request().GetAsync();
+            item.Name = newName;
+            var newitem = await GetItem(id).Request().UpdateAsync(item);
+            return FromNode(newitem);
         }
 
         public async Task Trash(string id)
         {
-            throw new NotImplementedException();
+            await GetItem(id).Request().DeleteAsync();
         }
 
         public async Task<FSItem.Builder> UploadNew(string parentId, string fileName, Func<FileStream> p)
         {
             throw new NotImplementedException();
-        }
-
-        private Drive GetDrive()
-        {
-            return oneDriveClient.Drive.Request().GetAsync().Result;
         }
 
         private static FSItem.Builder FromNode(Item node)
@@ -166,6 +175,26 @@ namespace Azi.Cloud.MicrosoftOneDrive
                 ParentIds = new ConcurrentBag<string>(new[] { node.ParentReference.Id }),
                 Name = node.Name
             };
+        }
+
+        private Drive GetDrive()
+        {
+            return oneDriveClient.Drive.Request().GetAsync().Result;
+        }
+
+        private IItemRequestBuilder GetItem(string id)
+        {
+            return GetItem(id);
+        }
+
+        private async Task<bool> Authenticate()
+        {
+            if (!oneDriveClient.IsAuthenticated)
+            {
+                await oneDriveClient.AuthenticateAsync();
+            }
+
+            return oneDriveClient.IsAuthenticated;
         }
     }
 }
