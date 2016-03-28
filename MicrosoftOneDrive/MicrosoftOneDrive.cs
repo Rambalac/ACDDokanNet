@@ -21,11 +21,6 @@ namespace Azi.Cloud.MicrosoftOneDrive
 
         public MicrosoftOneDrive()
         {
-            oneDriveClient = OneDriveClient.GetMicrosoftAccountClient(
-                MicrosoftSecret.ClientId,
-                "http://localhost:45674/authredirect",
-                Scopes,
-                webAuthenticationUi: new FormsWebAuthenticationUi());
         }
 
         public static string CloudServiceName => "Microsoft OneDrive";
@@ -52,12 +47,24 @@ namespace Azi.Cloud.MicrosoftOneDrive
 
         public async Task<bool> AuthenticateNew(CancellationToken cs)
         {
-            return await Authenticate();
+            if (oneDriveClient == null)
+            {
+                var form = new FormsWebAuthenticationUi();
+                oneDriveClient = await OneDriveClient.GetAuthenticatedMicrosoftAccountClient(MicrosoftSecret.ClientId, "http://localhost:45674/authredirect", Scopes, MicrosoftSecret.ClientSecret, form);
+            }
+
+            return oneDriveClient.IsAuthenticated;
         }
 
         public async Task<bool> AuthenticateSaved(CancellationToken cs, string save)
         {
-            return await Authenticate();
+            if (oneDriveClient == null)
+            {
+                var form = new FormsWebAuthenticationUi();
+                oneDriveClient = await OneDriveClient.GetAuthenticatedMicrosoftAccountClient(MicrosoftSecret.ClientId, "http://localhost:45674/authredirect", Scopes, MicrosoftSecret.ClientSecret, form);
+            }
+
+            return oneDriveClient.IsAuthenticated;
         }
 
         public async Task SignOut(string save)
@@ -67,7 +74,7 @@ namespace Azi.Cloud.MicrosoftOneDrive
 
         public async Task<FSItem.Builder> CreateFolder(string parentid, string name)
         {
-            var item = await GetItem(parentid).Request().CreateAsync(new Item { Name = name });
+            var item = await GetItem(parentid).Request().CreateAsync(new Item { Name = name, Folder = new Folder() });
             return FromNode(item);
         }
 
@@ -94,7 +101,7 @@ namespace Azi.Cloud.MicrosoftOneDrive
 
         public async Task<FSItem.Builder> GetChild(string id, string name)
         {
-            var items = await GetItem(id).Children.Request().GetAsync();
+            var items = await GetAllChildren(id);
             var item = items.Where(i => i.Name == name).SingleOrDefault();
             if (item == null)
             {
@@ -104,9 +111,25 @@ namespace Azi.Cloud.MicrosoftOneDrive
             return FromNode(item);
         }
 
+        private async Task<IList<Item>> GetAllChildren(string id)
+        {
+            var result = new List<Item>();
+            var request = GetItem(id).Children.Request();
+
+            do
+            {
+                var nodes = await request.GetAsync();
+                result.AddRange(nodes.CurrentPage);
+                request = nodes.NextPageRequest;
+            }
+            while (request != null);
+
+            return result;
+        }
+
         public async Task<IList<FSItem.Builder>> GetChildren(string id)
         {
-            var nodes = await GetItem(id).Children.Request().GetAsync();
+            var nodes = await GetAllChildren(id);
             return nodes.Select(n => FromNode(n)).ToList();
         }
 
@@ -131,7 +154,6 @@ namespace Azi.Cloud.MicrosoftOneDrive
             item.ParentReference = new ItemReference { Id = newParentId };
             var newitem = await GetItem(itemId).Request().UpdateAsync(item);
             return FromNode(newitem);
-
         }
 
         public async Task<FSItem.Builder> Overwrite(string id, Func<FileStream> p)
@@ -169,10 +191,10 @@ namespace Azi.Cloud.MicrosoftOneDrive
                 Length = node.Size ?? 0,
                 Id = node.Id,
                 IsDir = node.Folder != null,
+                ParentIds = (node.ParentReference != null) ? new ConcurrentBag<string>(new[] { node.ParentReference.Id }) : new ConcurrentBag<string>(),
                 CreationTime = node.CreatedDateTime?.LocalDateTime ?? DateTime.UtcNow,
                 LastAccessTime = node.LastModifiedDateTime?.LocalDateTime ?? DateTime.UtcNow,
                 LastWriteTime = node.LastModifiedDateTime?.LocalDateTime ?? DateTime.UtcNow,
-                ParentIds = new ConcurrentBag<string>(new[] { node.ParentReference.Id }),
                 Name = node.Name
             };
         }
@@ -184,17 +206,7 @@ namespace Azi.Cloud.MicrosoftOneDrive
 
         private IItemRequestBuilder GetItem(string id)
         {
-            return GetItem(id);
-        }
-
-        private async Task<bool> Authenticate()
-        {
-            if (!oneDriveClient.IsAuthenticated)
-            {
-                await oneDriveClient.AuthenticateAsync();
-            }
-
-            return oneDriveClient.IsAuthenticated;
+            return oneDriveClient.Drive.Items[id];
         }
     }
 }

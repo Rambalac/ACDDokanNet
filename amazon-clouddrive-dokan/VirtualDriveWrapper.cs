@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Azi.Tools;
 using DokanNet;
+using System.Diagnostics.Contracts;
 
 namespace Azi.Cloud.DokanNet
 {
@@ -41,6 +42,7 @@ namespace Azi.Cloud.DokanNet
 
         public void Mount(char letter, bool readOnly)
         {
+            Contract.Ensures(letter > 'C' && letter <= 'Z');
             try
             {
                 virtualDrive.ReadOnly = readOnly;
