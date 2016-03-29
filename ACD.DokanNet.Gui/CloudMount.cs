@@ -203,6 +203,11 @@ namespace Azi.Cloud.DokanNet.Gui
         private void CloudInfoChanged(object sender, PropertyChangedEventArgs e)
         {
             OnPropertyChanged(nameof(CloudInfo));
+            if (Provider != null)
+            {
+                Provider.VolumeName = CloudInfo.Name;
+            }
+
             App.SaveClouds();
         }
 
@@ -220,6 +225,7 @@ namespace Azi.Cloud.DokanNet.Gui
                 }
 
                 Provider = new FSProvider(instance);
+                Provider.VolumeName = CloudInfo.Name;
                 Provider.CachePath = Environment.ExpandEnvironmentVariables(Properties.Settings.Default.CacheFolder);
                 Provider.SmallFilesCacheSize = Properties.Settings.Default.SmallFilesCacheLimit * (1 << 20);
                 Provider.SmallFileSizeLimit = Properties.Settings.Default.SmallFileSizeLimit * (1 << 20);

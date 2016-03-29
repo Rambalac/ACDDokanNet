@@ -153,9 +153,9 @@ namespace Azi.Cloud.DokanNet
 
         public long TotalUsedSpace => cloud.TotalUsedSpace;
 
-        public string VolumeName => FileSystemName;
+        public string VolumeName { get; set; }
 
-        public string FileSystemName => "Amazon Cloud Drive";
+        public string FileSystemName => "Cloud Drive";
 
         public long SmallFilesCacheSize
         {
@@ -252,7 +252,7 @@ namespace Azi.Cloud.DokanNet
 
                 Interlocked.Increment(ref downloadingCount);
                 OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
-                var buffered = new BufferedAmazonBlockReader(item, cloud);
+                var buffered = new BufferedHttpCloudBlockReader(item, cloud);
                 buffered.OnClose = () =>
                   {
                       Interlocked.Decrement(ref downloadingCount);

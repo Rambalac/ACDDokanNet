@@ -17,6 +17,8 @@ namespace Azi.Cloud.MicrosoftOneDrive
     {
         private static readonly string[] Scopes = { "onedrive.readwrite", "wl.signin" };
 
+        private Item rootItem;
+
         private IOneDriveClient oneDriveClient;
 
         public MicrosoftOneDrive()
@@ -111,22 +113,6 @@ namespace Azi.Cloud.MicrosoftOneDrive
             return FromNode(item);
         }
 
-        private async Task<IList<Item>> GetAllChildren(string id)
-        {
-            var result = new List<Item>();
-            var request = GetItem(id).Children.Request();
-
-            do
-            {
-                var nodes = await request.GetAsync();
-                result.AddRange(nodes.CurrentPage);
-                request = nodes.NextPageRequest;
-            }
-            while (request != null);
-
-            return result;
-        }
-
         public async Task<IList<FSItem.Builder>> GetChildren(string id)
         {
             var nodes = await GetAllChildren(id);
@@ -140,12 +126,7 @@ namespace Azi.Cloud.MicrosoftOneDrive
 
         public async Task<FSItem.Builder> GetRoot()
         {
-            var rootItem = await oneDriveClient
-                             .Drive
-                             .Root
-                             .Request()
-                             .GetAsync();
-            return FromNode(rootItem);
+            return FromNode(await GetRootItem());
         }
 
         public async Task<FSItem.Builder> Move(string itemId, string oldParentId, string newParentId)
@@ -197,6 +178,36 @@ namespace Azi.Cloud.MicrosoftOneDrive
                 LastWriteTime = node.LastModifiedDateTime?.LocalDateTime ?? DateTime.UtcNow,
                 Name = node.Name
             };
+        }
+
+        private async Task<Item> GetRootItem()
+        {
+            if (rootItem == null)
+            {
+                rootItem = await oneDriveClient
+                             .Drive
+                             .Root
+                             .Request()
+                             .GetAsync();
+            }
+
+            return rootItem;
+        }
+
+        private async Task<IList<Item>> GetAllChildren(string id)
+        {
+            var result = new List<Item>();
+            var request = GetItem(id).Children.Request();
+
+            do
+            {
+                var nodes = await request.GetAsync();
+                result.AddRange(nodes.CurrentPage);
+                request = nodes.NextPageRequest;
+            }
+            while (request != null);
+
+            return result;
         }
 
         private Drive GetDrive()

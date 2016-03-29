@@ -8,7 +8,7 @@ using Azi.Cloud.Common;
 
 namespace Azi.Cloud.DokanNet
 {
-    public class BufferedAmazonBlockReader : AbstractBlockStream
+    public class BufferedHttpCloudBlockReader : AbstractBlockStream
     {
         private const int BlockSize = 1 * 1024 * 1024;
         private const int KeepLastBlocks = 5;
@@ -18,7 +18,7 @@ namespace Azi.Cloud.DokanNet
         private FSItem item;
         private long lastBlock = 0;
 
-        public BufferedAmazonBlockReader(FSItem item, IHttpCloud cloud)
+        public BufferedHttpCloudBlockReader(FSItem item, IHttpCloud cloud)
         {
             this.item = item;
             this.cloud = cloud;

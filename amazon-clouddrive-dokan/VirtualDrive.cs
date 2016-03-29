@@ -106,7 +106,7 @@ namespace Azi.Cloud.DokanNet
                 bool readWriteAttributes = (access & DataAccess) == 0;
                 if (!(readWriteAttributes || info.IsDirectory) || (res != DokanResult.Success && !(lastFilePath == fileName && res == DokanResult.FileNotFound)))
                 {
-                    if (!(info.Context is NewFileBlockWriter || info.Context is FileBlockReader || info.Context is SmallFileBlockReaderWriter || info.Context is BufferedAmazonBlockReader))
+                    if (!(info.Context is NewFileBlockWriter || info.Context is FileBlockReader || info.Context is SmallFileBlockReaderWriter || info.Context is BufferedHttpCloudBlockReader))
                     {
                         Log.Trace($"{fileName}\r\n  Access:[{access}]\r\n  Share:[{share}]\r\n  Mode:[{mode}]\r\n  Options:[{options}]\r\n  Attr:[{attributes}]\r\nStatus:{res}");
                     }
@@ -703,7 +703,7 @@ namespace Azi.Cloud.DokanNet
                 return true;
             }
 
-            Log.Warn($"User {identity} has no access to Amazon Cloud Drive on drive {MountPath}\r\nCreator User is {creator} - Identity User is {identity}");
+            Log.Warn($"User {identity} has no access to drive {MountPath}\r\nCreator User is {creator} - Identity User is {identity}");
             return false;
         }
 

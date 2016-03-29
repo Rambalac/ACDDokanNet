@@ -74,7 +74,7 @@
   <ItemGroup>
     <Compile Include="AbstractBlockStream.cs" />
     <Compile Include="Block.cs" />
-    <Compile Include="BufferedAmazonBlockReader.cs" />
+    <Compile Include="BufferedHttpCloudBlockReader.cs" />
     <Compile Include="ByteArrayBlockReader.cs" />
     <Compile Include="Downloader.cs" />
     <Compile Include="DummyBlockStream.cs" />
