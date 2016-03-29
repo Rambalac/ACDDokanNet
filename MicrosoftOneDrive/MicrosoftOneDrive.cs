@@ -21,10 +21,6 @@ namespace Azi.Cloud.MicrosoftOneDrive
 
         private IOneDriveClient oneDriveClient;
 
-        public MicrosoftOneDrive()
-        {
-        }
-
         public static string CloudServiceName => "Microsoft OneDrive";
 
         public static string CloudServiceIcon => "/Clouds.MicrosoftOneDrive;Component/images/cd_icon.png";
@@ -137,9 +133,22 @@ namespace Azi.Cloud.MicrosoftOneDrive
             return FromNode(newitem);
         }
 
-        public async Task<FSItem.Builder> Overwrite(string id, Func<FileStream> p)
+        public async Task<FSItem.Builder> Overwrite(string id, Func<FileStream> streammer)
         {
-            throw new NotImplementedException();
+            using (var stream = streammer())
+            {
+                var newitem = await GetItem(id).Content.Request().PutAsync<Item>(stream);
+                return FromNode(newitem);
+            }
+        }
+
+        public async Task<FSItem.Builder> UploadNew(string parentId, string fileName, Func<FileStream> streammer)
+        {
+            using (var stream = streammer())
+            {
+                var newitem = await GetItem(parentId).ItemWithPath(fileName).Content.Request().PutAsync<Item>(stream);
+                return FromNode(newitem);
+            }
         }
 
         public Task Remove(string id1, string id2)
@@ -158,11 +167,6 @@ namespace Azi.Cloud.MicrosoftOneDrive
         public async Task Trash(string id)
         {
             await GetItem(id).Request().DeleteAsync();
-        }
-
-        public async Task<FSItem.Builder> UploadNew(string parentId, string fileName, Func<FileStream> p)
-        {
-            throw new NotImplementedException();
         }
 
         private static FSItem.Builder FromNode(Item node)
