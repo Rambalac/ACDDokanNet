@@ -13,7 +13,6 @@ using System.Windows;
 
 namespace Azi.Cloud.DokanNet.Gui
 {
-    [Serializable]
     public class CloudMount : INotifyPropertyChanged, IDisposable, IAuthUpdateListener
     {
         private readonly CloudInfo cloudInfo;

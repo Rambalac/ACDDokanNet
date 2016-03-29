@@ -8,12 +8,13 @@
     <ProjectGuid>{07444044-FB75-4639-AF4B-044A48EAD482}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Azi.ACDDokanNet.Tests</RootNamespace>
+    <RootNamespace>Azi.Cloud.DokanNet.Tests</RootNamespace>
     <AssemblyName>Azi.ACDDokanNet.Tests</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>

@@ -117,7 +117,13 @@ namespace Azi.Cloud.MicrosoftOneDrive
 
         public async Task<object> GetNodeExtended(string id)
         {
-            throw new NotImplementedException();
+            var item = await GetItem(id).Request().GetAsync();
+            var info = new CloudDokanNetItemInfo
+            {
+                WebLink = item.WebUrl,
+            };
+
+            return info;
         }
 
         public async Task<FSItem.Builder> GetRoot()
@@ -151,7 +157,7 @@ namespace Azi.Cloud.MicrosoftOneDrive
             }
         }
 
-        public Task Remove(string id1, string id2)
+        public Task Remove(string itemId, string parentId)
         {
             throw new NotSupportedException();
         }

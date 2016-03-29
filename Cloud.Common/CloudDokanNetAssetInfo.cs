@@ -10,6 +10,6 @@
 
         public CloudDokanNetAssetInfoImage Video { get; set; }
 
-        public string WebLink => "https://www.amazon.com/clouddrive/folder/" + Id;
+        public string WebLink { get; set; }
     }
 }

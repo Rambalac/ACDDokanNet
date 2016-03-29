@@ -286,6 +286,10 @@ namespace Azi.Cloud.AmazonCloudDrive
                     TempLink = node.tempLink,
                     Assets = node.assets?.Select(i => new CloudDokanNetAssetInfo { Id = i.id, TempLink = i.tempLink }).ToList()
                 };
+                if (node.kind == AmazonNodeKind.FOLDER)
+                {
+                    info.WebLink = "https://www.amazon.com/clouddrive/folder/" + id;
+                }
 
                 if (node.video != null)
                 {
