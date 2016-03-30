@@ -10,6 +10,8 @@ namespace Azi.Cloud.Common
 {
     public interface IHttpCloud
     {
+        string Id { get; set; }
+
         long AvailableFreeSpace { get; }
 
         string CloudServiceIcon { get; }
@@ -65,5 +67,7 @@ namespace Azi.Cloud.Common
         Task<FSItem.Builder> Rename(string id, string newName);
 
         Task Trash(string id);
+
+        Task<FSItem.Builder> GetNode(string id);
     }
 }

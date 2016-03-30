@@ -39,6 +39,8 @@ namespace Azi.Cloud.AmazonCloudDrive
 
         string IHttpCloud.CloudServiceName => CloudServiceName;
 
+        public string Id { get; set; }
+
         public IHttpCloudFiles Files => this;
 
         public IHttpCloudNodes Nodes => this;
@@ -196,6 +198,24 @@ namespace Azi.Cloud.AmazonCloudDrive
             try
             {
                 await amazon.Nodes.Remove(parentId, itemId);
+            }
+            catch (Exception ex)
+            {
+                throw ProcessException(ex);
+            }
+        }
+
+        async Task<FSItem.Builder> IHttpCloudNodes.GetNode(string id)
+        {
+            try
+            {
+                var node = await amazon.Nodes.GetNode(id);
+                if (node == null)
+                {
+                    return null;
+                }
+
+                return (node.status == AmazonNodeStatus.AVAILABLE) ? FromNode(node) : null;
             }
             catch (Exception ex)
             {

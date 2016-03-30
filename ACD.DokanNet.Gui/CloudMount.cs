@@ -50,6 +50,7 @@ namespace Azi.Cloud.DokanNet.Gui
                 if (instance == null)
                 {
                     instance = Activator.CreateInstance(CloudInfo.AssemblyName, CloudInfo.ClassName).Unwrap() as IHttpCloud;
+                    instance.Id = CloudInfo.Id;
                 }
 
                 return instance;
@@ -191,6 +192,7 @@ namespace Azi.Cloud.DokanNet.Gui
             {
                 if (disposing)
                 {
+                    MountCancellation.Dispose();
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.

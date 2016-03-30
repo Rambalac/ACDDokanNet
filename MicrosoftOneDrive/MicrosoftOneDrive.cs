@@ -25,6 +25,8 @@ namespace Azi.Cloud.MicrosoftOneDrive
 
         public static string CloudServiceIcon => "/Clouds.MicrosoftOneDrive;Component/images/cd_icon.png";
 
+        public string Id { get; set; }
+
         public long AvailableFreeSpace => 0;
 
         string IHttpCloud.CloudServiceIcon => CloudServiceIcon;
@@ -87,6 +89,13 @@ namespace Azi.Cloud.MicrosoftOneDrive
                 }
             }
         }
+
+        public async Task<FSItem.Builder> GetNode(string id)
+        {
+            var item = await GetItem(id).Request().GetAsync();
+            return FromNode(item);
+        }
+
 
         public async Task<int> Download(string id, byte[] result, int offset, long pos, int left)
         {

@@ -13,7 +13,10 @@ namespace Azi.Cloud.DokanNet
     public enum FailReason
     {
         ZeroLength,
-        NoNode
+        NoResultNode,
+        NoFolderNode,
+        NoOverwriteNode,
+        Conflict
     }
 
     public class UploadService : IDisposable
@@ -57,7 +60,7 @@ namespace Azi.Cloud.DokanNet
 
             set
             {
-                var newpath = Path.Combine(value, UploadFolder);
+                var newpath = Path.Combine(value, UploadFolder, cloud.Id);
                 if (cachePath == newpath)
                 {
                     return;
@@ -248,6 +251,15 @@ namespace Azi.Cloud.DokanNet
                 FSItem.Builder node;
                 if (!item.Overwrite)
                 {
+                    var checknode = await cloud.Nodes.GetNode(item.ParentId);
+                    if (checknode == null || !checknode.IsDir)
+                    {
+                        Log.Error("Folder does not exist to upload file: " + item.Path);
+                        File.Delete(path + ".info");
+                        OnUploadFailed(item, FailReason.NoFolderNode);
+                        return;
+                    }
+
                     node = await cloud.Files.UploadNew(
                         item.ParentId,
                         Path.GetFileName(item.Path),
@@ -255,6 +267,15 @@ namespace Azi.Cloud.DokanNet
                 }
                 else
                 {
+                    var checknode = await cloud.Nodes.GetNode(item.Id);
+                    if (checknode == null)
+                    {
+                        Log.Error("File does not exist to be overwritten: " + item.Path);
+                        File.Delete(path + ".info");
+                        OnUploadFailed(item, FailReason.NoOverwriteNode);
+                        return;
+                    }
+
                     node = await cloud.Files.Overwrite(
                         item.Id,
                         () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, true));
@@ -263,7 +284,7 @@ namespace Azi.Cloud.DokanNet
                 File.Delete(path + ".info");
                 if (node == null)
                 {
-                    OnUploadFailed(item, FailReason.NoNode);
+                    OnUploadFailed(item, FailReason.NoResultNode);
                     throw new NullReferenceException("File node is null: " + item.Path);
                 }
 
@@ -277,6 +298,7 @@ namespace Azi.Cloud.DokanNet
                 if (ex.Error == System.Net.HttpStatusCode.Conflict)
                 {
                     Log.Error($"Upload conflict: {item.Path}\r\n{ex}");
+                    OnUploadFailed(item, FailReason.Conflict);
                     return;
                 }
 
