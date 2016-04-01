@@ -1,12 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using Azi.Cloud.Common;
-
-namespace Azi.Cloud.DokanNet
+﻿namespace Azi.Cloud.DokanNet
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using System.Threading;
+    using Common;
+
     public class ItemsTreeCache : IDisposable
     {
         private readonly ReaderWriterLockSlim lok = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);

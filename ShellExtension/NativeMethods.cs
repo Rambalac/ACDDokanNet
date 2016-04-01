@@ -1,9 +1,9 @@
-﻿using System;
-using System.Runtime.InteropServices;
-using System.Text;
-
-namespace Azi.ShellExtension
+﻿namespace Azi.ShellExtension
 {
+    using System;
+    using System.Runtime.InteropServices;
+    using System.Text;
+
     public static class NativeMethods
     {
         private enum AssocF

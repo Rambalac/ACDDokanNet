@@ -1,11 +1,11 @@
-﻿using System;
-using System.Diagnostics;
-using System.Windows;
-using Azi.Tools;
-using Microsoft.WindowsAPICodePack.Dialogs;
-
-namespace Azi.Cloud.DokanNet.Gui
+﻿namespace Azi.Cloud.DokanNet.Gui
 {
+    using System;
+    using System.Diagnostics;
+    using System.Windows;
+    using Azi.Tools;
+    using Microsoft.WindowsAPICodePack.Dialogs;
+
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>

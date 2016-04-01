@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Threading;
-
-namespace Azi.Cloud.Common
+﻿namespace Azi.Cloud.Common
 {
+    using System;
+    using System.Collections.Concurrent;
+    using System.Threading;
+
     public class FSItem
     {
         private long length;

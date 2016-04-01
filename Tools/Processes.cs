@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Management;
-
-namespace Azi.Tools
+﻿namespace Azi.Tools
 {
+    using System;
+    using System.Collections.Concurrent;
+    using System.Management;
+
     public static class Processes
     {
         private static readonly ConcurrentDictionary<int, ProcInfo> PidOwner = new ConcurrentDictionary<int, ProcInfo>();

@@ -1,18 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Security.AccessControl;
-using System.Security.Principal;
-using Azi.Tools;
-using DokanNet;
-using FileAccess = DokanNet.FileAccess;
-using Azi.Cloud.Common;
-
-namespace Azi.Cloud.DokanNet
+﻿namespace Azi.Cloud.DokanNet
 {
-    internal class VirtualDrive : IDokanOperations
+    using System;
+    using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.IO;
+    using System.Linq;
+    using System.Security.AccessControl;
+    using System.Security.Principal;
+    using System.Text.RegularExpressions;
+    using Common;
+    using global::DokanNet;
+    using Tools;
+    using FileAccess = global::DokanNet.FileAccess;
+
+    public class VirtualDrive : IDokanOperations
     {
         private const int ReadTimeout = 30000;
 
@@ -26,6 +27,8 @@ namespace Azi.Cloud.DokanNet
 
         private const FileAccess DataReadAccess = FileAccess.ReadData | FileAccess.GenericExecute |
                                                    FileAccess.Execute;
+
+        private static readonly Regex StreamNameGroupsRegex = new Regex(@"([^,])+(?:,([^,]*))*");
 
 #if TRACE
         private string lastFilePath;
@@ -313,7 +316,7 @@ namespace Azi.Cloud.DokanNet
             if (streamName != null && item != null)
             {
                 return CheckStreams(fileName, mode, info, streamName, item);
-                }
+            }
 
             bool readWriteAttributes = (access & DataAccess) == 0;
             switch (mode)
@@ -609,7 +612,7 @@ namespace Azi.Cloud.DokanNet
                 {
                     var infostream = new FileInformation
                     {
-                        FileName = $":{CloudDokanNetItemInfo.CloudDokanNetItemInfoStreamName}:$DATA",
+                        FileName = $":{CloudDokanNetItemInfo.StreamName}:$DATA",
                         Length = 1
                     };
                     streams.Add(infostream);
@@ -656,9 +659,10 @@ namespace Azi.Cloud.DokanNet
         {
             Log.Trace($"Opening alternate stream {fileName}:{streamName}");
 
-            switch (streamName)
+            var streamNameGroups = StreamNameGroupsRegex.Match(streamName).Groups.Cast<Group>().Skip(1).Select(g => g.Value).ToList();
+            switch (streamNameGroups[0])
             {
-                case CloudDokanNetItemInfo.CloudDokanNetItemInfoStreamName:
+                case CloudDokanNetItemInfo.StreamName:
                     if (mode != FileMode.Open)
                     {
                         return NtStatus.AccessDenied;
@@ -669,7 +673,7 @@ namespace Azi.Cloud.DokanNet
                         provider.BuildItemInfo(item).Wait();
                     }
 
-                    return OpenAsByteArray(item.Info, info);
+                    return ProcessItemInfo(streamNameGroups, item, info);
                 case "Zone.Identifier":
                     if (mode != FileMode.CreateNew)
                     {
@@ -680,6 +684,17 @@ namespace Azi.Cloud.DokanNet
             }
 
             return DokanResult.AccessDenied;
+        }
+
+        private NtStatus ProcessItemInfo(List<string> streamNameGroups, FSItem item, DokanFileInfo info)
+        {
+            if (streamNameGroups.Count == 1)
+            {
+                return OpenAsByteArray(item.Info, info);
+            }
+
+            var result = provider.GetExtendedInfo(streamNameGroups, item);
+            return OpenAsByteArray(result, info);
         }
 
         private NtStatus OpenAsDummyWrite(DokanFileInfo info)

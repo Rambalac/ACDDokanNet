@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Azi.Cloud.DokanNet
+﻿namespace Azi.Cloud.DokanNet
 {
     public class DummyBlockStream : AbstractBlockStream
     {

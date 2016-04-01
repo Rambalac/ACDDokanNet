@@ -42,11 +42,11 @@
     <SignAssembly>true</SignAssembly>
   </PropertyGroup>
   <PropertyGroup>
-    <AssemblyOriginatorKeyFile>ACDDokanNet.pfx</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>CloudHold.pfx</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="AmazonCloudDriveApi, Version=1.2.3.24335, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\AmazonCloudDriveApi.1.2.3\lib\net45\AmazonCloudDriveApi.dll</HintPath>
+    <Reference Include="AmazonCloudDriveApi, Version=1.2.3.20323, Culture=neutral, PublicKeyToken=8b4d87bf50774967, processorArchitecture=MSIL">
+      <HintPath>..\packages\AmazonCloudDriveApi.1.2.4\lib\net45\AmazonCloudDriveApi.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
@@ -83,6 +83,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="ACDDokanNet.pfx" />
+    <None Include="CloudHold.pfx" />
     <None Include="packages.config" />
     <None Include="stylecop.json" />
   </ItemGroup>
@@ -113,13 +114,6 @@
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="..\packages\StrongNamer.0.0.1\build\StrongNamer.targets" Condition="Exists('..\packages\StrongNamer.0.0.1\build\StrongNamer.targets')" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\packages\StrongNamer.0.0.1\build\StrongNamer.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\StrongNamer.0.0.1\build\StrongNamer.targets'))" />
-  </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

@@ -50,7 +50,7 @@
     <SignAssembly>true</SignAssembly>
   </PropertyGroup>
   <PropertyGroup>
-    <AssemblyOriginatorKeyFile>ACDDokanNet.pfx</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>CloudHold.pfx</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationIcon>
@@ -97,6 +97,7 @@
       <SubType>Code</SubType>
     </Compile>
     <None Include="ACDDokanNet.pfx" />
+    <None Include="CloudHold.pfx" />
     <None Include="packages.config" />
     <AppDesigner Include="Properties\" />
   </ItemGroup>

@@ -36,7 +36,7 @@
     <SignAssembly>true</SignAssembly>
   </PropertyGroup>
   <PropertyGroup>
-    <AssemblyOriginatorKeyFile>ACDDokanNet.pfx</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>CloudHold.pfx</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.IdentityModel.Clients.ActiveDirectory, Version=2.23.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
@@ -82,6 +82,7 @@
   <ItemGroup>
     <None Include="ACDDokanNet.pfx" />
     <None Include="app.config" />
+    <None Include="CloudHold.pfx" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

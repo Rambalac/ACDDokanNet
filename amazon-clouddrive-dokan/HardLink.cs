@@ -1,7 +1,7 @@
-﻿using System;
-
-namespace Azi.Cloud.DokanNet
+﻿namespace Azi.Cloud.DokanNet
 {
+    using System;
+
     public static class HardLink
     {
         public static bool Create(string targetPath, string hardLinkPath)

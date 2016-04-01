@@ -1,10 +1,10 @@
-﻿using System.IO;
-using Azi.Tools;
-using System.Threading;
-using Azi.Cloud.Common;
-
-namespace Azi.Cloud.DokanNet
+﻿namespace Azi.Cloud.DokanNet
 {
+    using System.IO;
+    using System.Threading;
+    using Azi.Cloud.Common;
+    using Azi.Tools;
+
     public class NewFileBlockWriter : AbstractBlockStream
     {
         private readonly FSItem item;

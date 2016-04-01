@@ -1,15 +1,15 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Azi.Tools;
-using Newtonsoft.Json;
-using Azi.Cloud.Common;
-
-namespace Azi.Cloud.DokanNet
+﻿namespace Azi.Cloud.DokanNet
 {
+    using System;
+    using System.Collections.Concurrent;
+    using System.IO;
+    using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Common;
+    using Newtonsoft.Json;
+    using Tools;
+
     public enum FailReason
     {
         ZeroLength,

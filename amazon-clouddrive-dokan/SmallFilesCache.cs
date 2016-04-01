@@ -1,16 +1,15 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Net.Http.Headers;
-using System.Threading;
-using System.Threading.Tasks;
-using Azi.Tools;
-using Azi.Cloud.Common;
-
-namespace Azi.Cloud.DokanNet
+﻿namespace Azi.Cloud.DokanNet
 {
+    using System;
+    using System.Collections.Concurrent;
+    using System.Diagnostics;
+    using System.IO;
+    using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Azi.Cloud.Common;
+    using Azi.Tools;
+
     public class SmallFilesCache
     {
         private static string cachePath = null;

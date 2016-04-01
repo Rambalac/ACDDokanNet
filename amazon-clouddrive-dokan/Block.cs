@@ -1,7 +1,7 @@
-﻿using System;
-
-namespace Azi.Cloud.DokanNet
+﻿namespace Azi.Cloud.DokanNet
 {
+    using System;
+
     internal class Block
     {
         public Block(long n, byte[] d)

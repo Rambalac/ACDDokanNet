@@ -1,14 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Linq;
-using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace Azi.Cloud.DokanNet.Gui
+﻿namespace Azi.Cloud.DokanNet.Gui
 {
+    using System;
+    using System.Collections.ObjectModel;
+    using System.ComponentModel;
+    using System.Reflection;
+    using System.Threading;
+
     public class ViewModel : INotifyPropertyChanged, IDisposable
     {
         private Timer refreshTimer;

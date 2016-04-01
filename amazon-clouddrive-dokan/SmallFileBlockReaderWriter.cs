@@ -1,12 +1,12 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.IO;
-using System.Threading;
-using Azi.Tools;
-using Azi.Cloud.Common;
-
-namespace Azi.Cloud.DokanNet
+﻿namespace Azi.Cloud.DokanNet
 {
+    using System;
+    using System.Collections.Concurrent;
+    using System.IO;
+    using System.Threading;
+    using Azi.Cloud.Common;
+    using Azi.Tools;
+
     public class SmallFileBlockReaderWriter : AbstractBlockStream
     {
         private const int WaitForFile = 50;

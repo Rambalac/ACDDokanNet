@@ -1,18 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Windows.Forms;
-using Newtonsoft.Json;
-using SharpShell.Attributes;
-using SharpShell.SharpContextMenu;
-using Trinet.Core.IO.Ntfs;
-using Azi.Cloud.Common;
-
-namespace Azi.ShellExtension
+﻿namespace Azi.ShellExtension
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.IO;
+    using System.Linq;
+    using System.Runtime.InteropServices;
+    using System.Windows.Forms;
+    using Cloud.Common;
+    using Newtonsoft.Json;
+    using SharpShell.Attributes;
+    using SharpShell.SharpContextMenu;
+    using Trinet.Core.IO.Ntfs;
+
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Interoperability", "CA1405:ComVisibleTypeBaseTypesShouldBeComVisible", Justification = "Must be COM visible")]
     [ComVisible(true)]
     [COMServerAssociation(AssociationType.AllFiles)]
@@ -24,9 +24,9 @@ namespace Azi.ShellExtension
             get { return base.SelectedItemPaths; }
         }
 
-        protected static object ReadInfo(string path)
+        protected static INodeExtendedInfo ReadInfo(string path)
         {
-            using (var info = FileSystem.GetAlternateDataStream(path, CloudDokanNetItemInfo.CloudDokanNetItemInfoStreamName).OpenText())
+            using (var info = FileSystem.GetAlternateDataStream(path, CloudDokanNetItemInfo.StreamName).OpenText())
             {
                 string text = info.ReadToEnd();
                 var type = JsonConvert.DeserializeObject<NodeExtendedInfo>(text);
@@ -39,9 +39,18 @@ namespace Azi.ShellExtension
             }
         }
 
+        protected static string ReadString(string path, params string[] commands)
+        {
+            var streamName = string.Join(",", new[] { CloudDokanNetItemInfo.StreamName }.Concat(commands ?? Enumerable.Empty<string>()));
+            using (var info = FileSystem.GetAlternateDataStream(path, streamName).OpenText())
+            {
+                return info.ReadToEnd();
+            }
+        }
+
         protected override bool CanShowMenu()
         {
-            return SelectedItemPaths.All((path) => FileSystem.AlternateDataStreamExists(path, CloudDokanNetItemInfo.CloudDokanNetItemInfoStreamName));
+            return SelectedItemPaths.All((path) => FileSystem.AlternateDataStreamExists(path, CloudDokanNetItemInfo.StreamName));
         }
 
         protected override ContextMenuStrip CreateMenu()
@@ -62,6 +71,25 @@ namespace Azi.ShellExtension
                 {
                     menu.Items.Add(new ToolStripMenuItem("Open in Browser", null, OpenInBrowser));
                 }
+
+                var romenu = new ToolStripMenuItem("Copy ReadOnly link", null, CopyReadOnlyLink);
+                var rwmenu = new ToolStripMenuItem("Copy ReadWrite link", null, CopyReadWriteLink);
+
+                if (info.CanShareReadOnly && info.CanShareReadWrite)
+                {
+                    menu.Items.Add(new ToolStripMenuItem(
+                        "Share",
+                        null,
+                        new ToolStripMenuItem[] { romenu, rwmenu }));
+                }
+                else if (info.CanShareReadOnly)
+                {
+                    menu.Items.Add(romenu);
+                }
+                else if (info.CanShareReadWrite)
+                {
+                    menu.Items.Add(rwmenu);
+                }
             }
 
             var firstFile = SelectedItemPaths.FirstOrDefault(File.Exists);
@@ -76,6 +104,20 @@ namespace Azi.ShellExtension
 
             // Return the menu.
             return menu;
+        }
+
+        private void CopyReadWriteLink(object sender, EventArgs e)
+        {
+            string path = SelectedItemPaths.Single();
+            var link = ReadString(path, CloudDokanNetAssetInfo.StreamNameShareReadWrite);
+            Clipboard.SetText(link);
+        }
+
+        private void CopyReadOnlyLink(object sender, EventArgs e)
+        {
+            string path = SelectedItemPaths.Single();
+            var link = ReadString(path, CloudDokanNetAssetInfo.StreamNameShareReadOnly);
+            Clipboard.SetText(link);
         }
 
         protected void OpenAsUrl(object sender, EventArgs e)

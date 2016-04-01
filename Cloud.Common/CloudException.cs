@@ -1,8 +1,8 @@
-﻿using System;
-using System.Net;
-
-namespace Azi.Cloud.Common
+﻿namespace Azi.Cloud.Common
 {
+    using System;
+    using System.Net;
+
     [Serializable]
     public class CloudException : Exception
     {

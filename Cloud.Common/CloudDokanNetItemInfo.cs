@@ -1,10 +1,10 @@
-﻿using System.Collections.Generic;
-
-namespace Azi.Cloud.Common
+﻿namespace Azi.Cloud.Common
 {
+    using System.Collections.Generic;
+
     public class CloudDokanNetItemInfo : CloudDokanNetAssetInfo
     {
-        public const string CloudDokanNetItemInfoStreamName = "CloudDokanNetInfo";
+        public const string StreamName = "CloudDokanNetInfo";
 
         public IList<CloudDokanNetAssetInfo> Assets { get; set; }
 

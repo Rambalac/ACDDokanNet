@@ -1,11 +1,11 @@
-﻿using System;
-using System.Diagnostics;
-using System.Diagnostics.Eventing.Reader;
-using System.Runtime.CompilerServices;
-using System.Security;
-
-namespace Azi.Tools
+﻿namespace Azi.Tools
 {
+    using System;
+    using System.Diagnostics;
+    using System.Diagnostics.Eventing.Reader;
+    using System.Runtime.CompilerServices;
+    using System.Security;
+
     public static class Log
     {
         private const string Source = "ACDDokan.Net";

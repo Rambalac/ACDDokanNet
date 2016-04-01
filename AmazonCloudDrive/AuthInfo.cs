@@ -1,7 +1,7 @@
-﻿using System;
-
-namespace Azi.Cloud.AmazonCloudDrive
+﻿namespace Azi.Cloud.AmazonCloudDrive
 {
+    using System;
+
     public class AuthInfo
     {
         public string AuthRenewToken { get; set; }

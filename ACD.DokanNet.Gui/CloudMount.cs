@@ -1,18 +1,17 @@
-﻿using Azi.Cloud.Common;
-using Azi.Cloud.DokanNet;
-using Azi.Tools;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.Linq;
-using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Windows;
-
-namespace Azi.Cloud.DokanNet.Gui
+﻿namespace Azi.Cloud.DokanNet.Gui
 {
+    using System;
+    using System.Collections.Generic;
+    using System.ComponentModel;
+    using System.Diagnostics;
+    using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using System.Windows;
+    using Azi.Cloud.DokanNet;
+    using Azi.Tools;
+    using Common;
+
     public class CloudMount : INotifyPropertyChanged, IDisposable, IAuthUpdateListener
     {
         private readonly CloudInfo cloudInfo;
@@ -64,12 +63,21 @@ namespace Azi.Cloud.DokanNet.Gui
             get
             {
                 var res = VirtualDriveWrapper.GetFreeDriveLettes();
-                if (MountLetter == null || res.Contains((char)MountLetter))
+
+                if (MountLetter != null && !res.Contains((char)MountLetter))
+                {
+                    res.Add((char)MountLetter);
+                }
+                else
+                if (MountLetter == null && (mounting || unmounting) && !res.Contains(CloudInfo.DriveLetter))
+                {
+                    res.Add(CloudInfo.DriveLetter);
+                }
+                else
                 {
                     return res;
                 }
 
-                res.Add((char)MountLetter);
                 return res.OrderBy(c => c).ToList();
             }
         }
@@ -303,22 +311,21 @@ namespace Azi.Cloud.DokanNet.Gui
         private async Task<bool> Authenticate(IHttpCloud cloud, CancellationToken cs, bool interactiveAuth)
         {
             var authinfo = CloudInfo.AuthSave;
-            if (string.IsNullOrWhiteSpace(authinfo))
+            if (!string.IsNullOrWhiteSpace(authinfo))
             {
-                Debug.WriteLine("No auth info: " + CloudInfo.Name);
-                if (!interactiveAuth)
+                if (await cloud.AuthenticateSaved(cs, authinfo))
                 {
-                    return false;
+                    return true;
                 }
-
-                await cloud.AuthenticateNew(cs);
-
-                return true;
             }
 
-            await cloud.AuthenticateSaved(cs, authinfo);
+            Debug.WriteLine("No auth info: " + CloudInfo.Name);
+            if (!interactiveAuth)
+            {
+                return false;
+            }
 
-            return true;
+            return await cloud.AuthenticateNew(cs);
         }
 
         private void RefreshLetters(object state)

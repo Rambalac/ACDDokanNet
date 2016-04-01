@@ -1,22 +1,19 @@
-﻿using System;
-using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Forms;
-using Azi.Tools;
-using Microsoft.Win32;
-using Application = System.Windows.Application;
-using Azi.Cloud.Common;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.IO;
-using System.Diagnostics;
-using System.Collections.Specialized;
-
-namespace Azi.Cloud.DokanNet.Gui
+﻿namespace Azi.Cloud.DokanNet.Gui
 {
+    using System;
+    using System.Collections.ObjectModel;
+    using System.Diagnostics;
+    using System.Linq;
+    using System.Reflection;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using System.Windows;
+    using System.Windows.Forms;
+    using Common;
+    using Microsoft.Win32;
+    using Tools;
+    using Application = System.Windows.Application;
+
     /// <summary>
     /// Interaction logic for App.xaml
     /// </summary>

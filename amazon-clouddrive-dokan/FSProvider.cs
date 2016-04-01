@@ -1,17 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Azi.Tools;
-using Newtonsoft.Json;
-using Azi.Cloud.Common;
-
-namespace Azi.Cloud.DokanNet
+﻿namespace Azi.Cloud.DokanNet
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using System.Net;
+    using System.Text;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Azi.Tools;
+    using Common;
+    using Newtonsoft.Json;
+
     public class FSProvider : IDisposable
     {
         private readonly IHttpCloud cloud;
@@ -469,6 +469,19 @@ namespace Azi.Cloud.DokanNet
             else
             {
                 itemsTreeCache.MoveFile(oldPath, item);
+            }
+        }
+
+        public byte[] GetExtendedInfo(List<string> streamNameGroups, FSItem item)
+        {
+            switch (streamNameGroups[1])
+            {
+                case CloudDokanNetAssetInfo.StreamNameShareReadOnly:
+                    return Encoding.UTF8.GetBytes(cloud.Nodes.ShareNode(item.Id, NodeShareType.ReadOnly).Result);
+                case CloudDokanNetAssetInfo.StreamNameShareReadWrite:
+                    return Encoding.UTF8.GetBytes(cloud.Nodes.ShareNode(item.Id, NodeShareType.ReadWrite).Result);
+                default:
+                    return new byte[0];
             }
         }
 

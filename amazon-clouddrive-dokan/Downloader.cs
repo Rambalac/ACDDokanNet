@@ -1,10 +1,10 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Azi.Cloud.Common;
-
-namespace Azi.Cloud.DokanNet
+﻿namespace Azi.Cloud.DokanNet
 {
+    using System;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Azi.Cloud.Common;
+
     public class Downloader
     {
         private Task task;

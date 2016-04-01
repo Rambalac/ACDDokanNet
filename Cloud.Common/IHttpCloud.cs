@@ -1,13 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Net;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Windows;
-
-namespace Azi.Cloud.Common
+﻿namespace Azi.Cloud.Common
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Threading;
+    using System.Threading.Tasks;
+
     public interface IHttpCloud
     {
         string Id { get; set; }
@@ -56,7 +54,7 @@ namespace Azi.Cloud.Common
 
         Task<IList<FSItem.Builder>> GetChildren(string id);
 
-        Task<object> GetNodeExtended(string id);
+        Task<INodeExtendedInfo> GetNodeExtended(string id);
 
         Task<FSItem.Builder> GetRoot();
 
@@ -69,5 +67,7 @@ namespace Azi.Cloud.Common
         Task Trash(string id);
 
         Task<FSItem.Builder> GetNode(string id);
+
+        Task<string> ShareNode(string id, NodeShareType type);
     }
 }

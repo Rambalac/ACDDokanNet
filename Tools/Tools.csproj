@@ -38,7 +38,7 @@
     <SignAssembly>true</SignAssembly>
   </PropertyGroup>
   <PropertyGroup>
-    <AssemblyOriginatorKeyFile>ACDDokanNet.pfx</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>CloudHold.pfx</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
@@ -62,6 +62,7 @@
   <ItemGroup>
     <None Include="ACDDokanNet.pfx" />
     <None Include="app.config" />
+    <None Include="CloudHold.pfx" />
     <None Include="packages.config" />
     <None Include="stylecop.json" />
   </ItemGroup>

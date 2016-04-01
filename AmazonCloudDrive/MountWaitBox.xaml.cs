@@ -1,9 +1,9 @@
-﻿using System.Threading;
-using System.Windows;
-using System.Windows.Input;
-
-namespace Azi.Cloud.AmazonCloudDrive
+﻿namespace Azi.Cloud.AmazonCloudDrive
 {
+    using System.Threading;
+    using System.Windows;
+    using System.Windows.Input;
+
     /// <summary>
     /// Interaction logic for MountWaitBox.xaml
     /// </summary>

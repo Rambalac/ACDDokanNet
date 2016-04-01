@@ -1,12 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Azi.Tools;
-using DokanNet;
-using System.Diagnostics.Contracts;
-
-namespace Azi.Cloud.DokanNet
+﻿namespace Azi.Cloud.DokanNet
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Diagnostics.Contracts;
+    using System.Linq;
+    using global::DokanNet;
+    using Tools;
+
     public class VirtualDriveWrapper
     {
         private readonly VirtualDrive virtualDrive;

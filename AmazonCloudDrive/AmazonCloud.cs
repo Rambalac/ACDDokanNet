@@ -1,21 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Collections.Concurrent;
-using System.Net;
-using Azi.Cloud.Common;
-using System.Threading;
-using Newtonsoft.Json;
-using Azi.Amazon.CloudDrive.JsonObjects;
-using Azi.Amazon.CloudDrive;
-using Azi.Tools;
-using System.Windows;
-using System.Net.Http.Headers;
-
-namespace Azi.Cloud.AmazonCloudDrive
+﻿namespace Azi.Cloud.AmazonCloudDrive
 {
+    using System;
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using System.Net;
+    using System.Net.Http.Headers;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Azi.Amazon.CloudDrive;
+    using Azi.Amazon.CloudDrive.JsonObjects;
+    using Common;
+    using Newtonsoft.Json;
+    using Tools;
+
     public sealed class AmazonCloud : IHttpCloud, IHttpCloudFiles, IHttpCloudNodes
     {
         private static readonly AmazonNodeKind[] FsItemKinds = { AmazonNodeKind.FILE, AmazonNodeKind.FOLDER };
@@ -295,7 +294,7 @@ namespace Azi.Cloud.AmazonCloudDrive
             }
         }
 
-        async Task<object> IHttpCloudNodes.GetNodeExtended(string id)
+        async Task<INodeExtendedInfo> IHttpCloudNodes.GetNodeExtended(string id)
         {
             try
             {
@@ -351,6 +350,11 @@ namespace Azi.Cloud.AmazonCloudDrive
             authinfo.AuthToken,
             authinfo.AuthRenewToken,
             authinfo.AuthTokenExpiration);
+        }
+
+        Task<string> IHttpCloudNodes.ShareNode(string id, NodeShareType type)
+        {
+            throw new NotSupportedException();
         }
 
         public async Task SignOut(string save)
