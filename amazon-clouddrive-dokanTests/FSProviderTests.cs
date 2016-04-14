@@ -142,6 +142,35 @@ namespace Azi.ACDDokanNet.Tests
             Assert.Equal(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2, 1 }, buf2);
         }
 
+        [Theory]
+        [InlineData("test&file.txt")]
+        [InlineData("test%file.txt")]
+        [InlineData("t&.txt")]
+        [InlineData("t%.txt")]
+        public void OpenNewFileWithNameAndReadTest(string name)
+        {
+            var path = Testdir + name;
+            using (var file = Provider.OpenFile(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, FileOptions.None))
+            {
+                file.Write(0, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, 0, 10);
+            }
+
+            while (Provider.GetItem(path).IsUploading)
+            {
+                Thread.Sleep(500);
+            }
+
+            Assert.True(Directory.GetFiles("TempCache\\Upload").Length == 0);
+
+            var info = Provider.GetItem(path);
+            Assert.Equal(10, info.Length);
+
+            var buf2 = new byte[10];
+            int red = Amazon.Files.Download(info.Id, buf2, 0, 0, 10).Result;
+
+            Assert.Equal(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, buf2);
+        }
+
         [Fact]
         public void OpenNewBigFileAndReadTest()
         {
