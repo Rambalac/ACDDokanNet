@@ -9,6 +9,10 @@ Not just in Windows Explorer, but in any application.
 Login is done via default web browser, so application itself can not get your login and password, 
 and if you already logged into Amazon Cloud Drive you don't need to enter anything, just click a button.
 
+Info
+----
+Currenly I'm making major update to version 2 which support multiple clouds and can be extended to support clouds other than Amazon Cloud. Just for example I implemented MS OneDrive. It will be released as soon as Dokan 2 release and I finish new type of caching that should eliminated most of file updating and big file reading issues.
+
 Shell Extension
 ---------------
 ![Context Menu](/images/Context Menu.png)
@@ -100,6 +104,9 @@ Catalog backup currently does not work due requirement for write already created
 
 News
 ----
+### 2016-04-14
+* Minor release 1.5.5. Fixed file names with special symbols.
+
 ### 2016-03-02
 * Add Windows Explorer Shell Extension with additional functionality in Explorer context menu. 
 Now you can get temp links or open them directly in your app default for that file extension
