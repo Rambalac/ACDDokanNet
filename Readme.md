@@ -11,7 +11,7 @@ and if you already logged into Amazon Cloud Drive you don't need to enter anythi
 
 Info
 ----
-Currenly I'm making major update to version 2 which support multiple clouds and can be extended to support clouds other than Amazon Cloud. Just for example I implemented MS OneDrive. It will be released as soon as Dokan 2 release and I finish new type of caching that should eliminated most of file updating and big file reading issues.
+Currently I'm making major update to version 2 which supports multiple cloud accounts and can be extended to support clouds other than Amazon Cloud. Just for example I implemented MS OneDrive. It will be released as soon as Dokan 2 release and I finish new type of caching that should eliminated most of file updating and big file reading issues.
 
 Shell Extension
 ---------------
