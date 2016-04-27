@@ -14,7 +14,8 @@ namespace Azi.ACDDokanNet
     public enum FailReason
     {
         ZeroLength,
-        NoNode
+        NoNode,
+        Conflict
     }
 
     public class UploadService : IDisposable
@@ -277,6 +278,16 @@ namespace Azi.ACDDokanNet
                 if (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
                 {
                     Log.Warn($"Upload Conflict. Skip file: {item.Path}");
+                    var node = await amazon.Nodes.GetChild(item.ParentId, Path.GetFileName(item.Path));
+                    if (node != null)
+                    {
+                        OnUploadFinished(item, node);
+                    }
+                    else
+                    {
+                        OnUploadFailed(item, FailReason.Conflict);
+                    }
+
                     return;
                 }
 

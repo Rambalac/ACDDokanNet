@@ -61,11 +61,14 @@ namespace Azi.ACDDokanNet
                 var olditemPath = Path.Combine(UploadService.CachePath, uploaditem.Id);
                 File.Delete(olditemPath);
 
-                if (reason == FailReason.ZeroLength)
+                switch (reason)
                 {
-                    var item = GetItem(uploaditem.Path);
-                    item?.MakeNotUploading();
-                    return;
+                    case FailReason.ZeroLength:
+                        var item = GetItem(uploaditem.Path);
+                        item?.MakeNotUploading();
+                        return;
+                    case FailReason.Conflict:
+                        return;
                 }
 
                 itemsTreeCache.DeleteFile(uploaditem.Path);
