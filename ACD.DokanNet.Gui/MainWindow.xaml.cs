@@ -127,7 +127,7 @@ namespace Azi.ACDDokanNet.Gui
 
         private void OpenIssue_Click(object sender, RoutedEventArgs e)
         {
-            Process.Start("https://github.com/Rambalac/AmazonCloudDriveApi/issues/new");
+            Process.Start("https://github.com/Rambalac/ACDDokanNet/issues/new");
         }
     }
 }

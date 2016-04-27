@@ -276,11 +276,11 @@ namespace Azi.ACDDokanNet
             {
                 if (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
                 {
-                    Log.Error($"Upload conflict: {item.Path}\r\n{ex}");
+                    Log.Warn($"Upload Conflict. Skip file: {item.Path}");
                     return;
                 }
 
-                throw;
+                Log.Error($"Upload HTTP error: {item.Path}\r\n{ex}");
             }
             catch (Exception ex)
             {

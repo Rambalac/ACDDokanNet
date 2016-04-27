@@ -211,9 +211,11 @@ namespace Azi.ACDDokanNet
         {
             try
             {
-                freeBytesAvailable = provider.TotalSize - provider.TotalUsedSpace;
-                totalNumberOfBytes = provider.TotalSize;
-                totalNumberOfFreeBytes = provider.TotalSize - provider.TotalUsedSpace;
+                const long fakeSize = 100 << 40;
+
+                freeBytesAvailable = fakeSize - provider.TotalUsedSpace;
+                totalNumberOfBytes = fakeSize;
+                totalNumberOfFreeBytes = freeBytesAvailable;
 
                 return DokanResult.Success;
             }

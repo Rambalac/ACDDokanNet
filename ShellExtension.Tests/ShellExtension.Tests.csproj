@@ -18,7 +18,8 @@
     <IsCodedUITest>False</IsCodedUITest>
     <TestProjectType>UnitTest</TestProjectType>
     <SignAssembly>false</SignAssembly>
-    <AssemblyOriginatorKeyFile>ACDDokanNet.pfx</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>
+    </AssemblyOriginatorKeyFile>
     <CodeContractsEnableRuntimeChecking>True</CodeContractsEnableRuntimeChecking>
     <CodeContractsRuntimeCheckingLevel>Full</CodeContractsRuntimeCheckingLevel>
     <NuGetPackageImportStamp>
@@ -76,7 +77,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="ACDDokanNet.pfx" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
