@@ -306,7 +306,16 @@
                 if (ex.Error == System.Net.HttpStatusCode.Conflict)
                 {
                     Log.Error($"Upload conflict: {item.Path}\r\n{ex}");
-                    OnUploadFailed(item, FailReason.Conflict, "Uploading as New file, but already exists");
+                    var node = await cloud.Nodes.GetChild(item.ParentId, Path.GetFileName(item.Path));
+                    if (node != null)
+                    {
+                        OnUploadFinished(item, node);
+                    }
+                    else
+                    {
+                        OnUploadFailed(item, FailReason.Conflict, "Uploading as New file, but already exists");
+                    }
+
                     return;
                 }
 

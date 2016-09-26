@@ -35,7 +35,7 @@
 
         public int Progress { get; set; }
 
-        
+
     }
 
     public class DownloadStatisticInfo : AStatisticFileInfo
@@ -106,13 +106,16 @@
                 var olditemPath = Path.Combine(UploadService.CachePath, uploaditem.Id);
                 File.Delete(olditemPath);
 
-                if (reason == FailReason.ZeroLength)
+                switch (reason)
                 {
-                    var item = GetItem(uploaditem.Path);
-                    item?.MakeNotUploading();
-                    onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFinished, new UploadStatisticInfo(uploaditem));
-
-                    return;
+                    case FailReason.ZeroLength:
+                        var item = GetItem(uploaditem.Path);
+                        item?.MakeNotUploading();
+                        onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFinished, new UploadStatisticInfo(uploaditem));
+                        return;
+                    case FailReason.Conflict:
+                        onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFinished, new UploadStatisticInfo(uploaditem));
+                        return;
                 }
 
                 onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFailed, new UploadStatisticInfo(uploaditem) { ErrorMessage = message });
