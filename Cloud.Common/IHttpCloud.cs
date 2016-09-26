@@ -6,6 +6,8 @@
     using System.Threading;
     using System.Threading.Tasks;
 
+    public delegate void Progress(long progress);
+
     public interface IHttpCloud
     {
         string Id { get; set; }
@@ -37,13 +39,13 @@
 
     public interface IHttpCloudFiles
     {
-        Task<int> Download(string id, byte[] result, int offset, long pos, int left);
+        Task<int> Download(string id, byte[] result, int offset, long pos, int left, Progress progress);
 
-        Task Download(string id, Func<Stream, Task<long>> streammer, long? fileOffset = null, int? length = null);
+        Task Download(string id, Func<Stream, Task<long>> streammer, Progress progress, long? fileOffset = null, int? length = null);
 
-        Task<FSItem.Builder> Overwrite(string id, Func<FileStream> p);
+        Task<FSItem.Builder> Overwrite(string id, Func<FileStream> p, Progress progress);
 
-        Task<FSItem.Builder> UploadNew(string parentId, string fileName, Func<FileStream> p);
+        Task<FSItem.Builder> UploadNew(string parentId, string fileName, Func<FileStream> p, Progress progress);
     }
 
     public interface IHttpCloudNodes

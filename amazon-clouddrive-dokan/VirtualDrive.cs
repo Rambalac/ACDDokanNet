@@ -191,6 +191,12 @@
             }
         }
 
+        public NtStatus FindFilesWithPattern(string fileName, string searchPattern, out IList<FileInformation> files, DokanFileInfo info)
+        {
+            files = new List<FileInformation>();
+            return DokanResult.NotImplemented;
+        }
+
         public NtStatus FlushFileBuffers(string fileName, DokanFileInfo info)
         {
             try

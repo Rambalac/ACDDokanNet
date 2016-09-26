@@ -14,8 +14,8 @@
         private readonly long expectedLength;
         private readonly string filePath;
         private readonly object closeLock = new object();
-        private bool disposedValue = false; // To detect redundant calls
-        private int closed = 0;
+        private bool disposedValue; // To detect redundant calls
+        private int closed;
 
         private FileBlockReader(string path, long length)
         {

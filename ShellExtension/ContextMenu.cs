@@ -28,7 +28,7 @@
         {
             using (var info = FileSystem.GetAlternateDataStream(path, CloudDokanNetItemInfo.StreamName).OpenText())
             {
-                string text = info.ReadToEnd();
+                var text = info.ReadToEnd();
                 var type = JsonConvert.DeserializeObject<NodeExtendedInfo>(text);
                 if (type.Type == nameof(CloudDokanNetItemInfo))
                 {
@@ -108,14 +108,14 @@
 
         private void CopyReadWriteLink(object sender, EventArgs e)
         {
-            string path = SelectedItemPaths.Single();
+            var path = SelectedItemPaths.Single();
             var link = ReadString(path, CloudDokanNetAssetInfo.StreamNameShareReadWrite);
             Clipboard.SetText(link);
         }
 
         private void CopyReadOnlyLink(object sender, EventArgs e)
         {
-            string path = SelectedItemPaths.Single();
+            var path = SelectedItemPaths.Single();
             var link = ReadString(path, CloudDokanNetAssetInfo.StreamNameShareReadOnly);
             Clipboard.SetText(link);
         }

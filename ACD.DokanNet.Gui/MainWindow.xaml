@@ -50,15 +50,21 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <Label Content="Files downloading" Grid.Row="0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}" Padding="5,5,5,0"/>
                     <TextBox IsReadOnly="True" Text="{Binding Mode=OneWay, Path=DownloadingFilesCount}" Grid.Row="0" Grid.Column="1" MaxLines="1" Margin="1,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
 
                     <Label Content="Files uploading" Grid.Row="1" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}" Padding="5,5,5,0"/>
-                    <TextBox IsReadOnly="True" Text="{Binding Mode=OneWay, Path=UploadingFilesCount}" Grid.Row="1" Grid.Column="1" MaxLines="1" Margin="1,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
-
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" CanContentScroll="True">
+                        <ItemsControl ItemsSource="{Binding UploadFiles}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="local:CloudMount">
+                                    <local:FileItem Content="{Binding}"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
                 </Grid>
             </GroupBox>
             <Border BorderThickness="1" Grid.Row="2" BorderBrush="#FFD5DFE5" CornerRadius="3" Margin="2,15,2,0" Padding="5">
@@ -96,11 +102,8 @@
                         <Label Content="Small files cache, Mb" Grid.Row="3" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}" Grid.ColumnSpan="2" Padding="5,5,5,0"/>
                         <TextBox Text="{Binding SmallFilesCacheSize}" Grid.Row="3" Grid.Column="2" MaxLines="1" Margin="0,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
 
-                        <Label Content="Read only" Grid.Row="4"/>
-                        <CheckBox Grid.Row="4" VerticalAlignment="Center" IsChecked="{Binding ReadOnly}" IsEnabled="{Binding CanMount}" HorizontalAlignment="Center" Grid.Column="2"/>
-
-                        <Label Content="Version" Grid.Row="5"/>
-                        <TextBox IsReadOnly="True" Text="{Binding Version, Mode=OneTime}" MaxLines="1" Margin="0,0,0,5"  Grid.Row="5" Grid.Column="2"/>
+                        <Label Content="Version" Padding="5,5,5,0" Grid.Row="4"/>
+                        <TextBox IsReadOnly="True" Text="{Binding Version, Mode=OneTime}" MaxLines="1" Margin="0,5,0,5"  Grid.Row="4" Grid.Column="2"/>
 
                         <Grid Grid.Row="6" Grid.ColumnSpan="3" HorizontalAlignment="Center">
                             <Grid.ColumnDefinitions>

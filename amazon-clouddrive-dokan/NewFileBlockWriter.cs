@@ -10,9 +10,9 @@
         private readonly FSItem item;
         private readonly FileStream writer;
         private object fileLock = new object();
-        private int closed = 0;
-        private long lastPosition = 0;
-        private bool disposedValue = false; // To detect redundant calls
+        private int closed;
+        private long lastPosition;
+        private bool disposedValue; // To detect redundant calls
 
         public NewFileBlockWriter(FSItem item, string filePath)
         {

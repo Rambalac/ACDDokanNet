@@ -9,7 +9,8 @@
     using System.Threading.Tasks;
     using Common;
     using Microsoft.OneDrive.Sdk;
-    using Microsoft.OneDrive.Sdk.WindowsForms;
+    using Microsoft.OneDrive.Sdk.Authentication;
+    using Newtonsoft.Json;
 
     public class MicrosoftOneDrive : IHttpCloud, IHttpCloudFiles, IHttpCloudNodes
     {
@@ -18,6 +19,8 @@
         private Item rootItem;
 
         private IOneDriveClient oneDriveClient;
+
+        private MsaAuthenticationProvider msaAuthenticationProvider;
 
         public static string CloudServiceName => "Microsoft OneDrive";
 
@@ -45,22 +48,31 @@
 
         public async Task<bool> AuthenticateNew(CancellationToken cs)
         {
-            var form = new FormsWebAuthenticationUi();
-            oneDriveClient = await OneDriveClient.GetAuthenticatedMicrosoftAccountClient(MicrosoftSecret.ClientId, "http://localhost:45674/authredirect", Scopes, MicrosoftSecret.ClientSecret, form);
+            msaAuthenticationProvider = new MsaAuthenticationProvider(MicrosoftSecret.ClientId, "http://localhost:45674/authredirect", Scopes, new CredentialsVault(this, null));
+            await msaAuthenticationProvider.AuthenticateUserAsync();
 
-            return oneDriveClient.IsAuthenticated;
+            oneDriveClient = new OneDriveClient(msaAuthenticationProvider);
+
+            return msaAuthenticationProvider.IsAuthenticated;
         }
 
         public async Task<bool> AuthenticateSaved(CancellationToken cs, string save)
         {
-            return await AuthenticateNew(cs);
+            msaAuthenticationProvider = new MsaAuthenticationProvider(MicrosoftSecret.ClientId, "http://localhost:45674/authredirect", Scopes, new CredentialsVault(this, save));
+            await msaAuthenticationProvider.AuthenticateUserAsync();
+
+            oneDriveClient = new OneDriveClient(msaAuthenticationProvider);
+
+            return msaAuthenticationProvider.IsAuthenticated;
         }
 
         public async Task SignOut(string save)
         {
             if (oneDriveClient != null)
             {
-                await oneDriveClient.SignOutAsync();
+                await msaAuthenticationProvider.SignOutAsync();
+                msaAuthenticationProvider = null;
+                oneDriveClient = null;
             }
         }
 
@@ -70,7 +82,7 @@
             return FromNode(item);
         }
 
-        public async Task Download(string id, Func<Stream, Task<long>> streammer, long? fileOffset = default(long?), int? length = default(int?))
+        public async Task Download(string id, Func<Stream, Task<long>> streammer, Progress progress, long? fileOffset = default(long?), int? length = default(int?))
         {
             using (var stream = await GetItem(id).Content.Request().GetAsync())
             {
@@ -88,7 +100,7 @@
             return FromNode(item);
         }
 
-        public async Task<int> Download(string id, byte[] result, int offset, long pos, int left)
+        public async Task<int> Download(string id, byte[] result, int offset, long pos, int left, Progress progress)
         {
             using (var stream = await GetItem(id).Content.Request().GetAsync())
             {
@@ -100,7 +112,7 @@
         public async Task<FSItem.Builder> GetChild(string id, string name)
         {
             var items = await GetAllChildren(id);
-            var item = items.Where(i => i.Name == name).SingleOrDefault();
+            var item = items.SingleOrDefault(i => i.Name == name);
             if (item == null)
             {
                 return null;
@@ -140,7 +152,7 @@
             return FromNode(newitem);
         }
 
-        public async Task<FSItem.Builder> Overwrite(string id, Func<FileStream> streammer)
+        public async Task<FSItem.Builder> Overwrite(string id, Func<FileStream> streammer, Progress progress)
         {
             using (var stream = streammer())
             {
@@ -149,7 +161,7 @@
             }
         }
 
-        public async Task<FSItem.Builder> UploadNew(string parentId, string fileName, Func<FileStream> streammer)
+        public async Task<FSItem.Builder> UploadNew(string parentId, string fileName, Func<FileStream> streammer, Progress progress)
         {
             using (var stream = streammer())
             {
@@ -244,6 +256,43 @@
         private IItemRequestBuilder GetItem(string id)
         {
             return oneDriveClient.Drive.Items[id];
+        }
+
+        private class CredentialsVault : ICredentialVault
+        {
+            private readonly MicrosoftOneDrive od;
+            private string data;
+
+            public CredentialsVault(MicrosoftOneDrive od, string data)
+            {
+                this.od = od;
+                this.data = data;
+            }
+
+            public void AddCredentialCacheToVault(CredentialCache credentialCache)
+            {
+                var authinfo = credentialCache.GetCacheBlob();
+                var str = JsonConvert.SerializeObject(authinfo);
+
+                od.OnAuthUpdated?.OnAuthUpdated(od, str);
+            }
+
+            public bool DeleteStoredCredentialCache()
+            {
+                return true;
+            }
+
+            public bool RetrieveCredentialCache(CredentialCache credentialCache)
+            {
+                if (data == null)
+                {
+                    return false;
+                }
+
+                var authinfo = JsonConvert.DeserializeObject<byte[]>(data);
+                credentialCache.InitializeCacheFromBlob(authinfo);
+                return true;
+            }
         }
     }
 }

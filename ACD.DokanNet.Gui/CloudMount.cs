@@ -98,10 +98,6 @@
 
         public FSProvider Provider { get; private set; }
 
-        public int UploadingCount => Provider?.UploadingCount ?? 0;
-
-        public int DownloadingCount => Provider.DownloadingCount;
-
         private App App => App.Current;
 
         // This code added to correctly implement the disposable pattern.
@@ -233,12 +229,12 @@
                     throw new InvalidOperationException("Authentication failed");
                 }
 
-                Provider = new FSProvider(instance);
+                Provider = new FSProvider(instance, ProviderStatisticsUpdated);
                 Provider.VolumeName = CloudInfo.Name;
                 Provider.CachePath = Environment.ExpandEnvironmentVariables(Properties.Settings.Default.CacheFolder);
                 Provider.SmallFilesCacheSize = Properties.Settings.Default.SmallFilesCacheLimit * (1 << 20);
                 Provider.SmallFileSizeLimit = Properties.Settings.Default.SmallFileSizeLimit * (1 << 20);
-                Provider.OnStatisticsUpdated = ProviderStatisticsUpdated;
+                ;
                 var cloudDrive = new VirtualDriveWrapper(Provider);
 
                 var mountedEvent = new TaskCompletionSource<char>();
@@ -303,9 +299,9 @@
             }
         }
 
-        private void ProviderStatisticsUpdated(int downloading, int uploading)
+        private void ProviderStatisticsUpdated(IHttpCloud cloud, StatisticUpdateReason reason, AStatisticFileInfo info)
         {
-            App.ProviderStatisticsUpdated(CloudInfo, downloading, uploading);
+            App.ProviderStatisticsUpdated(CloudInfo, reason, info);
         }
 
         private async Task<bool> Authenticate(IHttpCloud cloud, CancellationToken cs, bool interactiveAuth)

@@ -12,15 +12,15 @@
 
     public class SmallFilesCache
     {
-        private static string cachePath = null;
+        private static string cachePath;
 
         private static ConcurrentDictionary<IHttpCloud, SmallFilesCache> instances = new ConcurrentDictionary<IHttpCloud, SmallFilesCache>(10, 3);
         private static ConcurrentDictionary<string, Downloader> downloaders = new ConcurrentDictionary<string, Downloader>(10, 3);
 
         private readonly IHttpCloud cloud;
 
-        private long totalSize = 0;
-        private bool cleaning = false;
+        private long totalSize;
+        private bool cleaning;
 
         private ConcurrentDictionary<string, CacheEntry> access = new ConcurrentDictionary<string, CacheEntry>(10, 1000);
 
@@ -31,11 +31,11 @@
 
         public long CacheSize { get; internal set; }
 
-        public Action<string> OnDownloadStarted { get; set; }
+        public Action<FSItem> OnDownloadStarted { get; set; }
 
-        public Action<string> OnDownloaded { get; set; }
+        public Action<FSItem> OnDownloaded { get; set; }
 
-        public Action<string> OnDownloadFailed { get; set; }
+        public Action<FSItem> OnDownloadFailed { get; set; }
 
         public string CachePath
         {
@@ -227,28 +227,32 @@
             using (writer)
                 try
                 {
-                    OnDownloadStarted?.Invoke(item.Id);
+                    OnDownloadStarted?.Invoke(item);
                     while (writer.Length < item.Length)
                     {
-                        await cloud.Files.Download(item.Id, fileOffset: writer.Length, streammer: async (stream) =>
-                        {
-                            int red = 0;
-                            long totalred = 0;
-                            do
+                        await cloud.Files.Download(
+                            item.Id,
+                            fileOffset: writer.Length,
+                            streammer: async (stream) =>
                             {
-                                red = await stream.ReadAsync(buf, 0, buf.Length);
-                                totalred += red;
-                                if (writer.Length == 0)
+                                int red = 0;
+                                long totalred = 0;
+                                do
                                 {
-                                    Log.Trace("Got first part: " + item.Id + " in " + start.ElapsedMilliseconds);
-                                }
+                                    red = await stream.ReadAsync(buf, 0, buf.Length);
+                                    totalred += red;
+                                    if (writer.Length == 0)
+                                    {
+                                        Log.Trace("Got first part: " + item.Id + " in " + start.ElapsedMilliseconds);
+                                    }
 
-                                writer.Write(buf, 0, red);
-                                downloader.Downloaded = writer.Length;
-                            }
-                            while (red > 0);
-                            return totalred;
-                        });
+                                    writer.Write(buf, 0, red);
+                                    downloader.Downloaded = writer.Length;
+                                }
+                                while (red > 0);
+                                return totalred;
+                            },
+                            progress: null);
                         if (writer.Length < item.Length)
                         {
                             await Task.Delay(500);
@@ -256,7 +260,7 @@
                     }
 
                     Log.Trace("Finished download: " + item.Id);
-                    OnDownloaded?.Invoke(item.Id);
+                    OnDownloaded?.Invoke(item);
 
                     access.TryAdd(item.Id, new CacheEntry { Id = item.Id, AccessTime = DateTime.UtcNow, Length = item.Length });
                     TotalSize += item.Length;
@@ -267,7 +271,7 @@
                 }
                 catch (Exception ex)
                 {
-                    OnDownloadFailed?.Invoke(item.Id);
+                    OnDownloadFailed?.Invoke(item);
                     Log.Error($"Download failed: {item.Id}\r\n{ex}");
                 }
                 finally

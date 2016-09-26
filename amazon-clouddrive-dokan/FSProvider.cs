@@ -12,6 +12,63 @@
     using Common;
     using Newtonsoft.Json;
 
+    public enum StatisticUpdateReason
+    {
+        UploadAdded,
+        UploadFinished,
+        DownloadAdded,
+        DownloadFinished,
+        DownloadFailed,
+        UploadFailed,
+        Progress
+    }
+
+    public abstract class AStatisticFileInfo
+    {
+        public abstract string Id { get; }
+
+        public abstract string FileName { get; }
+
+        public string ErrorMessage { get; set; }
+
+        public bool HasError => ErrorMessage != null;
+
+        public int Progress { get; set; }
+
+        
+    }
+
+    public class DownloadStatisticInfo : AStatisticFileInfo
+    {
+        private FSItem info;
+        private string errorMessage;
+
+        public DownloadStatisticInfo(FSItem info)
+        {
+            this.info = info;
+        }
+
+        public override string Id => info.Id;
+
+        public override string FileName => info.Name;
+    }
+
+    public class UploadStatisticInfo : AStatisticFileInfo
+    {
+        private UploadInfo info;
+
+        public UploadStatisticInfo(UploadInfo info)
+        {
+            this.info = info;
+        }
+
+        public override string Id => info.Id;
+
+        public override string FileName => Path.GetFileName(info.Path);
+    }
+
+    public delegate void StatisticUpdateDelegate(IHttpCloud cloud, StatisticUpdateReason reason, AStatisticFileInfo info);
+
     public class FSProvider : IDisposable
     {
         private readonly IHttpCloud cloud;
@@ -20,40 +77,32 @@
 
         private string cachePath;
 
-        private int downloadingCount = 0;
+        private bool disposedValue; // To detect redundant calls
 
-        private int uploadingCount = 0;
+        private StatisticUpdateDelegate onStatisticsUpdated;
 
-        private bool disposedValue = false; // To detect redundant calls
-
-        private StatisticsUpdated onStatisticsUpdated;
-
-        public FSProvider(IHttpCloud cloud)
+        public FSProvider(IHttpCloud cloud, StatisticUpdateDelegate statisticUpdate)
         {
+            onStatisticsUpdated = statisticUpdate;
+
             this.cloud = cloud;
             SmallFilesCache = new SmallFilesCache(cloud);
-            SmallFilesCache.OnDownloadStarted = (id) =>
+            SmallFilesCache.OnDownloadStarted = (info) =>
             {
-                Interlocked.Increment(ref downloadingCount);
-                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+                onStatisticsUpdated(cloud, StatisticUpdateReason.DownloadAdded, new DownloadStatisticInfo(info));
             };
-            SmallFilesCache.OnDownloaded = (id) =>
+            SmallFilesCache.OnDownloaded = (info) =>
             {
-                Interlocked.Decrement(ref downloadingCount);
-                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+                onStatisticsUpdated(cloud, StatisticUpdateReason.DownloadFinished, new DownloadStatisticInfo(info));
             };
-            SmallFilesCache.OnDownloadFailed = (id) =>
+            SmallFilesCache.OnDownloadFailed = (info) =>
             {
-                Interlocked.Decrement(ref downloadingCount);
-                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+                onStatisticsUpdated(cloud, StatisticUpdateReason.DownloadFailed, new DownloadStatisticInfo(info));
             };
 
             UploadService = new UploadService(2, cloud);
-            UploadService.OnUploadFailed = (uploaditem, reason) =>
+            UploadService.OnUploadFailed = (uploaditem, reason, message) =>
             {
-                Interlocked.Decrement(ref uploadingCount);
-                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
-
                 var olditemPath = Path.Combine(UploadService.CachePath, uploaditem.Id);
                 File.Delete(olditemPath);
 
@@ -61,15 +110,17 @@
                 {
                     var item = GetItem(uploaditem.Path);
                     item?.MakeNotUploading();
+                    onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFinished, new UploadStatisticInfo(uploaditem));
+
                     return;
                 }
 
+                onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFailed, new UploadStatisticInfo(uploaditem) { ErrorMessage = message });
                 itemsTreeCache.DeleteFile(uploaditem.Path);
             };
             UploadService.OnUploadFinished = (item, node) =>
             {
-                Interlocked.Decrement(ref uploadingCount);
-                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+                onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFinished, new UploadStatisticInfo(item));
 
                 var newitem = node.FilePath(item.Path).Build();
                 var olditemPath = Path.Combine(UploadService.CachePath, item.Id);
@@ -87,36 +138,19 @@
                 SmallFilesCache.AddExisting(newitem);
                 itemsTreeCache.Update(newitem);
             };
-            UploadService.OnUploadResumed = item =>
+            UploadService.OnUploadAdded = item =>
             {
-                itemsTreeCache.Add(item);
-                Interlocked.Increment(ref uploadingCount);
-                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+                itemsTreeCache.Add(item.ToFSItem());
+                onStatisticsUpdated(cloud, StatisticUpdateReason.UploadAdded, new UploadStatisticInfo(item));
             };
             UploadService.Start();
         }
-
-        public delegate void StatisticsUpdated(int downloading, int uploading);
 
         public long SmallFileSizeLimit { get; set; } = 20 * 1024 * 1024;
 
         public SmallFilesCache SmallFilesCache { get; private set; }
 
         public UploadService UploadService { get; private set; }
-
-        public StatisticsUpdated OnStatisticsUpdated
-        {
-            get
-            {
-                return onStatisticsUpdated;
-            }
-
-            set
-            {
-                onStatisticsUpdated = value;
-                onStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
-            }
-        }
 
         public long AvailableFreeSpace => cloud.AvailableFreeSpace;
 
@@ -143,7 +177,6 @@
                 cachePath = val;
                 SmallFilesCache.CachePath = val;
                 UploadService.CachePath = val;
-                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
             }
         }
 
@@ -169,10 +202,6 @@
                 SmallFilesCache.CacheSize = value;
             }
         }
-
-        public int DownloadingCount => downloadingCount;
-
-        public int UploadingCount => uploadingCount;
 
         public void DeleteFile(string filePath)
         {
@@ -250,13 +279,11 @@
                     return result;
                 }
 
-                Interlocked.Increment(ref downloadingCount);
-                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+                onStatisticsUpdated(cloud, StatisticUpdateReason.DownloadAdded, new DownloadStatisticInfo(item));
                 var buffered = new BufferedHttpCloudBlockReader(item, cloud);
                 buffered.OnClose = () =>
                   {
-                      Interlocked.Decrement(ref downloadingCount);
-                      OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+                      onStatisticsUpdated(cloud, StatisticUpdateReason.DownloadFinished, new DownloadStatisticInfo(item));
                   };
 
                 return buffered;
@@ -275,8 +302,6 @@
                 item = FSItem.MakeUploading(filePath, Guid.NewGuid().ToString(), dirItem.Id, 0);
 
                 var file = UploadService.OpenNew(item);
-                Interlocked.Increment(ref uploadingCount);
-                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
 
                 itemsTreeCache.Add(item);
 
@@ -299,8 +324,6 @@
                 SmallFilesCache.Delete(item);
                 item.MakeUploading();
                 var file = UploadService.OpenTruncate(item);
-                Interlocked.Increment(ref uploadingCount);
-                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
 
                 return file;
             }
@@ -316,8 +339,6 @@
                     file.OnChangedAndClosed = (it, path) =>
                     {
                         it.LastWriteTime = DateTime.UtcNow;
-                        Interlocked.Increment(ref uploadingCount);
-                        OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
 
                         if (!it.IsUploading)
                         {
@@ -400,7 +421,7 @@
         {
             var info = await cloud.Nodes.GetNodeExtended(item.Id);
 
-            string str = JsonConvert.SerializeObject(info);
+            var str = JsonConvert.SerializeObject(info);
             item.Info = Encoding.UTF8.GetBytes(str);
         }
 

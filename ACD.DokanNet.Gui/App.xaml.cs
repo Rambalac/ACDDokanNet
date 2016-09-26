@@ -21,13 +21,19 @@
     {
         public static new App Current => Application.Current as App;
 
-        public FSProvider.StatisticsUpdated OnProviderStatisticsUpdated { get; set; }
+        private ObservableCollection<AStatisticFileInfo> uploadFiles;
 
-        public int UploadingCount => Clouds.Sum(c => c.UploadingCount);
+        public int UploadingCount => uploadFiles.Count;
 
-        public int DownloadingCount => Clouds.Sum(c => c.DownloadingCount);
+        public int downloadingCount;
+
+        public int DownloadingCount => downloadingCount;
 
         private ObservableCollection<CloudMount> clouds;
+
+        public event Action<string> OnMountChanged;
+
+        public ObservableCollection<AStatisticFileInfo> UploadFiles => uploadFiles;
 
         public ObservableCollection<CloudMount> Clouds
         {
@@ -49,8 +55,6 @@
                 return clouds;
             }
         }
-
-        public event Action<string> OnMountChanged;
 
         public long SmallFileSizeLimit
         {
@@ -155,9 +159,29 @@
 
         private NotifyIcon notifyIcon;
 
-        public void ProviderStatisticsUpdated(CloudInfo cloudn, int downloading, int uploading)
+        public void ProviderStatisticsUpdated(CloudInfo cloud, StatisticUpdateReason reason, AStatisticFileInfo info)
         {
-            OnProviderStatisticsUpdated?.Invoke(downloading, uploading);
+            switch (reason)
+            {
+                case StatisticUpdateReason.UploadAdded:
+                    uploadFiles.Add(info);
+                    break;
+                case StatisticUpdateReason.UploadFinished:
+                    uploadFiles.Remove(info)
+                    break;
+                case StatisticUpdateReason.DownloadAdded:
+                    break;
+                case StatisticUpdateReason.DownloadFinished:
+                    break;
+                case StatisticUpdateReason.DownloadFailed:
+                    break;
+                case StatisticUpdateReason.UploadFailed:
+                    break;
+                case StatisticUpdateReason.Progress:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
 
         private void SetupNotifyIcon()
@@ -221,7 +245,7 @@
         }
 
         private Mutex startedMutex;
-        private bool shuttingdown = false;
+        private bool shuttingdown;
 
         private async Task MountDefault()
         {
@@ -240,7 +264,7 @@
 
         private async void Application_Startup(object sender, StartupEventArgs e)
         {
-            Log.Info("Starting Version " + Assembly.GetEntryAssembly().GetName().Version.ToString());
+            Log.Info("Starting Version " + Assembly.GetEntryAssembly().GetName().Version);
 
             if (Gui.Properties.Settings.Default.NeedUpgrade)
             {
@@ -337,7 +361,7 @@
             OnMountChanged?.Invoke(id);
         }
 
-        private bool disposedValue = false; // To detect redundant calls
+        private bool disposedValue; // To detect redundant calls
 
         protected virtual void Dispose(bool disposing)
         {

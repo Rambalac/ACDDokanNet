@@ -16,7 +16,7 @@
         private readonly ConcurrentDictionary<long, Block> blocks = new ConcurrentDictionary<long, Block>(5, KeepLastBlocks * 5);
         private IHttpCloud cloud;
         private FSItem item;
-        private long lastBlock = 0;
+        private long lastBlock;
 
         public BufferedHttpCloudBlockReader(FSItem item, IHttpCloud cloud)
         {
@@ -42,29 +42,29 @@
 
             var bs = position / BlockSize;
             var be = (position + count - 1) / BlockSize;
-            var blocks = GetBlocks(bs, be);
+            var blocksRead = GetBlocks(bs, be);
             var bspos = bs * BlockSize;
             var bepos = ((be + 1) * BlockSize) - 1;
             if (bs == be)
             {
-                Array.Copy(blocks[0], position - bspos, buffer, offset, count);
+                Array.Copy(blocksRead[0], position - bspos, buffer, offset, count);
                 return count;
             }
 
             var inblock = (int)(position - bspos);
-            var inblockcount = blocks[0].Length - inblock;
-            Array.Copy(blocks[0], inblock, buffer, offset, inblockcount);
+            var inblockcount = blocksRead[0].Length - inblock;
+            Array.Copy(blocksRead[0], inblock, buffer, offset, inblockcount);
             offset += inblockcount;
             var left = count - inblockcount;
 
-            for (int i = 1; i < blocks.Length - 1; i++)
+            for (int i = 1; i < blocksRead.Length - 1; i++)
             {
-                Array.Copy(blocks[i], 0, buffer, offset, blocks[i].Length);
-                offset += blocks[i].Length;
-                left -= blocks[i].Length;
+                Array.Copy(blocksRead[i], 0, buffer, offset, blocksRead[i].Length);
+                offset += blocksRead[i].Length;
+                left -= blocksRead[i].Length;
             }
 
-            Array.Copy(blocks[blocks.Length - 1], 0, buffer, offset, left);
+            Array.Copy(blocksRead[blocksRead.Length - 1], 0, buffer, offset, left);
 
             return count;
         }
@@ -103,7 +103,7 @@
             int left = count;
             while (left > 0)
             {
-                int red = cloud.Files.Download(item.Id, result, offset, pos, left).Result;
+                int red = cloud.Files.Download(item.Id, result, offset, pos, left, null).Result;
                 if (red == 0)
                 {
                     Log.Error("Download 0");

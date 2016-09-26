@@ -29,7 +29,7 @@
             foreach (ManagementObject obj in processList)
             {
                 string[] argList = { string.Empty, string.Empty };
-                int returnVal = Convert.ToInt32(obj.InvokeMethod("GetOwner", argList));
+                var returnVal = Convert.ToInt32(obj.InvokeMethod("GetOwner", argList));
                 if (returnVal == 0)
                 {
                     // return DOMAIN\user

@@ -11,7 +11,7 @@ namespace Azi.Cloud.DokanNet.Tests
     {
         protected const string Testdir = "\\ACDDokanNetTest\\";
 
-        private bool disposedValue = false; // To detect redundant calls
+        private bool disposedValue; // To detect redundant calls
 
         protected FSProviderTestsBase()
         {
@@ -23,7 +23,7 @@ namespace Azi.Cloud.DokanNet.Tests
 
             DeleteDir("TempCache");
 
-            Provider = new FSProvider(Amazon);
+            Provider = new FSProvider(Amazon, (a, b, c) => { });
             Provider.CachePath = "TempCache";
             Provider.SmallFilesCacheSize = 20 * (1 << 20);
             Provider.SmallFileSizeLimit = 1 * (1 << 20);

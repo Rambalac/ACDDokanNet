@@ -5,7 +5,7 @@
 
     public abstract class AbstractBlockStream : IBlockStream
     {
-        private int closed = 0;
+        private int closed;
 
         public Action OnClose { get; set; }
 

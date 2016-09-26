@@ -17,10 +17,10 @@
         private readonly object fileLock = new object();
         private readonly object closeLock = new object();
         private Downloader downloader;
-        private int closed = 0;
-        private long lastPosition = 0;
-        private bool written = false;
-        private bool disposedValue = false; // To detect redundant calls
+        private int closed;
+        private long lastPosition;
+        private bool written;
+        private bool disposedValue; // To detect redundant calls
 
         public SmallFileBlockReaderWriter(Downloader downloader)
         {

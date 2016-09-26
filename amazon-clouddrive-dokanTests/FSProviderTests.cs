@@ -100,7 +100,7 @@ namespace Azi.Cloud.DokanNet.Tests
             Assert.True(Directory.GetFiles("TempCache\\Upload").Length == 0);
 
             var buf2 = new byte[17];
-            int red = Amazon.Files.Download(info.Id, buf2, 0, 0, 17).Result;
+            int red = Amazon.Files.Download(info.Id, buf2, 0, 0, 17, null).Result;
 
             Assert.Equal(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2, 1 }, buf2);
         }
@@ -133,7 +133,7 @@ namespace Azi.Cloud.DokanNet.Tests
             Assert.Equal(10, info.Length);
 
             var buf2 = new byte[17];
-            int red = Amazon.Files.Download(info.Id, buf2, 0, 0, 17).Result;
+            int red = Amazon.Files.Download(info.Id, buf2, 0, 0, 17, null).Result;
 
             Assert.Equal(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2, 1 }, buf2);
         }
@@ -143,7 +143,7 @@ namespace Azi.Cloud.DokanNet.Tests
         {
             var path = Testdir + "TestFile.txt";
             const int size = 1500000;
-            byte[] buffer = Enumerable.Range(1, size).Select(b => (byte)(b & 255)).ToArray();
+            var buffer = Enumerable.Range(1, size).Select(b => (byte)(b & 255)).ToArray();
             using (var file = Provider.OpenFile(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, FileOptions.None))
             {
                 file.Write(0, buffer, 0, buffer.Length);

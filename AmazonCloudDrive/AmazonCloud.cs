@@ -119,7 +119,7 @@
             }
         }
 
-        async Task<int> IHttpCloudFiles.Download(string id, byte[] result, int offset, long pos, int left)
+        async Task<int> IHttpCloudFiles.Download(string id, byte[] result, int offset, long pos, int left, Progress progress)
         {
             try
             {
@@ -240,7 +240,7 @@
             }
         }
 
-        async Task IHttpCloudFiles.Download(string id, Func<Stream, Task<long>> streammer, long? fileOffset, int? length)
+        async Task IHttpCloudFiles.Download(string id, Func<Stream, Task<long>> streammer, Progress progress, long? fileOffset, int? length)
         {
             try
             {
@@ -270,11 +270,24 @@
             }
         }
 
-        async Task<FSItem.Builder> IHttpCloudFiles.UploadNew(string parentId, string fileName, Func<FileStream> p)
+        async Task<FSItem.Builder> IHttpCloudFiles.UploadNew(string parentId, string fileName, Func<FileStream> p, Progress progress)
         {
             try
             {
-                return FromNode(await amazon.Files.UploadNew(parentId, fileName, p));
+                var upload = new FileUpload
+                {
+                    StreamOpener = p,
+                    FileName = fileName,
+                    ParentId = parentId,
+                    Progress = (uploaded) =>
+                    {
+                        progress?.Invoke(uploaded);
+                        return uploaded + (1 << 10);
+                    },
+                    AllowDuplicate = true
+                };
+
+                return FromNode(await amazon.Files.UploadNew(upload));
             }
             catch (Exception ex)
             {
@@ -282,11 +295,15 @@
             }
         }
 
-        async Task<FSItem.Builder> IHttpCloudFiles.Overwrite(string id, Func<FileStream> p)
+        async Task<FSItem.Builder> IHttpCloudFiles.Overwrite(string id, Func<FileStream> p, Progress progress)
         {
             try
             {
-                return FromNode(await amazon.Files.Overwrite(id, p));
+                return FromNode(await amazon.Files.Overwrite(id, p, null, (uploaded) =>
+                {
+                    progress?.Invoke(uploaded);
+                    return uploaded + (1 << 10);
+                }));
             }
             catch (Exception ex)
             {

@@ -31,7 +31,7 @@
         private readonly IHttpCloud cloud;
         private readonly int uploadLimit;
         private string cachePath;
-        private bool disposedValue = false; // To detect redundant calls
+        private bool disposedValue; // To detect redundant calls
         private Task serviceTask;
 
         public UploadService(int limit, IHttpCloud cloud)
@@ -43,13 +43,17 @@
 
         public delegate void OnUploadFinishedDelegate(UploadInfo item, FSItem.Builder amazonNode);
 
-        public delegate void OnUploadFailedDelegate(UploadInfo item, FailReason reason);
+        public delegate void OnUploadFailedDelegate(UploadInfo item, FailReason reason, string message);
+
+        public delegate void OnUploadProgressDelegate(UploadInfo item, int progress);
 
         public OnUploadFinishedDelegate OnUploadFinished { get; set; }
 
         public OnUploadFailedDelegate OnUploadFailed { get; set; }
 
-        public Action<FSItem> OnUploadResumed { get; set; }
+        public OnUploadProgressDelegate OnUploadProgress { get; set; }
+
+        public Action<UploadInfo> OnUploadAdded { get; set; }
 
         public string CachePath
         {
@@ -83,6 +87,7 @@
             var path = Path.Combine(cachePath, item.Id);
             WriteInfo(path + ".info", info);
             uploads.Add(info);
+            OnUploadAdded?.Invoke(info);
         }
 
         public NewFileBlockWriter OpenNew(FSItem item)
@@ -213,6 +218,7 @@
             var path = Path.Combine(cachePath, item.Id);
             WriteInfo(path + ".info", info);
             uploads.Add(info);
+            OnUploadAdded?.Invoke(info);
         }
 
         private void CheckOldUploads()
@@ -229,8 +235,8 @@
                 var uploadinfo = JsonConvert.DeserializeObject<UploadInfo>(File.ReadAllText(info.FullName));
                 var fileinfo = new FileInfo(Path.Combine(info.DirectoryName, Path.GetFileNameWithoutExtension(info.Name)));
                 var item = FSItem.MakeUploading(uploadinfo.Path, fileinfo.Name, uploadinfo.ParentId, fileinfo.Length);
-                OnUploadResumed(item);
                 uploads.Add(uploadinfo);
+                OnUploadAdded?.Invoke(uploadinfo);
             }
         }
 
@@ -243,7 +249,7 @@
                 {
                     Log.Trace("Zero Length file: " + item.Path);
                     File.Delete(path + ".info");
-                    OnUploadFailed(item, FailReason.ZeroLength);
+                    OnUploadFailed(item, FailReason.ZeroLength, null);
                     return;
                 }
 
@@ -256,14 +262,15 @@
                     {
                         Log.Error("Folder does not exist to upload file: " + item.Path);
                         File.Delete(path + ".info");
-                        OnUploadFailed(item, FailReason.NoFolderNode);
+                        OnUploadFailed(item, FailReason.NoFolderNode, "Parent folder is missing");
                         return;
                     }
 
                     node = await cloud.Files.UploadNew(
                         item.ParentId,
                         Path.GetFileName(item.Path),
-                        () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, true));
+                        () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, true),
+                        (p) => OnUploadProgress(item, (int)(item.Length * 100 / p)));
                 }
                 else
                 {
@@ -272,19 +279,20 @@
                     {
                         Log.Error("File does not exist to be overwritten: " + item.Path);
                         File.Delete(path + ".info");
-                        OnUploadFailed(item, FailReason.NoOverwriteNode);
+                        OnUploadFailed(item, FailReason.NoOverwriteNode, "No file to overwrite");
                         return;
                     }
 
                     node = await cloud.Files.Overwrite(
                         item.Id,
-                        () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, true));
+                        () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, true),
+                        (p) => OnUploadProgress(item, (int)(item.Length * 100 / p)));
                 }
 
                 File.Delete(path + ".info");
                 if (node == null)
                 {
-                    OnUploadFailed(item, FailReason.NoResultNode);
+                    OnUploadFailed(item, FailReason.NoResultNode, "Did not get node information");
                     throw new NullReferenceException("File node is null: " + item.Path);
                 }
 
@@ -298,7 +306,7 @@
                 if (ex.Error == System.Net.HttpStatusCode.Conflict)
                 {
                     Log.Error($"Upload conflict: {item.Path}\r\n{ex}");
-                    OnUploadFailed(item, FailReason.Conflict);
+                    OnUploadFailed(item, FailReason.Conflict, "Uploading as New file, but already exists");
                     return;
                 }
 
@@ -315,31 +323,6 @@
 
             await Task.Delay(ReuploadDelay);
             uploads.Add(item);
-        }
-
-        public class UploadInfo
-        {
-            public UploadInfo()
-            {
-            }
-
-            public UploadInfo(FSItem item)
-            {
-                Id = item.Id;
-                Path = item.Path;
-                ParentId = item.ParentIds.First();
-                Length = item.Length;
-            }
-
-            public long Length { get; set; }
-
-            public string Id { get; set; }
-
-            public string Path { get; set; }
-
-            public string ParentId { get; set; }
-
-            public bool Overwrite { get; set; } = false;
         }
     }
 }

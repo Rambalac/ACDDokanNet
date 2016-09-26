@@ -8,7 +8,7 @@
     public class Downloader
     {
         private Task task;
-        private long downloaded = 0;
+        private long downloaded;
 
         public Downloader(FSItem item, string path)
         {
