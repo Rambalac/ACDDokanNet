@@ -1,6 +1,6 @@
 ﻿namespace Azi.Cloud.DokanNet
 {
-    using System;
+    using System.Collections.Concurrent;
     using System.Linq;
     using Common;
 
@@ -32,7 +32,14 @@
 
         internal FSItem ToFSItem()
         {
-            throw new NotImplementedException();
+            return new FSItem.Builder()
+            {
+                Id = Id,
+                Name = System.IO.Path.GetFileName(Path),
+                Length = Length,
+                ParentIds = new ConcurrentBag<string>(new string[] { ParentId }),
+                ParentPath = System.IO.Path.GetDirectoryName(Path)
+            }.Build();
         }
     }
 }

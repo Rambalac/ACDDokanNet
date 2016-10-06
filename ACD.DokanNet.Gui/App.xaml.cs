@@ -13,6 +13,11 @@
     using Microsoft.Win32;
     using Tools;
     using Application = System.Windows.Application;
+    using AmazonCloudDrive;
+    using System.Configuration;
+    using System.IO;
+    using System.Xml;
+    using Newtonsoft.Json;
 
     /// <summary>
     /// Interaction logic for App.xaml
@@ -21,7 +26,7 @@
     {
         public static new App Current => Application.Current as App;
 
-        private ObservableCollection<AStatisticFileInfo> uploadFiles;
+        private ObservableCollection<FileItemInfo> uploadFiles = new ObservableCollection<FileItemInfo>();
 
         public int UploadingCount => uploadFiles.Count;
 
@@ -31,9 +36,11 @@
 
         private ObservableCollection<CloudMount> clouds;
 
-        public event Action<string> OnMountChanged;
+        public event Action<string> MountChanged;
 
-        public ObservableCollection<AStatisticFileInfo> UploadFiles => uploadFiles;
+        public event Action ProviderStatisticsUpdated;
+
+        public ObservableCollection<FileItemInfo> UploadFiles => uploadFiles;
 
         public ObservableCollection<CloudMount> Clouds
         {
@@ -159,35 +166,54 @@
 
         private NotifyIcon notifyIcon;
 
-        public void ProviderStatisticsUpdated(CloudInfo cloud, StatisticUpdateReason reason, AStatisticFileInfo info)
+        public void OnProviderStatisticsUpdated(CloudInfo cloud, StatisticUpdateReason reason, AStatisticFileInfo info)
         {
-            switch (reason)
+            Dispatcher.Invoke(() =>
             {
-                case StatisticUpdateReason.UploadAdded:
-                    uploadFiles.Add(info);
-                    break;
-                case StatisticUpdateReason.UploadFinished:
-                    uploadFiles.Remove(info);
-                    break;
-                case StatisticUpdateReason.DownloadAdded:
-                    downloadingCount++;
-                    break;
-                case StatisticUpdateReason.DownloadFinished:
-                    downloadingCount--;
-                    break;
-                case StatisticUpdateReason.DownloadFailed:
-                    downloadingCount--;
-                    break;
-                case StatisticUpdateReason.UploadFailed:
-                    UploadFiles.Remove(info);
-                    UploadFiles.Add(info);
-                    break;
-                case StatisticUpdateReason.Progress:
-
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
+                switch (reason)
+                {
+                    case StatisticUpdateReason.UploadAdded:
+                        uploadFiles.Add(new FileItemInfo
+                        {
+                            Id = info.Id,
+                            CloudIcon = clouds.Single(c => c.CloudInfo.Id == cloud.Id).Instance.CloudServiceIcon,
+                            FileName = info.FileName,
+                            ErrorMessage = info.ErrorMessage
+                        });
+                        break;
+                    case StatisticUpdateReason.UploadFinished:
+                        uploadFiles.Remove(new FileItemInfo { Id = info.Id });
+                        break;
+                    case StatisticUpdateReason.DownloadAdded:
+                        downloadingCount++;
+                        ProviderStatisticsUpdated?.Invoke();
+                        break;
+                    case StatisticUpdateReason.DownloadFinished:
+                        downloadingCount--;
+                        ProviderStatisticsUpdated?.Invoke();
+                        break;
+                    case StatisticUpdateReason.DownloadFailed:
+                        downloadingCount--;
+                        ProviderStatisticsUpdated?.Invoke();
+                        break;
+                    case StatisticUpdateReason.UploadFailed:
+                        {
+                            var item = UploadFiles.Single(f => f.Id == info.Id);
+                            item.ErrorMessage = info.ErrorMessage;
+                            UploadFiles.Remove(item);
+                            UploadFiles.Add(item);
+                        }
+                        break;
+                    case StatisticUpdateReason.Progress:
+                        {
+                            var item = UploadFiles.Single(f => f.Id == info.Id);
+                            item.Progress = info.Progress;
+                        }
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            });
         }
 
         private void SetupNotifyIcon()
@@ -268,6 +294,60 @@
             }
         }
 
+        private void UpdateSettingsV1()
+        {
+            var settings = Gui.Properties.Settings.Default;
+            if (settings.Clouds != null && settings.Clouds.Count > 0)
+            {
+                return;
+            }
+
+            var versionsPath = Environment.ExpandEnvironmentVariables("%LOCALAPPDATA%\\Rambalac\\ACD.DokanNet.Gui.exe_Url_3nx2g2l53nrtm2p32mr11ar350hkhmgy");
+            var topVersion = Directory.GetDirectories(versionsPath).OrderByDescending(s => Path.GetFileName(s)).FirstOrDefault();
+            if (topVersion == null)
+            {
+                return;
+            }
+
+            var config = Path.Combine(topVersion, "user.config");
+
+            XmlDocument doc = new XmlDocument();
+            doc.Load(config);
+
+            var authinfo = new AuthInfo
+            {
+                AuthToken = doc.SelectSingleNode("//setting[@name='AuthToken']/value").InnerText,
+                AuthRenewToken = doc.SelectSingleNode("//setting[@name='AuthRenewToken']/value").InnerText,
+                AuthTokenExpiration = DateTime.Parse(doc.SelectSingleNode("//setting[@name='AuthTokenExpiration']/value").InnerText)
+            };
+
+            var readOnly = bool.Parse(doc.SelectSingleNode("//setting[@name='ReadOnly']/value").InnerText);
+            var letter = doc.SelectSingleNode("//setting[@name='LastDriveLetter']/value").InnerText[0];
+
+            var cloudinfo = new CloudInfo
+            {
+                Id = Guid.NewGuid().ToString(),
+                Name = AmazonCloud.CloudServiceName,
+                ClassName = typeof(AmazonCloud).FullName,
+                AssemblyName = typeof(AmazonCloud).Assembly.FullName,
+                DriveLetter = letter,
+                ReadOnly = readOnly,
+                AuthSave = JsonConvert.SerializeObject(authinfo)
+            };
+            settings.Clouds = new CloudInfoCollection(new CloudInfo[] { cloudinfo });
+
+            var cacheFolder = Environment.ExpandEnvironmentVariables(settings.CacheFolder);
+            var newPath = Path.Combine(cacheFolder, UploadService.UploadFolder, cloudinfo.Id);
+            Directory.CreateDirectory(newPath);
+
+            var files = Directory.GetFiles(Path.Combine(cacheFolder, UploadService.UploadFolder));
+
+            foreach (var file in files)
+            {
+                File.Move(file, Path.Combine(newPath, Path.GetFileName(file)));
+            }
+        }
+
         private async void Application_Startup(object sender, StartupEventArgs e)
         {
             Log.Info("Starting Version " + Assembly.GetEntryAssembly().GetName().Version);
@@ -275,6 +355,8 @@
             if (Gui.Properties.Settings.Default.NeedUpgrade)
             {
                 Gui.Properties.Settings.Default.Upgrade();
+                UpdateSettingsV1();
+
                 Gui.Properties.Settings.Default.NeedUpgrade = false;
                 Gui.Properties.Settings.Default.Save();
             }
@@ -364,7 +446,7 @@
 
         internal void NotifyMountChanged(string id)
         {
-            OnMountChanged?.Invoke(id);
+            MountChanged?.Invoke(id);
         }
 
         private bool disposedValue; // To detect redundant calls

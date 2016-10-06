@@ -121,10 +121,21 @@
 
             public ConcurrentBag<string> ParentIds { get; set; }
 
-            public string Path { get; set; }
+            public string ParentPath { get; set; }
+
+            public FSItem.Builder SetParentPath(string path)
+            {
+                ParentPath = path;
+                return this;
+            }
 
             public FSItem Build()
             {
+                if (ParentPath == null)
+                {
+                    throw new ArgumentNullException("Path should be set");
+                }
+
                 return new FSItem
                 {
                     Id = Id,
@@ -134,19 +145,14 @@
                     LastWriteTime = LastWriteTime,
                     Length = Length,
                     ParentIds = new ConcurrentBag<string>(ParentIds),
-                    Path = Path
+                    Path = System.IO.Path.Combine(ParentPath, Name)
                 };
-            }
-
-            public Builder FilePath(string filePath)
-            {
-                Path = filePath;
-                return this;
             }
 
             public FSItem BuildRoot()
             {
-                Path = "\\";
+                ParentPath = "\\";
+                Name = string.Empty;
                 return Build();
             }
         }

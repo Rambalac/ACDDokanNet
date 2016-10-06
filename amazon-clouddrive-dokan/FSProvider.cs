@@ -42,6 +42,7 @@
             {
                 return false;
             }
+
             return Id == ((AStatisticFileInfo)obj).Id;
         }
 
@@ -139,7 +140,7 @@
             {
                 onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFinished, new UploadStatisticInfo(item));
 
-                var newitem = node.FilePath(item.Path).Build();
+                var newitem = node.SetParentPath(Path.GetDirectoryName(item.Path)).Build();
                 var olditemPath = Path.Combine(UploadService.CachePath, item.Id);
                 var newitemPath = Path.Combine(SmallFilesCache.CachePath, node.Id);
 
@@ -268,7 +269,7 @@
             var name = Path.GetFileName(filePath);
             var node = cloud.Nodes.CreateFolder(dirNode.Id, name).Result;
 
-            itemsTreeCache.Add(node.FilePath(filePath).Build());
+            itemsTreeCache.Add(node.SetParentPath(Path.GetDirectoryName(filePath)).Build());
         }
 
         public IBlockStream OpenFile(string filePath, FileMode mode, FileAccess fileAccess, FileShare share, FileOptions options)
@@ -404,8 +405,7 @@
 
             foreach (var node in nodes)
             {
-                var path = curdir + "\\" + node.Name;
-                items.Add(node.FilePath(path).Build());
+                items.Add(node.SetParentPath(curdir).Build());
             }
 
             // Log.Warn("Got real dir:\r\n  " + string.Join("\r\n  ", items.Select(i => i.Path)));
@@ -462,7 +462,7 @@
             {
                 if (item.Length > 0 || item.IsDir)
                 {
-                    item = cloud.Nodes.Rename(item.Id, newName).Result.FilePath(Path.Combine(oldDir, newName)).Build();
+                    item = cloud.Nodes.Rename(item.Id, newName).Result.SetParentPath(oldDir).Build();
                 }
                 else
                 {
@@ -485,7 +485,7 @@
                 Task.WaitAll(oldDirNodeTask, newDirNodeTask);
                 if (item.Length > 0 || item.IsDir)
                 {
-                    item = cloud.Nodes.Move(item.Id, oldDirNodeTask.Result.Id, newDirNodeTask.Result.Id).Result.FilePath(newPath).Build();
+                    item = cloud.Nodes.Move(item.Id, oldDirNodeTask.Result.Id, newDirNodeTask.Result.Id).Result.SetParentPath(newDir).Build();
                     if (item == null)
                     {
                         throw new InvalidOperationException("Can not move");
@@ -635,19 +635,20 @@
                     curpath = string.Empty;
                 }
 
-                curpath = curpath + "\\" + name;
+                var newpath = curpath + "\\" + name;
 
                 var newnode = await cloud.Nodes.GetChild(item.Id, name);
                 if (newnode == null)
                 {
-                    itemsTreeCache.AddItemOnly(FSItem.MakeNotExistingDummy(curpath));
+                    itemsTreeCache.AddItemOnly(FSItem.MakeNotExistingDummy(newpath));
 
                     // Log.Error("NonExisting path from server: " + itemPath);
                     return null;
                 }
 
-                item = newnode.FilePath(curpath).Build();
+                item = newnode.SetParentPath(curpath).Build();
                 itemsTreeCache.Add(item);
+                curpath = newpath;
             }
 
             return item;

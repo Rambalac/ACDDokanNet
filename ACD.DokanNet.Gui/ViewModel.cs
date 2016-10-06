@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.ObjectModel;
+    using System.Collections.Specialized;
     using System.ComponentModel;
     using System.Reflection;
     using System.Threading;
@@ -16,17 +17,20 @@
         {
             if (App != null)
             {
-                App.OnProviderStatisticsUpdated = ProviderStatisticsUpdated;
-                App.OnMountChanged += NotifyMount;
+                App.MountChanged += NotifyMount;
+                App.ProviderStatisticsUpdated += OnProviderStatisticsUpdated;
                 refreshTimer = new Timer(RefreshLetters, null, 1000, 1000);
 
                 Clouds.CollectionChanged += Clouds_CollectionChanged;
+                UploadFiles.CollectionChanged += UploadFiles_CollectionChanged;
             }
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
 
         public ObservableCollection<CloudMount> Clouds => App?.Clouds;
+
+        public ObservableCollection<FileItemInfo> UploadFiles => App?.UploadFiles;
 
         public bool IsAutorun
         {
@@ -63,9 +67,9 @@
             }
         }
 
-        public int UploadingFilesCount { get; private set; }
+        public int UploadingFilesCount => App?.UploadingCount ?? 0;
 
-        public int DownloadingFilesCount { get; private set; }
+        public int DownloadingFilesCount => App?.DownloadingCount ?? 0;
 
         public long SmallFileSizeLimit
         {
@@ -129,6 +133,12 @@
             OnPropertyChanged(nameof(Clouds));
         }
 
+        private void UploadFiles_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            OnPropertyChanged(nameof(UploadFiles));
+            OnPropertyChanged(nameof(UploadingFilesCount));
+        }
+
         private void NotifyMount(string obj)
         {
             RefreshLetters(null);
@@ -149,11 +159,8 @@
             OnPropertyChanged(nameof(HasFreeLetters));
         }
 
-        private void ProviderStatisticsUpdated(int downloading, int uploading)
+        private void OnProviderStatisticsUpdated()
         {
-            UploadingFilesCount = uploading;
-            DownloadingFilesCount = downloading;
-            OnPropertyChanged(nameof(UploadingFilesCount));
             OnPropertyChanged(nameof(DownloadingFilesCount));
         }
     }

@@ -16,19 +16,7 @@
         </Grid.ColumnDefinitions>
         <Image Source="{Binding CloudIcon}"/>
         <TextBlock Margin="5,0,0,0" Grid.Column="1" HorizontalAlignment="Left" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Text="{Binding FileName}" />
-        <Image Grid.Column="2" Source="/images/ErrorMark.png" ToolTip="{Binding ErrorMessage}">
-            <Image.Style>
-                <Style TargetType="{x:Type Image}">
-                    <Setter Property="Visibility" Value="Visible" />
-                    <Style.Triggers>
-                        <DataTrigger Binding = "{Binding HasError, UpdateSourceTrigger=PropertyChanged}" Value = "False">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                            <Setter Property="IsEnabled" Value="False" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Image.Style>
-        </Image>
+        <Image Grid.Column="2" Source="/images/ErrorMark.png" ToolTip="{Binding ErrorMessage}" Visibility="{Binding HasError}"/>
         <ProgressBar Margin="4,0,0,0" Grid.Column="3" Maximum="100" Value="{Binding Progress}"/>
         <Button Content="Cancel" Margin="5,0,0,0" Grid.Column="4"/>
     </Grid>

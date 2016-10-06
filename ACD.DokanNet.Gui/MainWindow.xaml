@@ -56,8 +56,10 @@
                     <TextBox IsReadOnly="True" Text="{Binding Mode=OneWay, Path=DownloadingFilesCount}" Grid.Row="0" Grid.Column="1" MaxLines="1" Margin="1,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
 
                     <Label Content="Files uploading" Grid.Row="1" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}" Padding="5,5,5,0"/>
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" CanContentScroll="True">
-                        <ItemsControl ItemsSource="{Binding UploadFiles}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <TextBox IsReadOnly="True" Text="{Binding Mode=OneWay, Path=UploadingFilesCount}" Grid.Row="1" Grid.Column="1" MaxLines="1" Margin="1,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
+
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" CanContentScroll="True" Grid.Row="2" Grid.ColumnSpan="2" Margin="0,5,0,0">
+                        <ItemsControl ItemsSource="{Binding UploadFiles}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" MinHeight="30" BorderThickness="1"  BorderBrush="{DynamicResource {x:Static SystemColors.ControlLightBrushKey}}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="local:CloudMount">
                                     <local:FileItem Content="{Binding}"/>

@@ -195,6 +195,38 @@
         {
             files = new List<FileInformation>();
             return DokanResult.NotImplemented;
+
+            /*
+            if (!HasAccess(info))
+            {
+                files = null;
+                return DokanResult.AccessDenied;
+            }
+
+            try
+            {
+                var items = provider.GetDirItems(fileName).Result;
+
+                var regex = new Regex(Regex.Escape(searchPattern).Replace("\\?", ".").Replace("\\*", ".*"));
+
+                files = items.Where(i=>regex.IsMatch(Path.GetFileName(i.Name))).Select(i => new FileInformation
+                {
+                    Length = i.Length,
+                    FileName = i.Name,
+                    Attributes = i.IsDir ? FileAttributes.Directory : FileAttributes.Normal,
+                    LastAccessTime = i.LastAccessTime,
+                    LastWriteTime = i.LastWriteTime,
+                    CreationTime = i.CreationTime
+                }).ToList();
+                return DokanResult.Success;
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+                files = new List<FileInformation>();
+                return DokanResult.Error;
+            }
+            */
         }
 
         public NtStatus FlushFileBuffers(string fileName, DokanFileInfo info)

@@ -270,7 +270,7 @@
                         item.ParentId,
                         Path.GetFileName(item.Path),
                         () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, true),
-                        (p) => OnUploadProgress(item, (int)(item.Length * 100 / p)));
+                        (p) => OnUploadProgress?.Invoke(item, (int)(item.Length * 100 / p)));
                 }
                 else
                 {
@@ -286,7 +286,7 @@
                     node = await cloud.Files.Overwrite(
                         item.Id,
                         () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, true),
-                        (p) => OnUploadProgress(item, (int)(item.Length * 100 / p)));
+                        (p) => OnUploadProgress?.Invoke(item, (int)(item.Length * 100 / p)));
                 }
 
                 File.Delete(path + ".info");
@@ -296,7 +296,7 @@
                     throw new NullReferenceException("File node is null: " + item.Path);
                 }
 
-                node.Path = item.Path;
+                node.ParentPath = Path.GetDirectoryName(item.Path);
                 OnUploadFinished(item, node);
                 Log.Trace("Finished upload: " + item.Path + " id:" + node.Id);
                 return;

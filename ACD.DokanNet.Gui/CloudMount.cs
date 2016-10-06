@@ -301,7 +301,7 @@
 
         private void ProviderStatisticsUpdated(IHttpCloud cloud, StatisticUpdateReason reason, AStatisticFileInfo info)
         {
-            App.ProviderStatisticsUpdated(CloudInfo, reason, info);
+            App.OnProviderStatisticsUpdated(CloudInfo, reason, info);
         }
 
         private async Task<bool> Authenticate(IHttpCloud cloud, CancellationToken cs, bool interactiveAuth)
