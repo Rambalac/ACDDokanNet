@@ -35,7 +35,21 @@
 
         public int Progress { get; set; }
 
+        // override object.Equals
+        public override bool Equals(object obj)
+        {
+            if (obj == null || GetType() != obj.GetType())
+            {
+                return false;
+            }
+            return Id == ((AStatisticFileInfo)obj).Id;
+        }
 
+        // override object.GetHashCode
+        public override int GetHashCode()
+        {
+            return Id.GetHashCode();
+        }
     }
 
     public class DownloadStatisticInfo : AStatisticFileInfo

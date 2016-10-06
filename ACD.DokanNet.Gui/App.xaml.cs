@@ -25,7 +25,7 @@
 
         public int UploadingCount => uploadFiles.Count;
 
-        public int downloadingCount;
+        private int downloadingCount;
 
         public int DownloadingCount => downloadingCount;
 
@@ -167,17 +167,23 @@
                     uploadFiles.Add(info);
                     break;
                 case StatisticUpdateReason.UploadFinished:
-                    uploadFiles.Remove(info)
+                    uploadFiles.Remove(info);
                     break;
                 case StatisticUpdateReason.DownloadAdded:
+                    downloadingCount++;
                     break;
                 case StatisticUpdateReason.DownloadFinished:
+                    downloadingCount--;
                     break;
                 case StatisticUpdateReason.DownloadFailed:
+                    downloadingCount--;
                     break;
                 case StatisticUpdateReason.UploadFailed:
+                    UploadFiles.Remove(info);
+                    UploadFiles.Add(info);
                     break;
                 case StatisticUpdateReason.Progress:
+
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
