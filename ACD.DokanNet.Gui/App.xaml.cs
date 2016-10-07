@@ -168,52 +168,62 @@
 
         public void OnProviderStatisticsUpdated(CloudInfo cloud, StatisticUpdateReason reason, AStatisticFileInfo info)
         {
-            Dispatcher.Invoke(() =>
+            try
             {
-                switch (reason)
+                Dispatcher.Invoke(() =>
                 {
-                    case StatisticUpdateReason.UploadAdded:
-                        uploadFiles.Add(new FileItemInfo
-                        {
-                            Id = info.Id,
-                            CloudIcon = clouds.Single(c => c.CloudInfo.Id == cloud.Id).Instance.CloudServiceIcon,
-                            FileName = info.FileName,
-                            ErrorMessage = info.ErrorMessage
-                        });
-                        break;
-                    case StatisticUpdateReason.UploadFinished:
-                        uploadFiles.Remove(new FileItemInfo { Id = info.Id });
-                        break;
-                    case StatisticUpdateReason.DownloadAdded:
-                        downloadingCount++;
-                        ProviderStatisticsUpdated?.Invoke();
-                        break;
-                    case StatisticUpdateReason.DownloadFinished:
-                        downloadingCount--;
-                        ProviderStatisticsUpdated?.Invoke();
-                        break;
-                    case StatisticUpdateReason.DownloadFailed:
-                        downloadingCount--;
-                        ProviderStatisticsUpdated?.Invoke();
-                        break;
-                    case StatisticUpdateReason.UploadFailed:
-                        {
-                            var item = UploadFiles.Single(f => f.Id == info.Id);
-                            item.ErrorMessage = info.ErrorMessage;
-                            UploadFiles.Remove(item);
-                            UploadFiles.Add(item);
-                        }
-                        break;
-                    case StatisticUpdateReason.Progress:
-                        {
-                            var item = UploadFiles.Single(f => f.Id == info.Id);
-                            item.Progress = info.Progress;
-                        }
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
-                }
-            });
+                    switch (reason)
+                    {
+                        case StatisticUpdateReason.UploadAdded:
+                            var mount = clouds.Single(c => c.CloudInfo.Id == cloud.Id);
+                            uploadFiles.Add(new FileItemInfo
+                            {
+                                Id = info.Id,
+                                CloudIcon = mount.Instance.CloudServiceIcon,
+                                FileName = info.FileName,
+                                ErrorMessage = info.ErrorMessage,
+                                Total = info.Total,
+                                CloudName = cloud.Name
+                            });
+                            break;
+                        case StatisticUpdateReason.UploadFinished:
+                            uploadFiles.Remove(new FileItemInfo { Id = info.Id });
+                            break;
+                        case StatisticUpdateReason.DownloadAdded:
+                            downloadingCount++;
+                            ProviderStatisticsUpdated?.Invoke();
+                            break;
+                        case StatisticUpdateReason.DownloadFinished:
+                            downloadingCount--;
+                            ProviderStatisticsUpdated?.Invoke();
+                            break;
+                        case StatisticUpdateReason.DownloadFailed:
+                            downloadingCount--;
+                            ProviderStatisticsUpdated?.Invoke();
+                            break;
+                        case StatisticUpdateReason.UploadFailed:
+                            {
+                                var item = UploadFiles.Single(f => f.Id == info.Id);
+                                item.ErrorMessage = info.ErrorMessage;
+                                UploadFiles.Remove(item);
+                                UploadFiles.Add(item);
+                            }
+                            break;
+                        case StatisticUpdateReason.Progress:
+                            {
+                                var item = UploadFiles.Single(f => f.Id == info.Id);
+                                item.Done = info.Done;
+                            }
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException();
+                    }
+                });
+            }
+            catch (TaskCanceledException)
+            {
+
+            }
         }
 
         private void SetupNotifyIcon()

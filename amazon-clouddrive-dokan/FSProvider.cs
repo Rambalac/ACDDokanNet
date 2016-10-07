@@ -25,6 +25,8 @@
 
     public abstract class AStatisticFileInfo
     {
+        public abstract long Total { get; }
+
         public abstract string Id { get; }
 
         public abstract string FileName { get; }
@@ -33,7 +35,7 @@
 
         public bool HasError => ErrorMessage != null;
 
-        public int Progress { get; set; }
+        public long Done { get; set; }
 
         // override object.Equals
         public override bool Equals(object obj)
@@ -56,12 +58,13 @@
     public class DownloadStatisticInfo : AStatisticFileInfo
     {
         private FSItem info;
-        private string errorMessage;
 
         public DownloadStatisticInfo(FSItem info)
         {
             this.info = info;
         }
+
+        public override long Total => info.Length;
 
         public override string Id => info.Id;
 
@@ -76,6 +79,8 @@
         {
             this.info = info;
         }
+
+        public override long Total => info.Length;
 
         public override string Id => info.Id;
 
@@ -156,6 +161,11 @@
                 SmallFilesCache.AddExisting(newitem);
                 itemsTreeCache.Update(newitem);
             };
+            UploadService.OnUploadProgress = (item, done) =>
+            {
+                onStatisticsUpdated(cloud, StatisticUpdateReason.Progress, new UploadStatisticInfo(item) { Done = done });
+            };
+
             UploadService.OnUploadAdded = item =>
             {
                 itemsTreeCache.Add(item.ToFSItem());

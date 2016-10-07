@@ -45,7 +45,7 @@
 
         public delegate void OnUploadFailedDelegate(UploadInfo item, FailReason reason, string message);
 
-        public delegate void OnUploadProgressDelegate(UploadInfo item, int progress);
+        public delegate void OnUploadProgressDelegate(UploadInfo item, long done);
 
         public OnUploadFinishedDelegate OnUploadFinished { get; set; }
 
@@ -232,11 +232,18 @@
             Log.Warn($"{files.Length} not uploaded files found. Resuming.");
             foreach (var info in files.Select(f => new FileInfo(f)).OrderBy(f => f.CreationTime))
             {
-                var uploadinfo = JsonConvert.DeserializeObject<UploadInfo>(File.ReadAllText(info.FullName));
-                var fileinfo = new FileInfo(Path.Combine(info.DirectoryName, Path.GetFileNameWithoutExtension(info.Name)));
-                var item = FSItem.MakeUploading(uploadinfo.Path, fileinfo.Name, uploadinfo.ParentId, fileinfo.Length);
-                uploads.Add(uploadinfo);
-                OnUploadAdded?.Invoke(uploadinfo);
+                try
+                {
+                    var uploadinfo = JsonConvert.DeserializeObject<UploadInfo>(File.ReadAllText(info.FullName));
+                    var fileinfo = new FileInfo(Path.Combine(info.DirectoryName, Path.GetFileNameWithoutExtension(info.Name)));
+                    var item = FSItem.MakeUploading(uploadinfo.Path, fileinfo.Name, uploadinfo.ParentId, fileinfo.Length);
+                    uploads.Add(uploadinfo);
+                    OnUploadAdded?.Invoke(uploadinfo);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex);
+                }
             }
         }
 
@@ -270,7 +277,7 @@
                         item.ParentId,
                         Path.GetFileName(item.Path),
                         () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, true),
-                        (p) => OnUploadProgress?.Invoke(item, (int)(item.Length * 100 / p)));
+                        (p) => OnUploadProgress?.Invoke(item, p));
                 }
                 else
                 {
@@ -286,7 +293,7 @@
                     node = await cloud.Files.Overwrite(
                         item.Id,
                         () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, true),
-                        (p) => OnUploadProgress?.Invoke(item, (int)(item.Length * 100 / p)));
+                        (p) => OnUploadProgress?.Invoke(item, p));
                 }
 
                 File.Delete(path + ".info");

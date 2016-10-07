@@ -5,31 +5,72 @@
 
     public class FileItemInfo : INotifyPropertyChanged
     {
-        private int progress;
+        private long done;
+
+        private string errorMessage;
 
         public event PropertyChangedEventHandler PropertyChanged;
+
+        public long Total { get; set; }
 
         public string Id { get; set; }
 
         public string CloudIcon { get; set; }
 
+        public string CloudName { get; set; }
+
         public string FileName { get; set; }
 
-        public int Progress
+        public int Progress => (int)(Done * 100 / Total);
+
+        public string ProgressTip
         {
             get
             {
-                return progress;
+                if (Total < 1024)
+                {
+                    return $"{Done} of {Total} bytes";
+                }
+
+                if (Total < 1024 * 1024)
+                {
+                    return $"{Done / 1024} of {Total / 1024} KB";
+                }
+
+                return $"{Done / 1024 / 1024} of {Total / 1024 / 1024} MB";
+            }
+        }
+
+        public long Done
+        {
+            get
+            {
+                return done;
             }
 
             set
             {
-                progress = value;
+                done = value;
+                OnPropertyChanged(nameof(Done));
                 OnPropertyChanged(nameof(Progress));
+                OnPropertyChanged(nameof(ProgressTip));
             }
         }
 
-        public string ErrorMessage { get; set; }
+        public string ErrorMessage
+        {
+            get
+            {
+                return errorMessage;
+            }
+
+            set
+            {
+                errorMessage = value;
+                OnPropertyChanged(nameof(ErrorMessage));
+                OnPropertyChanged(nameof(HasError));
+            }
+        }
 
         public Visibility HasError => (ErrorMessage == null) ? Visibility.Collapsed : Visibility.Visible;
 

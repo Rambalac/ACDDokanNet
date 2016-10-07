@@ -21,8 +21,9 @@
                 <ColumnDefinition/>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
+                <RowDefinition Height="100"/>
+                <RowDefinition Height="5"/>
                 <RowDefinition/>
-                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <GroupBox Header="Clouds" Padding="5">
@@ -41,7 +42,8 @@
                     <local:AvailableCloudsList Clicked="AvailableCloudsList_Clicked"/>
                 </xctk:DropDownButton.DropDownContent>
             </xctk:DropDownButton>
-            <GroupBox Header="Transferring" Padding="5" Grid.Row="1">
+            <GridSplitter Background="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}" Grid.Row="1" HorizontalAlignment="Stretch"/>
+            <GroupBox Header="Transferring" Padding="5" Grid.Row="2">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition/>
@@ -69,7 +71,7 @@
                     </ScrollViewer>
                 </Grid>
             </GroupBox>
-            <Border BorderThickness="1" Grid.Row="2" BorderBrush="#FFD5DFE5" CornerRadius="3" Margin="2,15,2,0" Padding="5">
+            <Border BorderThickness="1" Grid.Row="3" BorderBrush="#FFD5DFE5" CornerRadius="3" Margin="2,15,2,0" Padding="5">
                 <Expander Header="Options" Margin="0,-18,0,0" Background="White">
                     <Expander.Clip>
                         <GeometryGroup>
