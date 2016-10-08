@@ -4,6 +4,7 @@
     using System.Linq;
     using Common;
     using System.Threading;
+    using Newtonsoft.Json;
 
     public class UploadInfo
     {
@@ -29,8 +30,10 @@
 
         public bool Overwrite { get; set; } = false;
 
+        [JsonIgnore]
         public string FailReason { get; set; }
 
+        [JsonIgnore]
         public CancellationTokenSource Cancellation { get; } = new CancellationTokenSource();
 
         internal FSItem ToFSItem()
