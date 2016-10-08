@@ -162,7 +162,7 @@ namespace Azi.Cloud.DokanNet.Tests
             Assert.Equal(10, info.Length);
 
             var buf2 = new byte[10];
-            int red = Amazon.Files.Download(info.Id, buf2, 0, 0, 10).Result;
+            int red = Amazon.Files.Download(info.Id, buf2, 0, 0, 10, null).Result;
 
             Assert.Equal(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, buf2);
         }

@@ -11,6 +11,8 @@
     using Azi.Cloud.DokanNet;
     using Azi.Tools;
     using Common;
+    using System.Reflection;
+    using System.IO;
 
     public class CloudMount : INotifyPropertyChanged, IDisposable, IAuthUpdateListener
     {
@@ -46,15 +48,36 @@
         {
             get
             {
-                if (instance == null)
+                try
                 {
-                    instance = Activator.CreateInstance(CloudInfo.AssemblyName, CloudInfo.ClassName).Unwrap() as IHttpCloud;
-                    instance.Id = CloudInfo.Id;
-                }
+                    if (instance == null)
+                    {
+                        instance = CreateInstance();
+                        instance.Id = CloudInfo.Id;
+                    }
 
-                return instance;
+                    return instance;
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex);
+                    return null;
+                }
             }
         }
+
+        private IHttpCloud CreateInstance()
+        {
+            var assembly = Assembly.LoadFrom(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, CloudInfo.AssemblyFileName));
+
+            var types = assembly.GetExportedTypes().Where(t => typeof(IHttpCloud).IsAssignableFrom(t));
+
+            var assemblyName = types.Single(t => t.IsClass).Assembly.FullName;
+
+            return Activator.CreateInstance(assemblyName, CloudInfo.ClassName).Unwrap() as IHttpCloud;
+        }
+
+        public string CloudServiceIcon => Instance?.CloudServiceIcon ?? "images/lib_load_error.png";
 
         public char? MountLetter { get; set; }
 
@@ -82,7 +105,7 @@
             }
         }
 
-        public bool CanMount => (!mounting) && !(MountLetter != null);
+        public bool CanMount => (Instance != null) && (!mounting) && !(MountLetter != null);
 
         public bool CanUnmount => (!unmounting) && (MountLetter != null);
 
@@ -110,7 +133,10 @@
         public async Task Delete()
         {
             await UnmountAsync();
-            await Instance.SignOut(CloudInfo.AuthSave);
+            if (Instance != null)
+            {
+                await Instance.SignOut(CloudInfo.AuthSave);
+            }
             App.DeleteCloud(this);
         }
 

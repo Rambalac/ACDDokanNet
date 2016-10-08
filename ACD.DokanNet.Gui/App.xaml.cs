@@ -3,6 +3,7 @@
     using System;
     using System.Collections.ObjectModel;
     using System.Diagnostics;
+    using System.IO;
     using System.Linq;
     using System.Reflection;
     using System.Threading;
@@ -11,13 +12,10 @@
     using System.Windows.Forms;
     using Common;
     using Microsoft.Win32;
+    using Newtonsoft.Json;
     using Tools;
     using Application = System.Windows.Application;
-    using AmazonCloudDrive;
-    using System.Configuration;
-    using System.IO;
     using System.Xml;
-    using Newtonsoft.Json;
 
     /// <summary>
     /// Interaction logic for App.xaml
@@ -152,7 +150,7 @@
                 Id = Guid.NewGuid().ToString(),
                 Name = name,
                 ClassName = selectedItem.ClassName,
-                AssemblyName = selectedItem.AssemblyName,
+                AssemblyFileName = selectedItem.AssemblyFileName,
                 DriveLetter = letters[0]
             };
             var mount = new CloudMount(info);
@@ -349,7 +347,7 @@
             XmlDocument doc = new XmlDocument();
             doc.Load(config);
 
-            var authinfo = new AuthInfo
+            var authinfo = new AmazonCloudDrive.AuthInfo
             {
                 AuthToken = doc.SelectSingleNode("//setting[@name='AuthToken']/value").InnerText,
                 AuthRenewToken = doc.SelectSingleNode("//setting[@name='AuthRenewToken']/value").InnerText,
@@ -362,9 +360,9 @@
             var cloudinfo = new CloudInfo
             {
                 Id = Guid.NewGuid().ToString(),
-                Name = AmazonCloud.CloudServiceName,
-                ClassName = typeof(AmazonCloud).FullName,
-                AssemblyName = typeof(AmazonCloud).Assembly.FullName,
+                Name = "Amazon Cloud Drive",
+                ClassName = "Azi.Cloud.AmazonCloudDrive.AmazonCloud",
+                AssemblyFileName = "Clouds.AmazonCloudDrive.dll",
                 DriveLetter = letter,
                 ReadOnly = readOnly,
                 AuthSave = JsonConvert.SerializeObject(authinfo)
@@ -390,7 +388,15 @@
             if (Gui.Properties.Settings.Default.NeedUpgrade)
             {
                 Gui.Properties.Settings.Default.Upgrade();
-                UpdateSettingsV1();
+
+                try
+                {
+                    UpdateSettingsV1();
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex);
+                }
 
                 Gui.Properties.Settings.Default.NeedUpgrade = false;
                 Gui.Properties.Settings.Default.Save();

@@ -20,7 +20,7 @@
                 <ColumnDefinition/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <Image x:Name="cloudImage" Source="{Binding Instance.CloudServiceIcon}" Grid.RowSpan="2" RenderOptions.BitmapScalingMode="Fant"/>
+            <Image x:Name="cloudImage" Source="{Binding CloudServiceIcon}" Grid.RowSpan="2" RenderOptions.BitmapScalingMode="Fant"/>
             <TextBox x:Name="cloudNameTextBox" Grid.Column="1" Text="{Binding CloudInfo.Name, Mode=TwoWay}" TextWrapping="NoWrap" Margin="3,3,0,0" Grid.ColumnSpan="5"/>
             <ComboBox x:Name="comboBox" MinWidth="40" ItemsSource="{Binding DriveLetters}" IsEnabled="{Binding IsUnmounted}" SelectedItem="{Binding CloudInfo.DriveLetter}" Margin="3,3,0,0" Grid.Column="1" Grid.Row="1"/>
             <Button x:Name="mountButton" IsEnabled="{Binding CanMount}" Visibility="{Binding MountVisible}" Content="Mount" Margin="3,3,0,0" Padding="5,1" Click="MountButton_Click" Grid.Column="2" Grid.Row="1" />

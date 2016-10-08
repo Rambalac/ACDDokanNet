@@ -24,7 +24,7 @@
                     AvailableClouds.AddRange(types.Where(t => t.IsClass)
                             .Select(t => new AvailableCloud
                             {
-                                AssemblyName = t.Assembly.FullName,
+                                AssemblyFileName = Path.GetFileName(file),
                                 ClassName = t.FullName,
                                 Name = (string)t.GetProperty("CloudServiceName").GetValue(null),
                                 Icon = (string)t.GetProperty("CloudServiceIcon").GetValue(null)
@@ -47,7 +47,7 @@
 
             public string Icon { get; set; }
 
-            public string AssemblyName { get; set; }
+            public string AssemblyFileName { get; set; }
         }
     }
 }

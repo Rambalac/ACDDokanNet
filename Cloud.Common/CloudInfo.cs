@@ -6,7 +6,7 @@
     [SettingsSerializeAs(SettingsSerializeAs.Xml)]
     public class CloudInfo : INotifyPropertyChanged
     {
-        private string assemblyName;
+        private string assemblyFileName;
 
         private bool autoMount;
 
@@ -20,17 +20,17 @@
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        public string AssemblyName
+        public string AssemblyFileName
         {
             get
             {
-                return assemblyName;
+                return assemblyFileName;
             }
 
             set
             {
-                assemblyName = value;
-                OnPropertyChanged(nameof(AssemblyName));
+                assemblyFileName = value;
+                OnPropertyChanged(nameof(AssemblyFileName));
             }
         }
 
