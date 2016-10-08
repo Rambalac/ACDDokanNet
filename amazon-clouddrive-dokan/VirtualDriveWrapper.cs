@@ -1,31 +1,34 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Azi.Tools;
-using DokanNet;
-
-namespace Azi.ACDDokanNet
+﻿namespace Azi.Cloud.DokanNet
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Diagnostics.Contracts;
+    using System.Linq;
+    using global::DokanNet;
+    using Tools;
+
     public class VirtualDriveWrapper
     {
         private readonly VirtualDrive virtualDrive;
+
+        private char mountLetter;
 
         public VirtualDriveWrapper(FSProvider provider)
         {
             virtualDrive = new VirtualDrive(provider);
             virtualDrive.OnMount = () =>
             {
-                Mounted?.Invoke();
+                Mounted?.Invoke(mountLetter);
             };
             virtualDrive.OnUnmount = () =>
             {
-                Unmounted?.Invoke();
+                Unmounted?.Invoke(mountLetter);
             };
         }
 
-        public Action Mounted { get; set; }
+        public Action<char> Mounted { get; set; }
 
-        public Action Unmounted { get; set; }
+        public Action<char> Unmounted { get; set; }
 
         public static IList<char> GetFreeDriveLettes()
         {
@@ -37,17 +40,19 @@ namespace Azi.ACDDokanNet
             Dokan.Unmount(letter);
         }
 
-        public void Mount(string path, bool readOnly)
+        public void Mount(char letter, bool readOnly)
         {
+            Contract.Ensures(letter > 'C' && letter <= 'Z');
             try
             {
                 virtualDrive.ReadOnly = readOnly;
+                virtualDrive.MountPath = letter + ":\\";
+                mountLetter = letter;
 #if DEBUG
-                virtualDrive.Mount(path, DokanOptions.DebugMode | DokanOptions.AltStream | DokanOptions.FixedDrive, 0, 800, TimeSpan.FromSeconds(30));
+                virtualDrive.Mount(virtualDrive.MountPath, DokanOptions.DebugMode | DokanOptions.AltStream | DokanOptions.FixedDrive, 0, 800, TimeSpan.FromSeconds(30), null);
 #else
-                virtualDrive.Mount(path, DokanOptions.AltStream | DokanOptions.FixedDrive, 0, 800, TimeSpan.FromSeconds(30));
+                virtualDrive.Mount(virtualDrive.MountPath, DokanOptions.AltStream | DokanOptions.FixedDrive, 0, 1000, TimeSpan.FromSeconds(30), null);
 #endif
-                virtualDrive.MountPath = path;
             }
             catch (DokanException e)
             {

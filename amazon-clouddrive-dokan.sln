@@ -3,10 +3,12 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "amazon-clouddrive-dokan", "amazon-clouddrive-dokan\amazon-clouddrive-dokan.csproj", "{213AA535-DB16-4CF9-B3F1-324FF9347F8D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cloud.DokanNet", "amazon-clouddrive-dokan\Cloud.DokanNet.csproj", "{213AA535-DB16-4CF9-B3F1-324FF9347F8D}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{F031D0CA-AD7C-4355-838D-CD12011F987C}"
 	ProjectSection(SolutionItems) = preProject
+		Build.md = Build.md
+		amazon-clouddrive-dokan\Cloud.DokanNet.ruleset = amazon-clouddrive-dokan\Cloud.DokanNet.ruleset
 		licence.txt = licence.txt
 		PrivacyNotice.txt = PrivacyNotice.txt
 		Readme.md = Readme.md
@@ -14,20 +16,32 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tools", "Tools\Tools.csproj", "{199CDB28-7472-41BD-BB1F-BF345451A68D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACD.DokanNet.Gui", "ACD.DokanNet.Gui\ACD.DokanNet.Gui.csproj", "{B1639C0F-0459-4690-87AE-66EBED228F0F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cloud.DokanNet.Gui", "ACD.DokanNet.Gui\Cloud.DokanNet.Gui.csproj", "{B1639C0F-0459-4690-87AE-66EBED228F0F}"
+	ProjectSection(ProjectDependencies) = postProject
+		{43097C04-9303-428D-A06C-1D2BF1D6647D} = {43097C04-9303-428D-A06C-1D2BF1D6647D}
+	EndProjectSection
 EndProject
 Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "ACDDokanNetInstaller", "ACDDokanNetInstaller\ACDDokanNetInstaller.vdproj", "{CD0ECDAA-982F-4E35-8BA9-E319D8D1F95F}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "images", "images", "{C40D9D1E-23C5-46BF-B902-4DF1677F7C95}"
 	ProjectSection(SolutionItems) = preProject
 		images\Amazon Cloud Drive as real drive.png = images\Amazon Cloud Drive as real drive.png
+		ACD.DokanNet.Gui\images\cd_icon.png = ACD.DokanNet.Gui\images\cd_icon.png
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "amazon-clouddrive-dokanTests", "amazon-clouddrive-dokanTests\amazon-clouddrive-dokanTests.csproj", "{07444044-FB75-4639-AF4B-044A48EAD482}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cloud.DokanNet.Tests", "amazon-clouddrive-dokanTests\Cloud.DokanNet.Tests.csproj", "{07444044-FB75-4639-AF4B-044A48EAD482}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShellExtension", "ShellExtension\ShellExtension.csproj", "{8DAC61EF-E07B-4BD2-8D79-5865EF2799BB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cloud.ShellExtension", "ShellExtension\Cloud.ShellExtension.csproj", "{8DAC61EF-E07B-4BD2-8D79-5865EF2799BB}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShellExtension.Tests", "ShellExtension.Tests\ShellExtension.Tests.csproj", "{925A9045-6E71-422D-A3D5-4E4F852C438D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AmazonCloudDrive", "AmazonCloudDrive\AmazonCloudDrive.csproj", "{43097C04-9303-428D-A06C-1D2BF1D6647D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cloud.Common", "Cloud.Common\Cloud.Common.csproj", "{93841375-56D7-4B34-AA7C-BA69F29F8B66}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Clouds", "Clouds", "{A02FE377-4BF3-4BF5-B4AE-3D85831D4C90}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MicrosoftOneDrive", "MicrosoftOneDrive\MicrosoftOneDrive.csproj", "{88E3C06F-D698-44B4-8A20-7951F786AE20}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -61,11 +75,25 @@ Global
 		{925A9045-6E71-422D-A3D5-4E4F852C438D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{925A9045-6E71-422D-A3D5-4E4F852C438D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{925A9045-6E71-422D-A3D5-4E4F852C438D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{43097C04-9303-428D-A06C-1D2BF1D6647D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{43097C04-9303-428D-A06C-1D2BF1D6647D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{43097C04-9303-428D-A06C-1D2BF1D6647D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{43097C04-9303-428D-A06C-1D2BF1D6647D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{93841375-56D7-4B34-AA7C-BA69F29F8B66}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{93841375-56D7-4B34-AA7C-BA69F29F8B66}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{93841375-56D7-4B34-AA7C-BA69F29F8B66}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{93841375-56D7-4B34-AA7C-BA69F29F8B66}.Release|Any CPU.Build.0 = Release|Any CPU
+		{88E3C06F-D698-44B4-8A20-7951F786AE20}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{88E3C06F-D698-44B4-8A20-7951F786AE20}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{88E3C06F-D698-44B4-8A20-7951F786AE20}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{88E3C06F-D698-44B4-8A20-7951F786AE20}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{C40D9D1E-23C5-46BF-B902-4DF1677F7C95} = {F031D0CA-AD7C-4355-838D-CD12011F987C}
+		{43097C04-9303-428D-A06C-1D2BF1D6647D} = {A02FE377-4BF3-4BF5-B4AE-3D85831D4C90}
+		{88E3C06F-D698-44B4-8A20-7951F786AE20} = {A02FE377-4BF3-4BF5-B4AE-3D85831D4C90}
 	EndGlobalSection
 EndGlobal

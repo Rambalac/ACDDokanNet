@@ -1,19 +1,7 @@
 ﻿<?xml version='1.0' encoding='utf-8'?>
-<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="Azi.ACDDokanNet.Gui.Properties" GeneratedClassName="Settings">
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="Azi.Cloud.DokanNet.Gui.Properties" GeneratedClassName="Settings">
   <Profiles />
   <Settings>
-    <Setting Name="AuthToken" Type="System.String" Scope="User">
-      <Value Profile="(Default)" />
-    </Setting>
-    <Setting Name="AuthRenewToken" Type="System.String" Scope="User">
-      <Value Profile="(Default)" />
-    </Setting>
-    <Setting Name="AuthTokenExpiration" Type="System.DateTime" Scope="User">
-      <Value Profile="(Default)" />
-    </Setting>
-    <Setting Name="LastDriveLetter" Type="System.Char" Scope="User">
-      <Value Profile="(Default)" />
-    </Setting>
     <Setting Name="CacheFolder" Type="System.String" Scope="User">
       <Value Profile="(Default)">%TEMP%\ACDDokanNetCache</Value>
     </Setting>
@@ -23,11 +11,11 @@
     <Setting Name="SmallFilesCacheLimit" Type="System.Int64" Scope="User">
       <Value Profile="(Default)">1000</Value>
     </Setting>
-    <Setting Name="ReadOnly" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">False</Value>
-    </Setting>
     <Setting Name="NeedUpgrade" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="Clouds" Type="Azi.Cloud.Common.CloudInfoCollection" Scope="User">
+      <Value Profile="(Default)" />
     </Setting>
   </Settings>
 </SettingsFile>

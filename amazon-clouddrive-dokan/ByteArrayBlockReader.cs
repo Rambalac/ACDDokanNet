@@ -1,7 +1,7 @@
-﻿using System;
-
-namespace Azi.ACDDokanNet
+﻿namespace Azi.Cloud.DokanNet
 {
+    using System;
+
     internal class ByteArrayBlockReader : AbstractBlockStream
     {
         private byte[] data;

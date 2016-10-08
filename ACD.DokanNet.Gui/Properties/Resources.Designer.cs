@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace Azi.ACDDokanNet.Gui.Properties {
+namespace Azi.Cloud.DokanNet.Gui.Properties {
     using System;
     
     
@@ -39,7 +39,7 @@ namespace Azi.ACDDokanNet.Gui.Properties {
         public static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Azi.ACDDokanNet.Gui.Properties.Resources", typeof(Resources).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Azi.Cloud.DokanNet.Gui.Properties.Resources", typeof(Resources).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;

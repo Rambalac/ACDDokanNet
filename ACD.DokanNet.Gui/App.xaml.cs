@@ -1,30 +1,74 @@
-﻿using System;
-using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Forms;
-using Azi.Amazon.CloudDrive;
-using Azi.Tools;
-using Microsoft.Win32;
-using Application = System.Windows.Application;
-
-namespace Azi.ACDDokanNet.Gui
+﻿namespace Azi.Cloud.DokanNet.Gui
 {
+    using System;
+    using System.Collections.ObjectModel;
+    using System.Diagnostics;
+    using System.Linq;
+    using System.Reflection;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using System.Windows;
+    using System.Windows.Forms;
+    using Common;
+    using Microsoft.Win32;
+    using Tools;
+    using Application = System.Windows.Application;
+    using AmazonCloudDrive;
+    using System.Configuration;
+    using System.IO;
+    using System.Xml;
+    using Newtonsoft.Json;
+
     /// <summary>
     /// Interaction logic for App.xaml
     /// </summary>
-    public partial class App : Application, IDisposable, ITokenUpdateListener
+    public partial class App : Application, IDisposable
     {
         public static new App Current => Application.Current as App;
 
-        public bool IsMounted => mountedLetter != null;
+        private ObservableCollection<FileItemInfo> uploadFiles = new ObservableCollection<FileItemInfo>();
 
-        public char? MountedLetter => mountedLetter;
+        public int UploadingCount => uploadFiles.Count;
 
-        public FSProvider.StatisticsUpdated OnProviderStatisticsUpdated { get; set; }
+        private int downloadingCount;
 
-        public Action OnMountChanged { get; set; }
+        public int DownloadingCount => downloadingCount;
+
+        private ObservableCollection<CloudMount> clouds;
+
+        internal void CancelUpload(FileItemInfo item)
+        {
+            var cloud = Clouds.SingleOrDefault(c => c.CloudInfo.Id == item.CloudId);
+            if (cloud == null) return;
+            cloud.Provider.CancelUpload(item.Id);
+        }
+
+        public event Action<string> MountChanged;
+
+        public event Action ProviderStatisticsUpdated;
+
+        public ObservableCollection<FileItemInfo> UploadFiles => uploadFiles;
+
+        public ObservableCollection<CloudMount> Clouds
+        {
+            get
+            {
+                if (clouds == null)
+                {
+                    var settings = Gui.Properties.Settings.Default;
+                    if (settings.Clouds == null)
+                    {
+                        Debug.WriteLine("No clouds!");
+                        settings.Clouds = new CloudInfoCollection();
+                        settings.Save();
+                    }
+
+                    clouds = new ObservableCollection<CloudMount>(settings.Clouds.Select(s => new CloudMount(s)));
+                }
+
+                return clouds;
+            }
+        }
 
         public long SmallFileSizeLimit
         {
@@ -35,11 +79,11 @@ namespace Azi.ACDDokanNet.Gui
 
             set
             {
-                if (provider != null)
-                {
-                    provider.SmallFileSizeLimit = value * (1 << 20);
-                }
-
+                // TODO
+                // if (provider != null)
+                // {
+                //    provider.SmallFileSizeLimit = value * (1 << 20);
+                // }
                 Gui.Properties.Settings.Default.SmallFileSizeLimit = value;
                 Gui.Properties.Settings.Default.Save();
             }
@@ -54,11 +98,11 @@ namespace Azi.ACDDokanNet.Gui
 
             set
             {
-                if (provider != null)
-                {
-                    provider.CachePath = Environment.ExpandEnvironmentVariables(value);
-                }
-
+                // TODO
+                // if (provider != null)
+                // {
+                //    provider.CachePath = Environment.ExpandEnvironmentVariables(value);
+                // }
                 Gui.Properties.Settings.Default.CacheFolder = value;
                 Gui.Properties.Settings.Default.Save();
             }
@@ -73,14 +117,54 @@ namespace Azi.ACDDokanNet.Gui
 
             set
             {
-                if (provider != null)
-                {
-                    provider.SmallFilesCacheSize = value * (1 << 20);
-                }
-
+                // TODO
+                // if (provider != null)
+                // {
+                //    provider.SmallFilesCacheSize = value * (1 << 20);
+                // }
                 Gui.Properties.Settings.Default.SmallFilesCacheLimit = value;
                 Gui.Properties.Settings.Default.Save();
             }
+        }
+
+        public void AddCloud(AvailableCloudsModel.AvailableCloud selectedItem)
+        {
+            var name = selectedItem.Name;
+            var letters = VirtualDriveWrapper.GetFreeDriveLettes();
+            if (letters.Count == 0)
+            {
+                throw new InvalidOperationException("No free letters");
+            }
+
+            if (Clouds.Any(c => c.CloudInfo.Name == name))
+            {
+                int i = 1;
+                while (Clouds.Any(c => c.CloudInfo.Name == name + " " + i))
+                {
+                    i++;
+                }
+
+                name = name + " " + i;
+            }
+
+            var info = new CloudInfo
+            {
+                Id = Guid.NewGuid().ToString(),
+                Name = name,
+                ClassName = selectedItem.ClassName,
+                AssemblyName = selectedItem.AssemblyName,
+                DriveLetter = letters[0]
+            };
+            var mount = new CloudMount(info);
+            Clouds.Add(mount);
+            var settings = Gui.Properties.Settings.Default;
+            settings.Clouds = new CloudInfoCollection(Clouds.Select(c => c.CloudInfo));
+            settings.Save();
+        }
+
+        internal void DeleteCloud(CloudMount cloud)
+        {
+            Clouds.Remove(cloud);
         }
 
         private void ProcessArgs(string[] args)
@@ -88,14 +172,83 @@ namespace Azi.ACDDokanNet.Gui
         }
 
         private NotifyIcon notifyIcon;
-        private int uploading = 0;
-        private int downloading = 0;
 
-        public void ProviderStatisticsUpdated(int downloading, int uploading)
+        public void OnProviderStatisticsUpdated(CloudInfo cloud, StatisticUpdateReason reason, AStatisticFileInfo info)
         {
-            this.uploading = uploading;
-            this.downloading = downloading;
-            OnProviderStatisticsUpdated?.Invoke(downloading, uploading);
+            try
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    switch (reason)
+                    {
+                        case StatisticUpdateReason.UploadAdded:
+                            {
+                                var mount = clouds.Single(c => c.CloudInfo.Id == cloud.Id);
+                                var item = new FileItemInfo
+                                {
+                                    CloudId = cloud.Id,
+                                    Id = info.Id,
+                                    CloudIcon = mount.Instance.CloudServiceIcon,
+                                    FileName = info.FileName,
+                                    FullPath = $"{mount.MountLetter}:{info.Path}",
+                                    ErrorMessage = info.ErrorMessage,
+                                    Total = info.Total,
+                                    CloudName = cloud.Name
+                                };
+                                uploadFiles.Remove(item);
+                                uploadFiles.Add(item);
+                            }
+                            break;
+                        case StatisticUpdateReason.UploadFinished:
+                            uploadFiles.Remove(new FileItemInfo { Id = info.Id });
+                            break;
+                        case StatisticUpdateReason.DownloadAdded:
+                            downloadingCount++;
+                            ProviderStatisticsUpdated?.Invoke();
+                            break;
+                        case StatisticUpdateReason.DownloadFinished:
+                            downloadingCount--;
+                            ProviderStatisticsUpdated?.Invoke();
+                            break;
+                        case StatisticUpdateReason.DownloadFailed:
+                            downloadingCount--;
+                            ProviderStatisticsUpdated?.Invoke();
+                            break;
+                        case StatisticUpdateReason.UploadFailed:
+                            {
+                                var item = UploadFiles.Single(f => f.Id == info.Id);
+                                item.ErrorMessage = info.ErrorMessage;
+                                UploadFiles.Remove(item);
+                                UploadFiles.Add(item);
+                            }
+                            break;
+                        case StatisticUpdateReason.UploadAborted:
+                            {
+                                var item = UploadFiles.Single(f => f.Id == info.Id);
+                                item.ErrorMessage = info.ErrorMessage;
+                                item.DismissOnly = true;
+                                UploadFiles.Remove(item);
+                                UploadFiles.Add(item);
+                            }
+                            break;
+                        case StatisticUpdateReason.Progress:
+                            {
+                                var item = UploadFiles.SingleOrDefault(f => f.Id == info.Id);
+                                if (item != null)
+                                {
+                                    item.Done = info.Done;
+                                }
+                            }
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException();
+                    }
+                });
+            }
+            catch (TaskCanceledException)
+            {
+
+            }
         }
 
         private void SetupNotifyIcon()
@@ -126,9 +279,16 @@ namespace Azi.ACDDokanNet.Gui
             };
         }
 
+        internal void SaveClouds()
+        {
+            var settings = Gui.Properties.Settings.Default;
+            settings.Clouds = new CloudInfoCollection(Clouds.Select(c => c.CloudInfo));
+            settings.Save();
+        }
+
         private void ShowBalloon()
         {
-            notifyIcon.ShowBalloonTip(5000, "State", $"Downloading: {downloading}\r\nUploading: {uploading}", ToolTipIcon.None);
+            notifyIcon.ShowBalloonTip(5000, "State", $"Downloading: {DownloadingCount}\r\nUploading: {UploadingCount}", ToolTipIcon.None);
         }
 
         private void OpenSettings()
@@ -139,7 +299,7 @@ namespace Azi.ACDDokanNet.Gui
 
         private void MenuExit_Click()
         {
-            if (uploading > 0)
+            if (UploadingCount > 0)
             {
                 if (System.Windows.MessageBox.Show("Some files are not uploaded yet", "Are you sure?", MessageBoxButton.YesNo) != MessageBoxResult.Yes)
                 {
@@ -152,20 +312,86 @@ namespace Azi.ACDDokanNet.Gui
         }
 
         private Mutex startedMutex;
-        private bool shuttingdown = false;
+        private bool shuttingdown;
 
-        private void MountDefault()
+        private async Task MountDefault()
         {
-            var cs = new CancellationTokenSource();
-            Task task = Mount(Gui.Properties.Settings.Default.LastDriveLetter, Gui.Properties.Settings.Default.ReadOnly, cs.Token, false);
+            foreach (var cloud in Clouds.Where(c => c.CloudInfo.AutoMount))
+            {
+                try
+                {
+                    await cloud.MountAsync(false);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex);
+                }
+            }
         }
 
-        private void Application_Startup(object sender, StartupEventArgs e)
+        private void UpdateSettingsV1()
         {
-            Log.Info("Starting Version " + Assembly.GetEntryAssembly().GetName().Version.ToString());
+            var settings = Gui.Properties.Settings.Default;
+            if (settings.Clouds != null && settings.Clouds.Count > 0)
+            {
+                return;
+            }
+
+            var versionsPath = Environment.ExpandEnvironmentVariables("%LOCALAPPDATA%\\Rambalac\\ACD.DokanNet.Gui.exe_Url_3nx2g2l53nrtm2p32mr11ar350hkhmgy");
+            var topVersion = Directory.GetDirectories(versionsPath).OrderByDescending(s => Path.GetFileName(s)).FirstOrDefault();
+            if (topVersion == null)
+            {
+                return;
+            }
+
+            var config = Path.Combine(topVersion, "user.config");
+
+            XmlDocument doc = new XmlDocument();
+            doc.Load(config);
+
+            var authinfo = new AuthInfo
+            {
+                AuthToken = doc.SelectSingleNode("//setting[@name='AuthToken']/value").InnerText,
+                AuthRenewToken = doc.SelectSingleNode("//setting[@name='AuthRenewToken']/value").InnerText,
+                AuthTokenExpiration = DateTime.Parse(doc.SelectSingleNode("//setting[@name='AuthTokenExpiration']/value").InnerText)
+            };
+
+            var readOnly = bool.Parse(doc.SelectSingleNode("//setting[@name='ReadOnly']/value").InnerText);
+            var letter = doc.SelectSingleNode("//setting[@name='LastDriveLetter']/value").InnerText[0];
+
+            var cloudinfo = new CloudInfo
+            {
+                Id = Guid.NewGuid().ToString(),
+                Name = AmazonCloud.CloudServiceName,
+                ClassName = typeof(AmazonCloud).FullName,
+                AssemblyName = typeof(AmazonCloud).Assembly.FullName,
+                DriveLetter = letter,
+                ReadOnly = readOnly,
+                AuthSave = JsonConvert.SerializeObject(authinfo)
+            };
+            settings.Clouds = new CloudInfoCollection(new CloudInfo[] { cloudinfo });
+
+            var cacheFolder = Environment.ExpandEnvironmentVariables(settings.CacheFolder);
+            var newPath = Path.Combine(cacheFolder, UploadService.UploadFolder, cloudinfo.Id);
+            Directory.CreateDirectory(newPath);
+
+            var files = Directory.GetFiles(Path.Combine(cacheFolder, UploadService.UploadFolder));
+
+            foreach (var file in files)
+            {
+                File.Move(file, Path.Combine(newPath, Path.GetFileName(file)));
+            }
+        }
+
+        private async void Application_Startup(object sender, StartupEventArgs e)
+        {
+            Log.Info("Starting Version " + Assembly.GetEntryAssembly().GetName().Version);
+
             if (Gui.Properties.Settings.Default.NeedUpgrade)
             {
                 Gui.Properties.Settings.Default.Upgrade();
+                UpdateSettingsV1();
+
                 Gui.Properties.Settings.Default.NeedUpgrade = false;
                 Gui.Properties.Settings.Default.Save();
             }
@@ -191,7 +417,7 @@ namespace Azi.ACDDokanNet.Gui
 
             if (GetAutorun())
             {
-                MountDefault();
+                await MountDefault();
             }
 
             if (e.Args.Length > 0)
@@ -203,55 +429,13 @@ namespace Azi.ACDDokanNet.Gui
             MainWindow.Show();
         }
 
-        private static char? mountedLetter = null;
-        private object mountLock = new object();
-        private VirtualDriveWrapper cloudDrive;
-        private FSProvider provider;
-
-        private async Task<AmazonDrive> Authenticate(CancellationToken cs, bool interactiveAuth = true)
-        {
-            var settings = Gui.Properties.Settings.Default;
-            var amazon = new AmazonDrive(AmazonSecret.ClientId, AmazonSecret.ClientSecret);
-            amazon.OnTokenUpdate = this;
-
-            if (!string.IsNullOrWhiteSpace(settings.AuthRenewToken))
-            {
-                if (await amazon.AuthenticationByTokens(
-                    settings.AuthToken,
-                    settings.AuthRenewToken,
-                    settings.AuthTokenExpiration))
-                {
-                    return amazon;
-                }
-            }
-
-            if (interactiveAuth)
-            {
-                if (await amazon.AuthenticationByExternalBrowser(CloudDriveScopes.ReadAll | CloudDriveScopes.Write, TimeSpan.FromMinutes(10), cs, "http://localhost:{0}/signin/"))
-                {
-                    return amazon;
-                }
-            }
-
-            cs.ThrowIfCancellationRequested();
-            return null;
-        }
-
-        internal void ClearCredentials()
-        {
-            var settings = Gui.Properties.Settings.Default;
-            settings.AuthToken = null;
-            settings.AuthRenewToken = null;
-            settings.AuthTokenExpiration = DateTime.MinValue;
-            settings.Save();
-        }
-
         internal void ClearCache()
         {
-            if (provider != null)
-            {
-                provider.ClearSmallFilesCache();
-            }
+            // TODO
+            // if (provider != null)
+            // {
+            //    provider.ClearSmallFilesCache();
+            // }
         }
 
         private const string AppName = "ACDDokanNet";
@@ -281,138 +465,35 @@ namespace Azi.ACDDokanNet.Gui
             }
         }
 
-        internal async Task Unmount()
-        {
-            if (mounted == 0)
-            {
-                return;
-            }
-
-            VirtualDriveWrapper.Unmount((char)mountedLetter);
-            await mountTask;
-        }
-
-        private Task mountTask;
-        private int mounted = 0;
-
-        internal async Task<char?> Mount(char driveLetter, bool readOnly, CancellationToken cs, bool interactiveAuth = true)
-        {
-            if (Interlocked.CompareExchange(ref mounted, 1, 0) != 0)
-            {
-                return null;
-            }
-
-            var mountedEvent = new TaskCompletionSource<char>();
-
-            mountTask = Task.Factory.StartNew(
-                async () =>
-              {
-                  try
-                  {
-                      lock (mountLock)
-                      {
-                          if (mountedLetter != null)
-                          {
-                              return;
-                          }
-
-                          mountedLetter = driveLetter;
-                      }
-                      AmazonDrive amazon = await Authenticate(cs, interactiveAuth);
-                      if (amazon == null)
-                      {
-                          Log.Error("Authentication failed");
-                          mountedEvent.SetException(new InvalidOperationException("Authentication failed"));
-                          return;
-                      }
-
-                      provider = new FSProvider(amazon);
-                      provider.CachePath = Environment.ExpandEnvironmentVariables(Gui.Properties.Settings.Default.CacheFolder);
-                      provider.SmallFilesCacheSize = Gui.Properties.Settings.Default.SmallFilesCacheLimit * (1 << 20);
-                      provider.SmallFileSizeLimit = Gui.Properties.Settings.Default.SmallFileSizeLimit * (1 << 20);
-                      provider.OnStatisticsUpdated = ProviderStatisticsUpdated;
-                      cloudDrive = new VirtualDriveWrapper(provider);
-                      cloudDrive.Mounted = () =>
-                      {
-                          mountedEvent.SetResult((char)mountedLetter);
-                      };
-
-                      OnMountChanged?.Invoke();
-                      try
-                      {
-                          cloudDrive.Mount(mountedLetter + ":\\", readOnly);
-                          mountedLetter = null;
-                      }
-                      catch (InvalidOperationException)
-                      {
-                          Log.Warn($"Drive letter {mountedLetter} is already used");
-                          Exception lastException = null;
-                          foreach (char letter in VirtualDriveWrapper.GetFreeDriveLettes())
-                          {
-                              try
-                              {
-                                  mountedLetter = letter;
-                                  cloudDrive.Mount(mountedLetter + ":\\", readOnly);
-                                  break;
-                              }
-                              catch (InvalidOperationException ex)
-                              {
-                                  lastException = ex;
-                                  Log.Warn($"Drive letter {letter} is already used");
-                              }
-                          }
-                          if (mountedLetter != null)
-                          {
-                              var message = "Could not find free letter";
-                              if (lastException != null && lastException.InnerException != null)
-                              {
-                                  message = lastException.InnerException.Message;
-                              }
-
-                              mountedEvent.SetException(new InvalidOperationException(message));
-                          }
-                      }
-                  }
-                  catch (Exception ex)
-                  {
-                      mountedEvent.SetException(ex);
-                  }
-                  finally
-                  {
-                      mountedLetter = null;
-                      mounted = 0;
-                      OnMountChanged?.Invoke();
-                  }
-              }, TaskCreationOptions.LongRunning).Unwrap();
-            return await mountedEvent.Task;
-        }
-
         private void Application_Exit(object sender, ExitEventArgs e)
         {
             if (notifyIcon != null)
             {
                 notifyIcon.Dispose();
+                notifyIcon = null;
             }
 
-            if (mounted == 0)
+            foreach (var cloud in Clouds)
             {
-                return;
+                cloud.UnmountAsync().Wait(500);
             }
-
-            VirtualDriveWrapper.Unmount((char)mountedLetter);
-            mountTask.Wait();
         }
 
-        public void OnTokenUpdated(string access_token, string refresh_token, DateTime expires_in)
+        internal void NotifyMountChanged(string id)
         {
-            var settings = Gui.Properties.Settings.Default;
-            settings.AuthToken = access_token;
-            settings.AuthRenewToken = refresh_token;
-            settings.AuthTokenExpiration = expires_in;
-            settings.Save();
+            MountChanged?.Invoke(id);
         }
 
-        private bool disposedValue = false; // To detect redundant calls
+        internal void NotifyUnmount(string id)
+        {
+            var toremove = uploadFiles.Where(f => f.CloudId == id).ToList();
+            foreach (var item in toremove)
+            {
+                uploadFiles.Remove(item);
+            }
+        }
+
+        private bool disposedValue; // To detect redundant calls
 
         protected virtual void Dispose(bool disposing)
         {
@@ -421,7 +502,10 @@ namespace Azi.ACDDokanNet.Gui
                 if (disposing)
                 {
                     startedMutex.Dispose();
-                    notifyIcon.Dispose();
+                    if (notifyIcon != null)
+                    {
+                        notifyIcon.Dispose();
+                    }
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
@@ -429,12 +513,6 @@ namespace Azi.ACDDokanNet.Gui
                 disposedValue = true;
             }
         }
-
-        // TODO: override a finalizer only if Dispose(bool disposing) above has code to free unmanaged resources.
-        // ~App() {
-        //   // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-        //   Dispose(false);
-        // }
 
         // This code added to correctly implement the disposable pattern.
         public void Dispose()

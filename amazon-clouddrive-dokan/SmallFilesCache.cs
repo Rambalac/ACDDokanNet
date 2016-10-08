@@ -1,42 +1,41 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Net.Http.Headers;
-using System.Threading;
-using System.Threading.Tasks;
-using Azi.Amazon.CloudDrive;
-using Azi.Tools;
-
-namespace Azi.ACDDokanNet
+﻿namespace Azi.Cloud.DokanNet
 {
+    using System;
+    using System.Collections.Concurrent;
+    using System.Diagnostics;
+    using System.IO;
+    using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Azi.Cloud.Common;
+    using Azi.Tools;
+
     public class SmallFilesCache
     {
-        private static string cachePath = null;
+        private static string cachePath;
 
-        private static ConcurrentDictionary<AmazonDrive, SmallFilesCache> instances = new ConcurrentDictionary<AmazonDrive, SmallFilesCache>(10, 3);
+        private static ConcurrentDictionary<IHttpCloud, SmallFilesCache> instances = new ConcurrentDictionary<IHttpCloud, SmallFilesCache>(10, 3);
         private static ConcurrentDictionary<string, Downloader> downloaders = new ConcurrentDictionary<string, Downloader>(10, 3);
 
-        private readonly AmazonDrive amazon;
+        private readonly IHttpCloud cloud;
 
-        private long totalSize = 0;
-        private bool cleaning = false;
+        private long totalSize;
+        private bool cleaning;
 
         private ConcurrentDictionary<string, CacheEntry> access = new ConcurrentDictionary<string, CacheEntry>(10, 1000);
 
-        public SmallFilesCache(AmazonDrive a)
+        public SmallFilesCache(IHttpCloud a)
         {
-            amazon = a;
+            cloud = a;
         }
 
         public long CacheSize { get; internal set; }
 
-        public Action<string> OnDownloadStarted { get; set; }
+        public Action<FSItem> OnDownloadStarted { get; set; }
 
-        public Action<string> OnDownloaded { get; set; }
+        public Action<FSItem> OnDownloaded { get; set; }
 
-        public Action<string> OnDownloadFailed { get; set; }
+        public Action<FSItem> OnDownloadFailed { get; set; }
 
         public string CachePath
         {
@@ -228,27 +227,20 @@ namespace Azi.ACDDokanNet
             using (writer)
                 try
                 {
-                    OnDownloadStarted?.Invoke(item.Id);
+                    OnDownloadStarted?.Invoke(item);
                     while (writer.Length < item.Length)
                     {
-                        await amazon.Files.Download(item.Id, fileOffset: writer.Length, streammer: async (response) =>
-                        {
-                            var partial = response.StatusCode == System.Net.HttpStatusCode.PartialContent;
-                            ContentRangeHeaderValue contentRange = null;
-                            if (partial)
-                            {
-                                contentRange = response.Headers.GetContentRange();
-                                if (contentRange.From != writer.Length)
-                                {
-                                    throw new InvalidOperationException("Content range does not match request");
-                                }
-                            }
-                            using (var stream = response.GetResponseStream())
+                        await cloud.Files.Download(
+                            item.Id,
+                            fileOffset: writer.Length,
+                            streammer: async (stream) =>
                             {
                                 int red = 0;
+                                long totalred = 0;
                                 do
                                 {
                                     red = await stream.ReadAsync(buf, 0, buf.Length);
+                                    totalred += red;
                                     if (writer.Length == 0)
                                     {
                                         Log.Trace("Got first part: " + item.Id + " in " + start.ElapsedMilliseconds);
@@ -258,8 +250,9 @@ namespace Azi.ACDDokanNet
                                     downloader.Downloaded = writer.Length;
                                 }
                                 while (red > 0);
-                            }
-                        });
+                                return totalred;
+                            },
+                            progress: null);
                         if (writer.Length < item.Length)
                         {
                             await Task.Delay(500);
@@ -267,7 +260,7 @@ namespace Azi.ACDDokanNet
                     }
 
                     Log.Trace("Finished download: " + item.Id);
-                    OnDownloaded?.Invoke(item.Id);
+                    OnDownloaded?.Invoke(item);
 
                     access.TryAdd(item.Id, new CacheEntry { Id = item.Id, AccessTime = DateTime.UtcNow, Length = item.Length });
                     TotalSize += item.Length;
@@ -278,7 +271,7 @@ namespace Azi.ACDDokanNet
                 }
                 catch (Exception ex)
                 {
-                    OnDownloadFailed?.Invoke(item.Id);
+                    OnDownloadFailed?.Invoke(item);
                     Log.Error($"Download failed: {item.Id}\r\n{ex}");
                 }
                 finally

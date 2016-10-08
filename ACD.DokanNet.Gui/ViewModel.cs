@@ -1,20 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace Azi.ACDDokanNet.Gui
+﻿namespace Azi.Cloud.DokanNet.Gui
 {
+    using System;
+    using System.Collections.ObjectModel;
+    using System.Collections.Specialized;
+    using System.ComponentModel;
+    using System.Reflection;
+    using System.Threading;
+
     public class ViewModel : INotifyPropertyChanged, IDisposable
     {
         private Timer refreshTimer;
-
-        private bool mounting = false;
-
-        private bool unmounting = false;
 
         private bool disposedValue = false; // To detect redundant calls
 
@@ -22,21 +17,26 @@ namespace Azi.ACDDokanNet.Gui
         {
             if (App != null)
             {
-                App.OnProviderStatisticsUpdated = ProviderStatisticsUpdated;
-                App.OnMountChanged = NotifyMount;
+                App.MountChanged += NotifyMount;
+                App.ProviderStatisticsUpdated += OnProviderStatisticsUpdated;
                 refreshTimer = new Timer(RefreshLetters, null, 1000, 1000);
+
+                Clouds.CollectionChanged += Clouds_CollectionChanged;
+                UploadFiles.CollectionChanged += UploadFiles_CollectionChanged;
             }
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        public IList<char> DriveLetters => VirtualDriveWrapper.GetFreeDriveLettes();
+        public ObservableCollection<CloudMount> Clouds => App?.Clouds;
 
-        public bool IsAutomount
+        public ObservableCollection<FileItemInfo> UploadFiles => App?.UploadFiles;
+
+        public bool IsAutorun
         {
             get
             {
-                return App.GetAutorun();
+                return App?.GetAutorun() ?? false;
             }
 
             set
@@ -45,25 +45,11 @@ namespace Azi.ACDDokanNet.Gui
             }
         }
 
-        public char SelectedDriveLetter
+        public bool HasFreeLetters
         {
             get
             {
-                var saved = Properties.Settings.Default.LastDriveLetter;
-                var free = VirtualDriveWrapper.GetFreeDriveLettes();
-                if (!free.Any() || free.Contains(saved))
-                {
-                    return saved;
-                }
-
-                return free[0];
-            }
-
-            set
-            {
-                Properties.Settings.Default.LastDriveLetter = value;
-                Properties.Settings.Default.Save();
-                NotifyMount();
+                return VirtualDriveWrapper.GetFreeDriveLettes().Count > 0;
             }
         }
 
@@ -81,17 +67,9 @@ namespace Azi.ACDDokanNet.Gui
             }
         }
 
-        public bool CanMount => (!mounting) && !(App?.IsMounted ?? false) && DriveLetters.Contains(SelectedDriveLetter);
+        public int UploadingFilesCount => App?.UploadingCount ?? 0;
 
-        public bool CanUnmount => (!unmounting) && (App?.IsMounted ?? false);
-
-        public bool IsMounted => !mounting && !unmounting && (App?.IsMounted ?? false);
-
-        public bool IsUnmounted => !unmounting && !mounting && !(App?.IsMounted ?? false);
-
-        public int UploadingFilesCount { get; private set; }
-
-        public int DownloadingFilesCount { get; private set; }
+        public int DownloadingFilesCount => App?.DownloadingCount ?? 0;
 
         public long SmallFileSizeLimit
         {
@@ -119,12 +97,6 @@ namespace Azi.ACDDokanNet.Gui
             }
         }
 
-        public bool ReadOnly
-        {
-            get { return Properties.Settings.Default.ReadOnly; }
-            set { Properties.Settings.Default.ReadOnly = value; }
-        }
-
         public string Version => Assembly.GetEntryAssembly().GetName().Version.ToString();
 
         private App App => App.Current;
@@ -134,69 +106,11 @@ namespace Azi.ACDDokanNet.Gui
         {
             // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
             Dispose(true);
-
-            // TODO: uncomment the following line if the finalizer is overridden above.
-            // GC.SuppressFinalize(this);
         }
 
         internal void OnPropertyChanged(string name)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-        }
-
-        internal async Task Mount(CancellationToken cs)
-        {
-            if (App == null)
-            {
-                throw new NullReferenceException();
-            }
-
-            mounting = true;
-            NotifyMount();
-            try
-            {
-                try
-                {
-                    var letter = await App.Mount(SelectedDriveLetter, ReadOnly, cs);
-                    if (letter != null)
-                    {
-                        SelectedDriveLetter = (char)letter;
-                    }
-                }
-                catch (TimeoutException)
-                {
-                    // Ignore if timeout
-                }
-                catch (OperationCanceledException)
-                {
-                    // Ignore if aborted
-                }
-            }
-            finally
-            {
-                mounting = false;
-                NotifyMount();
-            }
-        }
-
-        internal async Task Unmount()
-        {
-            if (App == null)
-            {
-                throw new NullReferenceException();
-            }
-
-            unmounting = true;
-            NotifyMount();
-            try
-            {
-                await App.Unmount();
-            }
-            finally
-            {
-                unmounting = false;
-                NotifyMount();
-            }
         }
 
         protected virtual void Dispose(bool disposing)
@@ -214,29 +128,39 @@ namespace Azi.ACDDokanNet.Gui
             }
         }
 
+        private void Clouds_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            OnPropertyChanged(nameof(Clouds));
+        }
+
+        private void UploadFiles_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            OnPropertyChanged(nameof(UploadFiles));
+            OnPropertyChanged(nameof(UploadingFilesCount));
+        }
+
+        private void NotifyMount(string obj)
+        {
+            RefreshLetters(null);
+        }
+
         private void RefreshLetters(object state)
         {
-            if (!CanMount)
+            if (App == null)
             {
                 return;
             }
 
-            OnPropertyChanged(nameof(DriveLetters));
+            foreach (var cloud in Clouds)
+            {
+                cloud.OnPropertyChanged(nameof(cloud.DriveLetters));
+            }
+
+            OnPropertyChanged(nameof(HasFreeLetters));
         }
 
-        private void NotifyMount()
+        private void OnProviderStatisticsUpdated()
         {
-            OnPropertyChanged(nameof(CanMount));
-            OnPropertyChanged(nameof(CanUnmount));
-            OnPropertyChanged(nameof(IsMounted));
-            OnPropertyChanged(nameof(IsUnmounted));
-        }
-
-        private void ProviderStatisticsUpdated(int downloading, int uploading)
-        {
-            UploadingFilesCount = uploading;
-            DownloadingFilesCount = downloading;
-            OnPropertyChanged(nameof(UploadingFilesCount));
             OnPropertyChanged(nameof(DownloadingFilesCount));
         }
     }

@@ -1,7 +1,7 @@
-﻿<Application x:Class="Azi.ACDDokanNet.Gui.App"
+﻿<Application x:Class="Azi.Cloud.DokanNet.Gui.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:Azi.ACDDokanNet.Gui"
+             xmlns:local="clr-namespace:Azi.Cloud.DokanNet.Gui"
              ShutdownMode="OnExplicitShutdown"
              Startup="Application_Startup" Exit="Application_Exit">
     <Application.Resources>

@@ -1,8 +1,6 @@
-﻿using System;
-using System.Runtime.InteropServices;
-
-namespace Azi.ACDDokanNet
+﻿namespace Azi.Cloud.DokanNet
 {
+    using System;
 
     public static class HardLink
     {

@@ -1,11 +1,11 @@
-﻿using System;
-using System.Threading;
-
-namespace Azi.ACDDokanNet
+﻿namespace Azi.Cloud.DokanNet
 {
+    using System;
+    using System.Threading;
+
     public abstract class AbstractBlockStream : IBlockStream
     {
-        private int closed = 0;
+        private int closed;
 
         public Action OnClose { get; set; }
 

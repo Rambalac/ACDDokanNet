@@ -1,17 +1,17 @@
-﻿using Xunit;
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using System.IO;
 using System.Threading;
-using Azi.Amazon.CloudDrive;
+using Azi.Cloud.Common;
+using Azi.Cloud.AmazonCloudDrive;
 
-namespace Azi.ACDDokanNet.Tests
+namespace Azi.Cloud.DokanNet.Tests
 {
-    public abstract class FSProviderTestsBase : IDisposable, ITokenUpdateListener
+    public abstract class FSProviderTestsBase : IDisposable, IAuthUpdateListener
     {
         protected const string Testdir = "\\ACDDokanNetTest\\";
 
-        private bool disposedValue = false; // To detect redundant calls
+        private bool disposedValue; // To detect redundant calls
 
         protected FSProviderTestsBase()
         {
@@ -23,7 +23,7 @@ namespace Azi.ACDDokanNet.Tests
 
             DeleteDir("TempCache");
 
-            Provider = new FSProvider(Amazon);
+            Provider = new FSProvider(Amazon, (a, b, c) => { });
             Provider.CachePath = "TempCache";
             Provider.SmallFilesCacheSize = 20 * (1 << 20);
             Provider.SmallFileSizeLimit = 1 * (1 << 20);
@@ -34,16 +34,7 @@ namespace Azi.ACDDokanNet.Tests
 
         protected FSProvider Provider { get; set; }
 
-        protected AmazonDrive Amazon { get; set; }
-
-        public void OnTokenUpdated(string access_token, string refresh_token, DateTime expires_in)
-        {
-            var settings = Properties.Settings.Default;
-            settings.AuthToken = access_token;
-            settings.AuthRenewToken = refresh_token;
-            settings.AuthTokenExpiration = expires_in;
-            settings.Save();
-        }
+        protected IHttpCloud Amazon { get; set; }
 
         // This code added to correctly implement the disposable pattern.
         public void Dispose()
@@ -55,24 +46,22 @@ namespace Azi.ACDDokanNet.Tests
             // GC.SuppressFinalize(this);
         }
 
-        protected async Task<AmazonDrive> Authenticate()
+        protected async Task<IHttpCloud> Authenticate()
         {
             var settings = Properties.Settings.Default;
-            var amazon = new AmazonDrive(AmazonSecret.ClientId, AmazonSecret.ClientSecret);
-            amazon.OnTokenUpdate = this;
+            var amazon = new AmazonCloud();
+            amazon.OnAuthUpdated = this;
+            var cs = new CancellationTokenSource();
 
-            if (!string.IsNullOrWhiteSpace(settings.AuthRenewToken))
+            if (!string.IsNullOrWhiteSpace(settings.AuthToken))
             {
-                if (await amazon.AuthenticationByTokens(
-                    settings.AuthToken,
-                    settings.AuthRenewToken,
-                    settings.AuthTokenExpiration))
+                if (await amazon.AuthenticateSaved(cs.Token, settings.AuthToken))
                 {
                     return amazon;
                 }
             }
 
-            if (await amazon.AuthenticationByExternalBrowser(CloudDriveScopes.ReadAll | CloudDriveScopes.Write, TimeSpan.FromMinutes(10)))
+            if (await amazon.AuthenticateNew(cs.Token))
             {
                 return amazon;
             }
@@ -130,6 +119,13 @@ namespace Azi.ACDDokanNet.Tests
                 Thread.Sleep(100);
                 Directory.Delete(path, true);
             }
+        }
+
+        public void OnAuthUpdated(IHttpCloud sender, string authinfo)
+        {
+            var settings = Properties.Settings.Default;
+            settings.AuthToken = authinfo;
+            settings.Save();
         }
     }
 }

@@ -3,47 +3,47 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:Azi.ACDDokanNet.Gui"
-        xmlns:p="clr-namespace:Azi.ACDDokanNet.Gui.Properties"
-        x:Class="Azi.ACDDokanNet.Gui.MainWindow"
+        xmlns:local="clr-namespace:Azi.Cloud.DokanNet.Gui"
+        xmlns:p="clr-namespace:Azi.Cloud.DokanNet.Gui.Properties"
+        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+        x:Class="Azi.Cloud.DokanNet.Gui.MainWindow"
         mc:Ignorable="d"
-        Title="ACD Dokan.Net Settings" ResizeMode="NoResize" SizeToContent="WidthAndHeight" Closing="Window_Closing">
+        Title="ACD Dokan.Net Settings" SizeToContent="WidthAndHeight" Closing="Window_Closing" MinWidth="300" MaxWidth="300" MinHeight="280">
     <Window.Resources>
 
     </Window.Resources>
     <Window.DataContext>
         <local:ViewModel/>
     </Window.DataContext>
-    <Border Padding="5">
+    <Border Name="mainBorder" Padding="5">
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition/>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="100"/>
+                <RowDefinition Height="5"/>
+                <RowDefinition/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
-            <GroupBox Header="Mounting" Padding="5" >
-                <Grid >
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition/>
-                    </Grid.RowDefinitions>
-                    <ComboBox x:Name="comboBox" ItemsSource="{Binding DriveLetters}" IsEnabled="{Binding IsUnmounted}" SelectedItem="{Binding SelectedDriveLetter}"/>
-                    <Button x:Name="mountButton" IsEnabled="{Binding CanMount}" Content="Mount" Margin="3,0,0,0" Padding="5,1" Click="MountButton_Click" Grid.Column="1" />
-                    <Button x:Name="logoutButton" Content="Logout" Margin="3,0,0,0" Padding="5,1" IsEnabled="{Binding CanUnmount}" Click="LogoutButton_Click" Grid.Column="2" />
-                    <Button x:Name="unmountButton" Content="Unmount" Margin="3,0,0,0" Padding="5,1" IsEnabled="{Binding CanUnmount}" Click="UnmountButton_Click" Grid.Column="3" />
-                    <CheckBox x:Name="automountCheckBox" IsChecked="{Binding IsAutomount}" Content="Mount on login" IsEnabled="{Binding IsMounted}" Margin="0,5,0,0" Grid.Row="1" Grid.ColumnSpan="3"/>
-                </Grid>
+            <GroupBox Header="Clouds" Padding="5">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" CanContentScroll="True">
+                    <ItemsControl ItemsSource="{Binding Clouds}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="local:CloudMount">
+                                <local:CloudItemControl Content="{Binding}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
             </GroupBox>
-            <GroupBox Header="Transferring" Padding="5" Grid.Row="1">
+            <xctk:DropDownButton Name="cloudAdd_DropDownButton" Content="Add" HorizontalAlignment="Right" Padding="5,-3" Height="18" Margin="0,0,10,0" VerticalAlignment="Top" IsEnabled="{Binding HasFreeLetters}">
+                <xctk:DropDownButton.DropDownContent>
+                    <local:AvailableCloudsList Clicked="AvailableCloudsList_Clicked"/>
+                </xctk:DropDownButton.DropDownContent>
+            </xctk:DropDownButton>
+            <GridSplitter Background="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}" Grid.Row="1" HorizontalAlignment="Stretch"/>
+            <GroupBox Header="Transferring" Padding="5" Grid.Row="2">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition/>
@@ -52,8 +52,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <Label Content="Files downloading" Grid.Row="0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}" Padding="5,5,5,0"/>
                     <TextBox IsReadOnly="True" Text="{Binding Mode=OneWay, Path=DownloadingFilesCount}" Grid.Row="0" Grid.Column="1" MaxLines="1" Margin="1,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
@@ -61,9 +60,18 @@
                     <Label Content="Files uploading" Grid.Row="1" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}" Padding="5,5,5,0"/>
                     <TextBox IsReadOnly="True" Text="{Binding Mode=OneWay, Path=UploadingFilesCount}" Grid.Row="1" Grid.Column="1" MaxLines="1" Margin="1,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
 
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" CanContentScroll="True" Grid.Row="2" Grid.ColumnSpan="2" Margin="0,5,0,0">
+                        <ItemsControl ItemsSource="{Binding UploadFiles}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" MinHeight="30" BorderThickness="1"  BorderBrush="{DynamicResource {x:Static SystemColors.ControlLightBrushKey}}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="local:CloudMount">
+                                    <local:FileItem Content="{Binding}"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
                 </Grid>
             </GroupBox>
-            <Border BorderThickness="1" Grid.Row="2" BorderBrush="#FFD5DFE5" CornerRadius="3" Margin="1.5,15,1.5,0" Padding="5">
+            <Border BorderThickness="1" Grid.Row="3" BorderBrush="#FFD5DFE5" CornerRadius="3" Margin="2,15,2,0" Padding="5">
                 <Expander Header="Options" Margin="0,-18,0,0" Background="White">
                     <Expander.Clip>
                         <GeometryGroup>
@@ -98,11 +106,8 @@
                         <Label Content="Small files cache, Mb" Grid.Row="3" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}" Grid.ColumnSpan="2" Padding="5,5,5,0"/>
                         <TextBox Text="{Binding SmallFilesCacheSize}" Grid.Row="3" Grid.Column="2" MaxLines="1" Margin="0,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}"/>
 
-                        <Label Content="Read only" Grid.Row="4"/>
-                        <CheckBox Grid.Row="4" VerticalAlignment="Center" IsChecked="{Binding ReadOnly}" IsEnabled="{Binding CanMount}" HorizontalAlignment="Center" Grid.Column="2"/>
-
-                        <Label Content="Version" Grid.Row="5"/>
-                        <TextBox IsReadOnly="True" Text="{Binding Version, Mode=OneTime}" MaxLines="1" Margin="0,0,0,5"  Grid.Row="5" Grid.Column="2"/>
+                        <Label Content="Version" Padding="5,5,5,0" Grid.Row="4"/>
+                        <TextBox IsReadOnly="True" Text="{Binding Version, Mode=OneTime}" MaxLines="1" Margin="0,5,0,5"  Grid.Row="4" Grid.Column="2"/>
 
                         <Grid Grid.Row="6" Grid.ColumnSpan="3" HorizontalAlignment="Center">
                             <Grid.ColumnDefinitions>
@@ -114,7 +119,7 @@
                             <Button Content="Open GitHub Issue" Grid.Column="2" Click="OpenIssue_Click"/>
                         </Grid>
                     </Grid>
-            </Expander>
+                </Expander>
             </Border>
 
         </Grid>

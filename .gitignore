@@ -169,7 +169,6 @@ ClientBin/
 *~
 *.dbmdl
 *.dbproj.schemaview
-*.pfx
 *.publishsettings
 node_modules/
 orleans.codegen.cs
@@ -211,4 +210,4 @@ GeneratedArtifacts/
 _Pvt_Extensions/
 ModelManifest.xml
 AmazonSecret.cs
-/MicrosoftOneDrive/MicrosoftSecret.cs
+MicrosoftSecret.cs

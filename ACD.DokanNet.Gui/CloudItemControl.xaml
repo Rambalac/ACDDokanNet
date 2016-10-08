@@ -1,0 +1,43 @@
+﻿<UserControl x:Class="Azi.Cloud.DokanNet.Gui.CloudItemControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             xmlns:local="clr-namespace:Azi.Cloud.DokanNet.Gui"
+             mc:Ignorable="d" d:DesignWidth="259.607">
+    <Border Padding="4">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="24"/>
+                <RowDefinition Height="24"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="48"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="70"/>
+                <ColumnDefinition/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Image x:Name="cloudImage" Source="{Binding Instance.CloudServiceIcon}" Grid.RowSpan="2" RenderOptions.BitmapScalingMode="Fant"/>
+            <TextBox x:Name="cloudNameTextBox" Grid.Column="1" Text="{Binding CloudInfo.Name, Mode=TwoWay}" TextWrapping="NoWrap" Margin="3,3,0,0" Grid.ColumnSpan="5"/>
+            <ComboBox x:Name="comboBox" MinWidth="40" ItemsSource="{Binding DriveLetters}" IsEnabled="{Binding IsUnmounted}" SelectedItem="{Binding CloudInfo.DriveLetter}" Margin="3,3,0,0" Grid.Column="1" Grid.Row="1"/>
+            <Button x:Name="mountButton" IsEnabled="{Binding CanMount}" Visibility="{Binding MountVisible}" Content="Mount" Margin="3,3,0,0" Padding="5,1" Click="MountButton_Click" Grid.Column="2" Grid.Row="1" />
+            <Button x:Name="unmountButton" IsEnabled="{Binding CanUnmount}" Visibility="{Binding UnmountVisible}" Content="UnMount" Margin="3,3,0,0" Padding="5,1" Click="UnmountButton_Click" Grid.Column="2" Grid.Row="1" />
+            <xctk:DropDownButton x:Name="optionsButton" Content="Options" Margin="0.046,3,0,0" Padding="5,1" Grid.Column="5" Grid.Row="1">
+                <xctk:DropDownButton.DropDownContent>
+                    <Border Padding="5">
+                        <StackPanel>
+                            <CheckBox x:Name="readonlyCheckBox" IsChecked="{Binding CloudInfo.ReadOnly}" Content="Read only" IsEnabled="{Binding IsUnmounted}" Margin="3" Grid.Row="1" Grid.Column="3" VerticalAlignment="Center"/>
+                            <CheckBox x:Name="automountCheckBox" IsChecked="{Binding CloudInfo.AutoMount}" Content="Mount on start" IsEnabled="{Binding IsMounted}" Margin="3" Grid.Row="1" Grid.Column="3" VerticalAlignment="Center"/>
+                            <Separator/>
+                            <Button x:Name="logoutButton" Content="Delete" Padding="5,1" Margin="3" Click="DeleteButton_Click" Grid.Column="4" Grid.Row="1" />
+                        </StackPanel>
+                    </Border>
+                </xctk:DropDownButton.DropDownContent>
+            </xctk:DropDownButton>
+            <Separator Grid.Row="2" Grid.ColumnSpan="5" Margin="0,5,0,0"/>
+        </Grid>
+    </Border>
+</UserControl>

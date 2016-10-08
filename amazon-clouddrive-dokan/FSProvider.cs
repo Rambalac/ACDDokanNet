@@ -1,109 +1,210 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Azi.Amazon.CloudDrive;
-using Azi.Amazon.CloudDrive.JsonObjects;
-using Azi.Tools;
-using Newtonsoft.Json;
-using ShellExtension;
-
-namespace Azi.ACDDokanNet
+﻿namespace Azi.Cloud.DokanNet
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using System.Net;
+    using System.Text;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Azi.Tools;
+    using Common;
+    using Newtonsoft.Json;
+
+    public enum StatisticUpdateReason
+    {
+        UploadAdded,
+        UploadFinished,
+        DownloadAdded,
+        DownloadFinished,
+        DownloadFailed,
+        UploadFailed,
+        Progress,
+        UploadAborted
+    }
+
+    public abstract class AStatisticFileInfo
+    {
+        public abstract long Total { get; }
+
+        public abstract string Id { get; }
+
+        public abstract string FileName { get; }
+
+        public abstract string Path { get; }
+
+        public string ErrorMessage { get; set; }
+
+        public bool HasError => ErrorMessage != null;
+
+        public long Done { get; set; }
+
+        public override bool Equals(object obj)
+        {
+            if (obj == null || GetType() != obj.GetType())
+            {
+                return false;
+            }
+
+            return Id == ((AStatisticFileInfo)obj).Id;
+        }
+
+        public override int GetHashCode()
+        {
+            return Id.GetHashCode();
+        }
+    }
+
+    public class DownloadStatisticInfo : AStatisticFileInfo
+    {
+        private FSItem info;
+
+        public DownloadStatisticInfo(FSItem info)
+        {
+            this.info = info;
+        }
+
+        public override long Total => info.Length;
+
+        public override string Id => info.Id;
+
+        public override string FileName => info.Name;
+
+        public override string Path => info.Path;
+    }
+
+    public class UploadStatisticInfo : AStatisticFileInfo
+    {
+        private UploadInfo info;
+
+        public UploadStatisticInfo(UploadInfo info)
+        {
+            this.info = info;
+        }
+
+        public UploadStatisticInfo(UploadInfo info, string message)
+        {
+            this.info = info;
+            ErrorMessage = message;
+        }
+
+        public override long Total => info.Length;
+
+        public override string Id => info.Id;
+
+        public override string FileName => System.IO.Path.GetFileName(info.Path);
+
+        public override string Path => info.Path;
+    }
+
+    public delegate void StatisticUpdateDelegate(IHttpCloud cloud, StatisticUpdateReason reason, AStatisticFileInfo info);
+
     public class FSProvider : IDisposable
     {
-        private static readonly AmazonNodeKind[] FsItemKinds = { AmazonNodeKind.FILE, AmazonNodeKind.FOLDER };
-
-        private readonly AmazonDrive amazon;
+        private readonly IHttpCloud cloud;
 
         private readonly ItemsTreeCache itemsTreeCache = new ItemsTreeCache();
 
         private string cachePath;
 
-        private int downloadingCount = 0;
+        private bool disposedValue; // To detect redundant calls
 
-        private int uploadingCount = 0;
+        private StatisticUpdateDelegate onStatisticsUpdated;
 
-        private bool disposedValue = false; // To detect redundant calls
-
-        private StatisticsUpdated onStatisticsUpdated;
-
-        public FSProvider(AmazonDrive amazon)
+        public FSProvider(IHttpCloud cloud, StatisticUpdateDelegate statisticUpdate)
         {
-            this.amazon = amazon;
-            SmallFilesCache = new SmallFilesCache(amazon);
-            SmallFilesCache.OnDownloadStarted = (id) =>
+            onStatisticsUpdated = statisticUpdate;
+
+            this.cloud = cloud;
+            SmallFilesCache = new SmallFilesCache(cloud);
+            SmallFilesCache.OnDownloadStarted = (info) =>
             {
-                Interlocked.Increment(ref downloadingCount);
-                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+                onStatisticsUpdated(cloud, StatisticUpdateReason.DownloadAdded, new DownloadStatisticInfo(info));
             };
-            SmallFilesCache.OnDownloaded = (id) =>
+            SmallFilesCache.OnDownloaded = (info) =>
             {
-                Interlocked.Decrement(ref downloadingCount);
-                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+                onStatisticsUpdated(cloud, StatisticUpdateReason.DownloadFinished, new DownloadStatisticInfo(info));
             };
-            SmallFilesCache.OnDownloadFailed = (id) =>
+            SmallFilesCache.OnDownloadFailed = (info) =>
             {
-                Interlocked.Decrement(ref downloadingCount);
-                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+                onStatisticsUpdated(cloud, StatisticUpdateReason.DownloadFailed, new DownloadStatisticInfo(info));
             };
 
-            UploadService = new UploadService(2, amazon);
-            UploadService.OnUploadFailed = (uploaditem, reason) =>
+            UploadService = new UploadService(2, cloud);
+
+            UploadService.OnUploadFailed = UploadFailed;
+
+            UploadService.OnUploadFinished = UploadFinished;
+
+            UploadService.OnUploadProgress = (item, done) =>
             {
-                Interlocked.Decrement(ref uploadingCount);
-                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
-
-                var olditemPath = Path.Combine(UploadService.CachePath, uploaditem.Id);
-                File.Delete(olditemPath);
-
-                switch (reason)
-                {
-                    case FailReason.ZeroLength:
-                        var item = GetItem(uploaditem.Path);
-                        item?.MakeNotUploading();
-                        return;
-                    case FailReason.Conflict:
-                        return;
-                }
-
-                itemsTreeCache.DeleteFile(uploaditem.Path);
+                onStatisticsUpdated(cloud, StatisticUpdateReason.Progress, new UploadStatisticInfo(item) { Done = done });
             };
-            UploadService.OnUploadFinished = (item, node) =>
+
+            UploadService.OnUploadAdded = item =>
             {
-                Interlocked.Decrement(ref uploadingCount);
-                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
-
-                var newitem = FSItem.FromNode(item.Path, node);
-                var olditemPath = Path.Combine(UploadService.CachePath, item.Id);
-                var newitemPath = Path.Combine(SmallFilesCache.CachePath, node.id);
-
-                if (!File.Exists(newitemPath))
-                {
-                    File.Move(olditemPath, newitemPath);
-                }
-                else
-                {
-                    File.Delete(olditemPath);
-                }
-
-                SmallFilesCache.AddExisting(newitem);
-                itemsTreeCache.Update(newitem);
-            };
-            UploadService.OnUploadResumed = item =>
-            {
-                itemsTreeCache.Add(item);
-                Interlocked.Increment(ref uploadingCount);
-                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+                itemsTreeCache.Add(item.ToFSItem());
+                onStatisticsUpdated(cloud, StatisticUpdateReason.UploadAdded, new UploadStatisticInfo(item));
             };
             UploadService.Start();
         }
 
-        public delegate void StatisticsUpdated(int downloading, int uploading);
+        private void UploadFailed(UploadInfo uploaditem, FailReason reason, string message)
+        {
+            var olditemPath = Path.Combine(UploadService.CachePath, uploaditem.Id);
+            File.Delete(olditemPath);
+
+            switch (reason)
+            {
+                case FailReason.ZeroLength:
+                    var item = GetItem(uploaditem.Path);
+                    item?.MakeNotUploading();
+                    onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFinished, new UploadStatisticInfo(uploaditem));
+                    return;
+                case FailReason.Conflict:
+                case FailReason.NoFolderNode:
+                    onStatisticsUpdated(cloud, StatisticUpdateReason.UploadAborted, new UploadStatisticInfo(uploaditem, message));
+                    return;
+                case FailReason.Cancelled:
+                    if (!uploaditem.Overwrite)
+                    {
+                        itemsTreeCache.DeleteFile(uploaditem.Path);
+                    }
+
+                    onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFinished, new UploadStatisticInfo(uploaditem));
+                    return;
+            }
+
+            onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFailed, new UploadStatisticInfo(uploaditem, message));
+            itemsTreeCache.DeleteFile(uploaditem.Path);
+        }
+
+        private void UploadFinished(UploadInfo item, FSItem.Builder node)
+        {
+            onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFinished, new UploadStatisticInfo(item));
+
+            var newitem = node.SetParentPath(Path.GetDirectoryName(item.Path)).Build();
+            var olditemPath = Path.Combine(UploadService.CachePath, item.Id);
+            var newitemPath = Path.Combine(SmallFilesCache.CachePath, node.Id);
+
+            if (!File.Exists(newitemPath))
+            {
+                File.Move(olditemPath, newitemPath);
+            }
+            else
+            {
+                File.Delete(olditemPath);
+            }
+
+            SmallFilesCache.AddExisting(newitem);
+            itemsTreeCache.Update(newitem);
+        }
+
+        public void Stop()
+        {
+            UploadService.Stop();
+        }
 
         public long SmallFileSizeLimit { get; set; } = 20 * 1024 * 1024;
 
@@ -111,21 +212,7 @@ namespace Azi.ACDDokanNet
 
         public UploadService UploadService { get; private set; }
 
-        public StatisticsUpdated OnStatisticsUpdated
-        {
-            get
-            {
-                return onStatisticsUpdated;
-            }
-
-            set
-            {
-                onStatisticsUpdated = value;
-                onStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
-            }
-        }
-
-        public long AvailableFreeSpace => amazon.Account.GetQuota().Result.available;
+        public long AvailableFreeSpace => cloud.AvailableFreeSpace;
 
         public string CachePath
         {
@@ -150,19 +237,18 @@ namespace Azi.ACDDokanNet
                 cachePath = val;
                 SmallFilesCache.CachePath = val;
                 UploadService.CachePath = val;
-                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
             }
         }
 
-        public long TotalSize => amazon.Account.GetQuota().Result.quota;
+        public long TotalSize => cloud.TotalSize;
 
-        public long TotalFreeSpace => amazon.Account.GetQuota().Result.available;
+        public long TotalFreeSpace => cloud.TotalFreeSpace;
 
-        public long TotalUsedSpace => amazon.Account.GetUsage().Result.total.total.bytes;
+        public long TotalUsedSpace => cloud.TotalUsedSpace;
 
-        public string VolumeName => FileSystemName;
+        public string VolumeName { get; set; }
 
-        public string FileSystemName => "Amazon Cloud Drive";
+        public string FileSystemName => "Cloud Drive";
 
         public long SmallFilesCacheSize
         {
@@ -223,9 +309,9 @@ namespace Azi.ACDDokanNet
             var dirNode = GetItem(dir);
 
             var name = Path.GetFileName(filePath);
-            var node = amazon.Nodes.CreateFolder(dirNode.Id, name).Result;
+            var node = cloud.Nodes.CreateFolder(dirNode.Id, name).Result;
 
-            itemsTreeCache.Add(FSItem.FromNode(filePath, node));
+            itemsTreeCache.Add(node.SetParentPath(Path.GetDirectoryName(filePath)).Build());
         }
 
         public IBlockStream OpenFile(string filePath, FileMode mode, FileAccess fileAccess, FileShare share, FileOptions options)
@@ -253,13 +339,11 @@ namespace Azi.ACDDokanNet
                     return result;
                 }
 
-                Interlocked.Increment(ref downloadingCount);
-                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
-                var buffered = new BufferedAmazonBlockReader(item, amazon);
+                onStatisticsUpdated(cloud, StatisticUpdateReason.DownloadAdded, new DownloadStatisticInfo(item));
+                var buffered = new BufferedHttpCloudBlockReader(item, cloud);
                 buffered.OnClose = () =>
                   {
-                      Interlocked.Decrement(ref downloadingCount);
-                      OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
+                      onStatisticsUpdated(cloud, StatisticUpdateReason.DownloadFinished, new DownloadStatisticInfo(item));
                   };
 
                 return buffered;
@@ -278,8 +362,6 @@ namespace Azi.ACDDokanNet
                 item = FSItem.MakeUploading(filePath, Guid.NewGuid().ToString(), dirItem.Id, 0);
 
                 var file = UploadService.OpenNew(item);
-                Interlocked.Increment(ref uploadingCount);
-                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
 
                 itemsTreeCache.Add(item);
 
@@ -302,8 +384,6 @@ namespace Azi.ACDDokanNet
                 SmallFilesCache.Delete(item);
                 item.MakeUploading();
                 var file = UploadService.OpenTruncate(item);
-                Interlocked.Increment(ref uploadingCount);
-                OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
 
                 return file;
             }
@@ -319,8 +399,6 @@ namespace Azi.ACDDokanNet
                     file.OnChangedAndClosed = (it, path) =>
                     {
                         it.LastWriteTime = DateTime.UtcNow;
-                        Interlocked.Increment(ref uploadingCount);
-                        OnStatisticsUpdated?.Invoke(downloadingCount, uploadingCount);
 
                         if (!it.IsUploading)
                         {
@@ -359,7 +437,7 @@ namespace Azi.ACDDokanNet
             }
 
             var folderNode = GetItem(folderPath);
-            var nodes = await amazon.Nodes.GetChildren(folderNode?.Id);
+            var nodes = await cloud.Nodes.GetChildren(folderNode?.Id);
             var items = new List<FSItem>(nodes.Count);
             var curdir = folderPath;
             if (curdir == "\\")
@@ -367,15 +445,9 @@ namespace Azi.ACDDokanNet
                 curdir = string.Empty;
             }
 
-            foreach (var node in nodes.Where(n => FsItemKinds.Contains(n.kind)))
+            foreach (var node in nodes)
             {
-                if (node.status != AmazonNodeStatus.AVAILABLE)
-                {
-                    continue;
-                }
-
-                var path = curdir + "\\" + node.name;
-                items.Add(FSItem.FromNode(path, node));
+                items.Add(node.SetParentPath(curdir).Build());
             }
 
             // Log.Warn("Got real dir:\r\n  " + string.Join("\r\n  ", items.Select(i => i.Path)));
@@ -406,25 +478,9 @@ namespace Azi.ACDDokanNet
 
         public async Task BuildItemInfo(FSItem item)
         {
-            var node = await amazon.Nodes.GetNodeExtended(item.Id);
-            var info = new ACDDokanNetItemInfo
-            {
-                Id = item.Id,
-                TempLink = node.tempLink,
-                Assets = node.assets?.Select(i => new ACDDokanNetAssetInfo { Id = i.id, TempLink = i.tempLink }).ToList()
-            };
+            var info = await cloud.Nodes.GetNodeExtended(item.Id);
 
-            if (node.video != null)
-            {
-                info.Video = new ACDDokanNetAssetInfoImage { Width = node.video.width, Height = node.video.height };
-            }
-
-            if (node.image != null)
-            {
-                info.Image = new ACDDokanNetAssetInfoImage { Width = node.image.width, Height = node.image.height };
-            }
-
-            string str = JsonConvert.SerializeObject(info);
+            var str = JsonConvert.SerializeObject(info);
             item.Info = Encoding.UTF8.GetBytes(str);
         }
 
@@ -448,7 +504,7 @@ namespace Azi.ACDDokanNet
             {
                 if (item.Length > 0 || item.IsDir)
                 {
-                    item = FSItem.FromNode(Path.Combine(oldDir, newName), amazon.Nodes.Rename(item.Id, newName).Result);
+                    item = cloud.Nodes.Rename(item.Id, newName).Result.SetParentPath(oldDir).Build();
                 }
                 else
                 {
@@ -471,7 +527,7 @@ namespace Azi.ACDDokanNet
                 Task.WaitAll(oldDirNodeTask, newDirNodeTask);
                 if (item.Length > 0 || item.IsDir)
                 {
-                    item = FSItem.FromNode(newPath, amazon.Nodes.Move(item.Id, oldDirNodeTask.Result.Id, newDirNodeTask.Result.Id).Result);
+                    item = cloud.Nodes.Move(item.Id, oldDirNodeTask.Result.Id, newDirNodeTask.Result.Id).Result.SetParentPath(newDir).Build();
                     if (item == null)
                     {
                         throw new InvalidOperationException("Can not move");
@@ -493,6 +549,19 @@ namespace Azi.ACDDokanNet
             else
             {
                 itemsTreeCache.MoveFile(oldPath, item);
+            }
+        }
+
+        public byte[] GetExtendedInfo(List<string> streamNameGroups, FSItem item)
+        {
+            switch (streamNameGroups[1])
+            {
+                case CloudDokanNetAssetInfo.StreamNameShareReadOnly:
+                    return Encoding.UTF8.GetBytes(cloud.Nodes.ShareNode(item.Id, NodeShareType.ReadOnly).Result);
+                case CloudDokanNetAssetInfo.StreamNameShareReadWrite:
+                    return Encoding.UTF8.GetBytes(cloud.Nodes.ShareNode(item.Id, NodeShareType.ReadWrite).Result);
+                default:
+                    return new byte[0];
             }
         }
 
@@ -535,22 +604,29 @@ namespace Azi.ACDDokanNet
             {
                 if (item.ParentIds.Count == 1)
                 {
-                    amazon.Nodes.Trash(item.Id).Wait();
+                    if (item.IsUploading)
+                    {
+                        UploadService.CancelUpload(item.Id);
+                    }
+                    else
+                    {
+                        cloud.Nodes.Trash(item.Id).Wait();
+                    }
                 }
                 else
                 {
                     var dir = Path.GetDirectoryName(filePath);
                     var dirItem = GetItem(dir);
-                    amazon.Nodes.Remove(dirItem.Id, item.Id).Wait();
+                    cloud.Nodes.Remove(dirItem.Id, item.Id).Wait();
                 }
             }
             catch (AggregateException ex)
             {
-                var webex = ex.InnerException as HttpWebException;
-                if (webex == null || (webex.StatusCode != HttpStatusCode.NotFound && webex.StatusCode != HttpStatusCode.Conflict))
-                {
-                    throw ex.InnerException;
-                }
+                throw ex.Flatten();
+            }
+            catch (CloudException ex) when (ex.Error == HttpStatusCode.NotFound || ex.Error == HttpStatusCode.Conflict)
+            {
+                Log.Warn(ex.Error.ToString());
             }
         }
 
@@ -570,7 +646,7 @@ namespace Azi.ACDDokanNet
         {
             if (itemPath == "\\" || itemPath == string.Empty)
             {
-                return FSItem.FromRoot(await amazon.Nodes.GetRoot());
+                return (await cloud.Nodes.GetRoot()).BuildRoot();
             }
 
             var cached = itemsTreeCache.GetItem(itemPath);
@@ -602,7 +678,7 @@ namespace Azi.ACDDokanNet
             while (item == null);
             if (item == null)
             {
-                item = FSItem.FromRoot(await amazon.Nodes.GetRoot());
+                item = (await cloud.Nodes.GetRoot()).BuildRoot();
             }
 
             foreach (var name in folders)
@@ -612,22 +688,28 @@ namespace Azi.ACDDokanNet
                     curpath = string.Empty;
                 }
 
-                curpath = curpath + "\\" + name;
+                var newpath = curpath + "\\" + name;
 
-                var newnode = await amazon.Nodes.GetChild(item.Id, name);
-                if (newnode == null || newnode.status != AmazonNodeStatus.AVAILABLE)
+                var newnode = await cloud.Nodes.GetChild(item.Id, name);
+                if (newnode == null)
                 {
-                    itemsTreeCache.AddItemOnly(FSItem.MakeNotExistingDummy(curpath));
+                    itemsTreeCache.AddItemOnly(FSItem.MakeNotExistingDummy(newpath));
 
                     // Log.Error("NonExisting path from server: " + itemPath);
                     return null;
                 }
 
-                item = FSItem.FromNode(curpath, newnode);
+                item = newnode.SetParentPath(curpath).Build();
                 itemsTreeCache.Add(item);
+                curpath = newpath;
             }
 
             return item;
+        }
+
+        public void CancelUpload(string id)
+        {
+            UploadService.CancelUpload(id);
         }
     }
 }

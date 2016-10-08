@@ -1,11 +1,11 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.IO;
-using System.Threading;
-using Azi.Tools;
-
-namespace Azi.ACDDokanNet
+﻿namespace Azi.Cloud.DokanNet
 {
+    using System;
+    using System.Collections.Concurrent;
+    using System.IO;
+    using System.Threading;
+    using Azi.Tools;
+
     public class FileBlockReader : AbstractBlockStream
     {
         private const int WaitForFile = 50;
@@ -14,8 +14,8 @@ namespace Azi.ACDDokanNet
         private readonly long expectedLength;
         private readonly string filePath;
         private readonly object closeLock = new object();
-        private bool disposedValue = false; // To detect redundant calls
-        private int closed = 0;
+        private bool disposedValue; // To detect redundant calls
+        private int closed;
 
         private FileBlockReader(string path, long length)
         {

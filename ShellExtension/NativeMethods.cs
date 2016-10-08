@@ -1,9 +1,9 @@
-﻿using System;
-using System.Runtime.InteropServices;
-using System.Text;
-
-namespace ShellExtension
+﻿namespace Azi.ShellExtension
 {
+    using System;
+    using System.Runtime.InteropServices;
+    using System.Text;
+
     public static class NativeMethods
     {
         private enum AssocF
@@ -60,7 +60,7 @@ namespace ShellExtension
             const int S_FALSE = 1;
 
             uint length = 0;
-            uint ret = AssocQueryString(AssocF.ASSOCF_NONE, AssocStr.ASSOCSTR_COMMAND, extension, null, null, ref length);
+            var ret = AssocQueryString(AssocF.ASSOCF_NONE, AssocStr.ASSOCSTR_COMMAND, extension, null, null, ref length);
             if (ret != S_FALSE)
             {
                 throw new InvalidOperationException("Could not determine associated string");

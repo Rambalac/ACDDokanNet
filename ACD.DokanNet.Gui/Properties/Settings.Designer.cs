@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace Azi.ACDDokanNet.Gui.Properties {
+namespace Azi.Cloud.DokanNet.Gui.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
@@ -20,52 +20,6 @@ namespace Azi.ACDDokanNet.Gui.Properties {
         public static Settings Default {
             get {
                 return defaultInstance;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string AuthToken {
-            get {
-                return ((string)(this["AuthToken"]));
-            }
-            set {
-                this["AuthToken"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string AuthRenewToken {
-            get {
-                return ((string)(this["AuthRenewToken"]));
-            }
-            set {
-                this["AuthRenewToken"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        public global::System.DateTime AuthTokenExpiration {
-            get {
-                return ((global::System.DateTime)(this["AuthTokenExpiration"]));
-            }
-            set {
-                this["AuthTokenExpiration"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        public char LastDriveLetter {
-            get {
-                return ((char)(this["LastDriveLetter"]));
-            }
-            set {
-                this["LastDriveLetter"] = value;
             }
         }
         
@@ -107,18 +61,6 @@ namespace Azi.ACDDokanNet.Gui.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool ReadOnly {
-            get {
-                return ((bool)(this["ReadOnly"]));
-            }
-            set {
-                this["ReadOnly"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("True")]
         public bool NeedUpgrade {
             get {
@@ -126,6 +68,17 @@ namespace Azi.ACDDokanNet.Gui.Properties {
             }
             set {
                 this["NeedUpgrade"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        public global::Azi.Cloud.Common.CloudInfoCollection Clouds {
+            get {
+                return ((global::Azi.Cloud.Common.CloudInfoCollection)(this["Clouds"]));
+            }
+            set {
+                this["Clouds"] = value;
             }
         }
     }

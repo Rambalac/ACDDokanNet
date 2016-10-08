@@ -1,7 +1,7 @@
-﻿using System;
-
-namespace Azi.ACDDokanNet
+﻿namespace Azi.Cloud.DokanNet
 {
+    using System;
+
     public interface IBlockStream : IDisposable
     {
         Action OnClose { get; set; }

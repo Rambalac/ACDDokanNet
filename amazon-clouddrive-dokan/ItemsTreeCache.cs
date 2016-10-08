@@ -1,17 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-
-namespace Azi.ACDDokanNet
+﻿namespace Azi.Cloud.DokanNet
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using System.Threading;
+    using Common;
+
     public class ItemsTreeCache : IDisposable
     {
         private readonly ReaderWriterLockSlim lok = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
         private readonly Dictionary<string, FSItem> pathToNode = new Dictionary<string, FSItem>();
         private readonly Dictionary<string, DirItem> pathToDirItem = new Dictionary<string, DirItem>();
-        private bool disposedValue = false; // To detect redundant calls
+        private bool disposedValue; // To detect redundant calls
 
         public int DirItemsExpirationSeconds { get; set; } = 60;
 

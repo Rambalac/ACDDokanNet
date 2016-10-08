@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Management;
-
-namespace Azi.Tools
+﻿namespace Azi.Tools
 {
+    using System;
+    using System.Collections.Concurrent;
+    using System.Management;
+
     public static class Processes
     {
         private static readonly ConcurrentDictionary<int, ProcInfo> PidOwner = new ConcurrentDictionary<int, ProcInfo>();
@@ -29,7 +29,7 @@ namespace Azi.Tools
             foreach (ManagementObject obj in processList)
             {
                 string[] argList = { string.Empty, string.Empty };
-                int returnVal = Convert.ToInt32(obj.InvokeMethod("GetOwner", argList));
+                var returnVal = Convert.ToInt32(obj.InvokeMethod("GetOwner", argList));
                 if (returnVal == 0)
                 {
                     // return DOMAIN\user

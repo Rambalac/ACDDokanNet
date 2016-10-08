@@ -6,7 +6,7 @@ AmazonSecret.cs
 To connect to Amazon CLoud Drive you need to register your application and get app secret keys.
 Create AmazonSecret.cs in ACD.DokanNet.Gui project and replace values with your app secrets 
 ```C#
-namespace Azi.ACDDokanNet.Gui
+namespace Azi.Cloud.DokanNet.Gui
 {
     public static class AmazonSecret
     {

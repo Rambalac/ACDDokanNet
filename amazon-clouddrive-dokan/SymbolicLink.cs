@@ -1,9 +1,5 @@
-﻿using System;
-using System.Runtime.InteropServices;
-
-namespace Azi.ACDDokanNet
+﻿namespace Azi.Cloud.DokanNet
 {
-
     public static class SymbolicLink
     {
         public static bool CreateFile(string targetPath, string symlinkPath)
