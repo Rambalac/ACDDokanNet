@@ -92,10 +92,10 @@ Installation
 
 * Install my latest release from https://github.com/Rambalac/ACDDokanNet/releases/latest .
 * Open Settings from App list.
-* Add cloud
+* Add cloud.
 * Select drive letter if needed and rename disk (renaming in explorer will work only till next mounting).
-* Mount
-* Amazon Cloud Drive page should be opened (Or other login screen for other clouds)
+* Mount.
+* Amazon Cloud Drive page should be opened (Or other login screen for other clouds).
 * Login and/or confirm to allow app to access cloud.
 * If I did everything right, you should get drive letter with your cloud.
 
@@ -114,7 +114,7 @@ Catalog backup currently does not work due requirement for write already created
 News
 ----
 ### 2016-10-09
-* Prerelease 1.6.0
+* Prerelease 1.6.0.
 * Now you can mount multiple cloud services. As example and test Microsoft OneDrive was added. Theoretically it should support any libraries as Cloud.*.dll as Addons.
 * Uploading files list is displayed to show file name, progress and if failed error. Upload can be cancelled.
 
