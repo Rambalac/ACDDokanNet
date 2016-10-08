@@ -9,6 +9,7 @@
     using Common;
     using Newtonsoft.Json;
     using Tools;
+    using System.Collections.Generic;
 
     public enum FailReason
     {
@@ -16,7 +17,9 @@
         NoResultNode,
         NoFolderNode,
         NoOverwriteNode,
-        Conflict
+        Conflict,
+        Unexpected,
+        Cancelled
     }
 
     public class UploadService : IDisposable
@@ -26,7 +29,9 @@
         private const int ReuploadDelay = 5000;
         private readonly SemaphoreSlim uploadLimitSemaphore;
 
-        private readonly BlockingCollection<UploadInfo> uploads = new BlockingCollection<UploadInfo>();
+        private readonly BlockingCollection<UploadInfo> leftUploads = new BlockingCollection<UploadInfo>();
+        private readonly ConcurrentDictionary<string, UploadInfo> allUploads = new ConcurrentDictionary<string, UploadInfo>();
+
         private readonly CancellationTokenSource cancellation = new CancellationTokenSource();
         private readonly IHttpCloud cloud;
         private readonly int uploadLimit;
@@ -86,7 +91,8 @@
 
             var path = Path.Combine(cachePath, item.Id);
             WriteInfo(path + ".info", info);
-            uploads.Add(info);
+            leftUploads.Add(info);
+            allUploads.TryAdd(info.Id, info);
             OnUploadAdded?.Invoke(info);
         }
 
@@ -155,9 +161,9 @@
             // GC.SuppressFinalize(this);
         }
 
-        public void WaitForUploadsFnish()
+        public void WaitForUploadsFinish()
         {
-            while (uploads.Count > 0)
+            while (leftUploads.Count > 0)
             {
                 Thread.Sleep(100);
             }
@@ -179,7 +185,7 @@
                     Stop();
                     cancellation.Dispose();
                     uploadLimitSemaphore.Dispose();
-                    uploads.Dispose();
+                    leftUploads.Dispose();
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
@@ -198,16 +204,23 @@
 
         private void UploadTask()
         {
-            UploadInfo upload;
-            while (uploads.TryTake(out upload, -1, cancellation.Token))
+            try
             {
-                var uploadCopy = upload;
-                if (!uploadLimitSemaphore.Wait(-1, cancellation.Token))
+                UploadInfo upload;
+                while (leftUploads.TryTake(out upload, -1, cancellation.Token))
                 {
-                    return;
-                }
+                    var uploadCopy = upload;
+                    if (!uploadLimitSemaphore.Wait(-1, cancellation.Token))
+                    {
+                        return;
+                    }
 
-                Task.Run(async () => await Upload(uploadCopy));
+                    Task.Run(async () => await Upload(uploadCopy));
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                Log.Info("Upload service stopped");
             }
         }
 
@@ -217,7 +230,8 @@
 
             var path = Path.Combine(cachePath, item.Id);
             WriteInfo(path + ".info", info);
-            uploads.Add(info);
+            leftUploads.Add(info);
+            allUploads.TryAdd(info.Id, info);
             OnUploadAdded?.Invoke(info);
         }
 
@@ -237,7 +251,8 @@
                     var uploadinfo = JsonConvert.DeserializeObject<UploadInfo>(File.ReadAllText(info.FullName));
                     var fileinfo = new FileInfo(Path.Combine(info.DirectoryName, Path.GetFileNameWithoutExtension(info.Name)));
                     var item = FSItem.MakeUploading(uploadinfo.Path, fileinfo.Name, uploadinfo.ParentId, fileinfo.Length);
-                    uploads.Add(uploadinfo);
+                    leftUploads.Add(uploadinfo);
+                    allUploads.TryAdd(uploadinfo.Id, uploadinfo);
                     OnUploadAdded?.Invoke(uploadinfo);
                 }
                 catch (Exception ex)
@@ -277,7 +292,7 @@
                         item.ParentId,
                         Path.GetFileName(item.Path),
                         () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, true),
-                        (p) => OnUploadProgress?.Invoke(item, p));
+                        (p) => UploadProgress(item, p));
                 }
                 else
                 {
@@ -293,19 +308,27 @@
                     node = await cloud.Files.Overwrite(
                         item.Id,
                         () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, true),
-                        (p) => OnUploadProgress?.Invoke(item, p));
+                        (p) => UploadProgress(item, p));
+                }
+
+                if (node == null)
+                {
+                    throw new NullReferenceException("File node is null: " + item.Path);
                 }
 
                 File.Delete(path + ".info");
-                if (node == null)
-                {
-                    OnUploadFailed(item, FailReason.NoResultNode, "Did not get node information");
-                    throw new NullReferenceException("File node is null: " + item.Path);
-                }
 
                 node.ParentPath = Path.GetDirectoryName(item.Path);
                 OnUploadFinished(item, node);
                 Log.Trace("Finished upload: " + item.Path + " id:" + node.Id);
+                return;
+            }
+            catch (OperationCanceledException)
+            {
+                Log.Info("Upload canceled");
+
+                OnUploadFailed(item, FailReason.Cancelled, "Upload cancelled");
+                CleanUpload(path);
                 return;
             }
             catch (CloudException ex)
@@ -320,8 +343,20 @@
                     }
                     else
                     {
-                        OnUploadFailed(item, FailReason.Conflict, "Uploading as New file, but already exists");
+                        OnUploadFailed(item, FailReason.Unexpected, "Uploading failed with unexpected Conflict error");
                     }
+
+                    CleanUpload(path);
+
+                    return;
+                }
+
+                if (ex.Error == System.Net.HttpStatusCode.NotFound)
+                {
+                    Log.Error($"Upload error NotFound: {item.Path}\r\n{ex}");
+                    OnUploadFailed(item, FailReason.NoFolderNode, "Folder node for new file is not found");
+
+                    CleanUpload(path);
 
                     return;
                 }
@@ -331,14 +366,56 @@
             catch (Exception ex)
             {
                 Log.Error($"Upload failed: {item.Path}\r\n{ex}");
+                OnUploadFailed(item, FailReason.Unexpected, $"Unexpected Error. Upload will retry.\r\n{ex}");
             }
             finally
             {
                 uploadLimitSemaphore.Release();
+                UploadInfo outItem;
+                allUploads.TryRemove(item.Id, out outItem);
             }
 
+            allUploads.TryAdd(item.Id, item);
             await Task.Delay(ReuploadDelay);
-            uploads.Add(item);
+            leftUploads.Add(item);
+        }
+
+        private void UploadProgress(UploadInfo item, long p)
+        {
+            OnUploadProgress?.Invoke(item, p);
+            cancellation.Token.ThrowIfCancellationRequested();
+            item.Cancellation.Token.ThrowIfCancellationRequested();
+        }
+
+        private void CleanUpload(string path)
+        {
+            try
+            {
+                File.Delete(path);
+            }
+            catch (Exception dex)
+            {
+                Log.Error(dex);
+            }
+
+            try
+            {
+                File.Delete(path + ".info");
+            }
+            catch (Exception dex)
+            {
+                Log.Error(dex);
+            }
+
+        }
+
+        public void CancelUpload(string id)
+        {
+            UploadInfo outitem;
+            if (allUploads.TryGetValue(id, out outitem))
+            {
+                outitem.Cancellation.Cancel();
+            }
         }
     }
 }

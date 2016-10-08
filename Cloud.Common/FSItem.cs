@@ -8,6 +8,8 @@
     {
         private long length;
 
+        private object lengthLock = new object();
+
         public FSItem(FSItem item)
         {
             IsUploading = item.IsUploading;
@@ -47,12 +49,18 @@
         {
             get
             {
-                return Interlocked.Read(ref length);
+                lock (lengthLock)
+                {
+                    return length;
+                }
             }
 
             set
             {
-                Interlocked.Exchange(ref length, value);
+                lock (lengthLock)
+                {
+                    length = value;
+                }
             }
         }
 
@@ -72,6 +80,17 @@
                 Path = path,
                 NotExistingDummy = true
             };
+        }
+
+        public void RiseLength(long newlength)
+        {
+            lock (lengthLock)
+            {
+                if (length < newlength)
+                {
+                    length = newlength;
+                }
+            }
         }
 
         public static FSItem MakeUploading(string path, string cachedId, string parentId, long length)
@@ -136,7 +155,7 @@
                     throw new ArgumentNullException("Path should be set");
                 }
 
-                return new FSItem
+                var result = new FSItem
                 {
                     Id = Id,
                     CreationTime = CreationTime,
@@ -145,8 +164,10 @@
                     LastWriteTime = LastWriteTime,
                     Length = Length,
                     ParentIds = new ConcurrentBag<string>(ParentIds),
-                    Path = System.IO.Path.Combine(ParentPath, Name)
+                    Path = (ParentPath != string.Empty) ? System.IO.Path.Combine(ParentPath, Name) : "\\" + Name
                 };
+
+                return result;
             }
 
             public FSItem BuildRoot()

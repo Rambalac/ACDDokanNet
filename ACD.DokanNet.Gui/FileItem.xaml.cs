@@ -24,5 +24,17 @@
         {
             InitializeComponent();
         }
+
+        private void DismissButton_Click(object sender, RoutedEventArgs e)
+        {
+            var item = (FileItemInfo)DataContext;
+            App.Current.UploadFiles.Remove(item);
+        }
+
+        private void CancelButton_Click(object sender, RoutedEventArgs e)
+        {
+            var item = (FileItemInfo)DataContext;
+            App.Current.CancelUpload(item);
+        }
     }
 }

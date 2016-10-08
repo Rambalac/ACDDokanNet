@@ -36,6 +36,13 @@
 
         private ObservableCollection<CloudMount> clouds;
 
+        internal void CancelUpload(FileItemInfo item)
+        {
+            var cloud = Clouds.SingleOrDefault(c => c.CloudInfo.Id == item.CloudId);
+            if (cloud == null) return;
+            cloud.Provider.CancelUpload(item.Id);
+        }
+
         public event Action<string> MountChanged;
 
         public event Action ProviderStatisticsUpdated;
@@ -175,16 +182,22 @@
                     switch (reason)
                     {
                         case StatisticUpdateReason.UploadAdded:
-                            var mount = clouds.Single(c => c.CloudInfo.Id == cloud.Id);
-                            uploadFiles.Add(new FileItemInfo
                             {
-                                Id = info.Id,
-                                CloudIcon = mount.Instance.CloudServiceIcon,
-                                FileName = info.FileName,
-                                ErrorMessage = info.ErrorMessage,
-                                Total = info.Total,
-                                CloudName = cloud.Name
-                            });
+                                var mount = clouds.Single(c => c.CloudInfo.Id == cloud.Id);
+                                var item = new FileItemInfo
+                                {
+                                    CloudId = cloud.Id,
+                                    Id = info.Id,
+                                    CloudIcon = mount.Instance.CloudServiceIcon,
+                                    FileName = info.FileName,
+                                    FullPath = $"{mount.MountLetter}:{info.Path}",
+                                    ErrorMessage = info.ErrorMessage,
+                                    Total = info.Total,
+                                    CloudName = cloud.Name
+                                };
+                                uploadFiles.Remove(item);
+                                uploadFiles.Add(item);
+                            }
                             break;
                         case StatisticUpdateReason.UploadFinished:
                             uploadFiles.Remove(new FileItemInfo { Id = info.Id });
@@ -209,10 +222,22 @@
                                 UploadFiles.Add(item);
                             }
                             break;
-                        case StatisticUpdateReason.Progress:
+                        case StatisticUpdateReason.UploadAborted:
                             {
                                 var item = UploadFiles.Single(f => f.Id == info.Id);
-                                item.Done = info.Done;
+                                item.ErrorMessage = info.ErrorMessage;
+                                item.DismissOnly = true;
+                                UploadFiles.Remove(item);
+                                UploadFiles.Add(item);
+                            }
+                            break;
+                        case StatisticUpdateReason.Progress:
+                            {
+                                var item = UploadFiles.SingleOrDefault(f => f.Id == info.Id);
+                                if (item != null)
+                                {
+                                    item.Done = info.Done;
+                                }
                             }
                             break;
                         default:
@@ -457,6 +482,15 @@
         internal void NotifyMountChanged(string id)
         {
             MountChanged?.Invoke(id);
+        }
+
+        internal void NotifyUnmount(string id)
+        {
+            var toremove = uploadFiles.Where(f => f.CloudId == id).ToList();
+            foreach (var item in toremove)
+            {
+                uploadFiles.Remove(item);
+            }
         }
 
         private bool disposedValue; // To detect redundant calls

@@ -14,7 +14,7 @@
 
     public class MicrosoftOneDrive : IHttpCloud, IHttpCloudFiles, IHttpCloudNodes
     {
-        private static readonly string[] Scopes = { "onedrive.readwrite", "wl.signin" };
+        private static readonly string[] Scopes = { "onedrive.readwrite", "wl.offline_access", "wl.signin" };
 
         private Item rootItem;
 
@@ -48,20 +48,20 @@
 
         public async Task<bool> AuthenticateNew(CancellationToken cs)
         {
-            msaAuthenticationProvider = new MsaAuthenticationProvider(MicrosoftSecret.ClientId, "http://localhost:45674/authredirect", Scopes, new CredentialsVault(this, null));
-            await msaAuthenticationProvider.AuthenticateUserAsync();
+            msaAuthenticationProvider = new MsaAuthenticationProvider(MicrosoftSecret.ClientId, MicrosoftSecret.ClientSecret, "http://localhost:45674/authredirect", Scopes, null, new CredentialsVault(this, null));
+            await msaAuthenticationProvider.AuthenticateUserAsync().ConfigureAwait(true);
 
-            oneDriveClient = new OneDriveClient(msaAuthenticationProvider);
+            oneDriveClient = new OneDriveClient("https://api.onedrive.com/v1.0", msaAuthenticationProvider);
 
             return msaAuthenticationProvider.IsAuthenticated;
         }
 
         public async Task<bool> AuthenticateSaved(CancellationToken cs, string save)
         {
-            msaAuthenticationProvider = new MsaAuthenticationProvider(MicrosoftSecret.ClientId, "http://localhost:45674/authredirect", Scopes, new CredentialsVault(this, save));
-            await msaAuthenticationProvider.AuthenticateUserAsync();
+            msaAuthenticationProvider = new MsaAuthenticationProvider(MicrosoftSecret.ClientId, MicrosoftSecret.ClientSecret, "http://localhost:45674/authredirect", Scopes, null, new CredentialsVault(this, save));
+            await msaAuthenticationProvider.RestoreMostRecentFromCacheOrAuthenticateUserAsync().ConfigureAwait(true);
 
-            oneDriveClient = new OneDriveClient(msaAuthenticationProvider);
+            oneDriveClient = new OneDriveClient("https://api.onedrive.com/v1.0", msaAuthenticationProvider);
 
             return msaAuthenticationProvider.IsAuthenticated;
         }
@@ -70,7 +70,7 @@
         {
             if (oneDriveClient != null)
             {
-                await msaAuthenticationProvider.SignOutAsync();
+                await msaAuthenticationProvider.SignOutAsync().ConfigureAwait(true);
                 msaAuthenticationProvider = null;
                 oneDriveClient = null;
             }
@@ -78,13 +78,13 @@
 
         public async Task<FSItem.Builder> CreateFolder(string parentid, string name)
         {
-            var item = await GetItem(parentid).Children.Request().AddAsync(new Item { Name = name, Folder = new Folder() });
+            var item = await GetItem(parentid).Children.Request().AddAsync(new Item { Name = name, Folder = new Folder() }).ConfigureAwait(true);
             return FromNode(item);
         }
 
         public async Task Download(string id, Func<Stream, Task<long>> streammer, Progress progress, long? fileOffset = default(long?), int? length = default(int?))
         {
-            using (var stream = await GetItem(id).Content.Request().GetAsync())
+            using (var stream = await GetItem(id).Content.Request().GetAsync().ConfigureAwait(true))
             {
                 if (fileOffset != null)
                 {
@@ -96,13 +96,13 @@
 
         public async Task<FSItem.Builder> GetNode(string id)
         {
-            var item = await GetItem(id).Request().GetAsync();
+            var item = await GetItem(id).Request().GetAsync().ConfigureAwait(true);
             return FromNode(item);
         }
 
         public async Task<int> Download(string id, byte[] result, int offset, long pos, int left, Progress progress)
         {
-            using (var stream = await GetItem(id).Content.Request().GetAsync())
+            using (var stream = await GetItem(id).Content.Request().GetAsync().ConfigureAwait(true))
             {
                 stream.Position = pos;
                 return await stream.ReadAsync(result, offset, left);
@@ -129,7 +129,7 @@
 
         public async Task<INodeExtendedInfo> GetNodeExtended(string id)
         {
-            var item = await GetItem(id).Request().GetAsync();
+            var item = await GetItem(id).Request().GetAsync().ConfigureAwait(true);
             var info = new CloudDokanNetItemInfo
             {
                 WebLink = item.WebUrl,
@@ -226,7 +226,7 @@
                              .Drive
                              .Root
                              .Request()
-                             .GetAsync();
+                             .GetAsync().ConfigureAwait(true);
             }
 
             return rootItem;
@@ -239,7 +239,7 @@
 
             do
             {
-                var nodes = await request.GetAsync();
+                var nodes = await request.GetAsync().ConfigureAwait(true);
                 result.AddRange(nodes.CurrentPage);
                 request = nodes.NextPageRequest;
             }
@@ -250,7 +250,7 @@
 
         private Drive GetDrive()
         {
-            return oneDriveClient.Drive.Request().GetAsync().Result;
+            return oneDriveClient.Drive.Request().GetAsync().ConfigureAwait(true).GetAwaiter().GetResult();
         }
 
         private IItemRequestBuilder GetItem(string id)
@@ -261,18 +261,21 @@
         private class CredentialsVault : ICredentialVault
         {
             private readonly MicrosoftOneDrive od;
-            private string data;
+            private byte[] data;
 
             public CredentialsVault(MicrosoftOneDrive od, string data)
             {
                 this.od = od;
-                this.data = data;
+                if (data != null)
+                {
+                    this.data = JsonConvert.DeserializeObject<byte[]>(data);
+                }
             }
 
             public void AddCredentialCacheToVault(CredentialCache credentialCache)
             {
-                var authinfo = credentialCache.GetCacheBlob();
-                var str = JsonConvert.SerializeObject(authinfo);
+                data = credentialCache.GetCacheBlob();
+                var str = JsonConvert.SerializeObject(data);
 
                 od.OnAuthUpdated?.OnAuthUpdated(od, str);
             }
@@ -289,8 +292,7 @@
                     return false;
                 }
 
-                var authinfo = JsonConvert.DeserializeObject<byte[]>(data);
-                credentialCache.InitializeCacheFromBlob(authinfo);
+                credentialCache.InitializeCacheFromBlob(data);
                 return true;
             }
         }

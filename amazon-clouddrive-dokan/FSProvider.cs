@@ -20,7 +20,8 @@
         DownloadFinished,
         DownloadFailed,
         UploadFailed,
-        Progress
+        Progress,
+        UploadAborted
     }
 
     public abstract class AStatisticFileInfo
@@ -31,13 +32,14 @@
 
         public abstract string FileName { get; }
 
+        public abstract string Path { get; }
+
         public string ErrorMessage { get; set; }
 
         public bool HasError => ErrorMessage != null;
 
         public long Done { get; set; }
 
-        // override object.Equals
         public override bool Equals(object obj)
         {
             if (obj == null || GetType() != obj.GetType())
@@ -48,7 +50,6 @@
             return Id == ((AStatisticFileInfo)obj).Id;
         }
 
-        // override object.GetHashCode
         public override int GetHashCode()
         {
             return Id.GetHashCode();
@@ -69,6 +70,8 @@
         public override string Id => info.Id;
 
         public override string FileName => info.Name;
+
+        public override string Path => info.Path;
     }
 
     public class UploadStatisticInfo : AStatisticFileInfo
@@ -80,11 +83,19 @@
             this.info = info;
         }
 
+        public UploadStatisticInfo(UploadInfo info, string message)
+        {
+            this.info = info;
+            ErrorMessage = message;
+        }
+
         public override long Total => info.Length;
 
         public override string Id => info.Id;
 
-        public override string FileName => Path.GetFileName(info.Path);
+        public override string FileName => System.IO.Path.GetFileName(info.Path);
+
+        public override string Path => info.Path;
     }
 
     public delegate void StatisticUpdateDelegate(IHttpCloud cloud, StatisticUpdateReason reason, AStatisticFileInfo info);
@@ -121,46 +132,11 @@
             };
 
             UploadService = new UploadService(2, cloud);
-            UploadService.OnUploadFailed = (uploaditem, reason, message) =>
-            {
-                var olditemPath = Path.Combine(UploadService.CachePath, uploaditem.Id);
-                File.Delete(olditemPath);
 
-                switch (reason)
-                {
-                    case FailReason.ZeroLength:
-                        var item = GetItem(uploaditem.Path);
-                        item?.MakeNotUploading();
-                        onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFinished, new UploadStatisticInfo(uploaditem));
-                        return;
-                    case FailReason.Conflict:
-                        onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFinished, new UploadStatisticInfo(uploaditem));
-                        return;
-                }
+            UploadService.OnUploadFailed = UploadFailed;
 
-                onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFailed, new UploadStatisticInfo(uploaditem) { ErrorMessage = message });
-                itemsTreeCache.DeleteFile(uploaditem.Path);
-            };
-            UploadService.OnUploadFinished = (item, node) =>
-            {
-                onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFinished, new UploadStatisticInfo(item));
+            UploadService.OnUploadFinished = UploadFinished;
 
-                var newitem = node.SetParentPath(Path.GetDirectoryName(item.Path)).Build();
-                var olditemPath = Path.Combine(UploadService.CachePath, item.Id);
-                var newitemPath = Path.Combine(SmallFilesCache.CachePath, node.Id);
-
-                if (!File.Exists(newitemPath))
-                {
-                    File.Move(olditemPath, newitemPath);
-                }
-                else
-                {
-                    File.Delete(olditemPath);
-                }
-
-                SmallFilesCache.AddExisting(newitem);
-                itemsTreeCache.Update(newitem);
-            };
             UploadService.OnUploadProgress = (item, done) =>
             {
                 onStatisticsUpdated(cloud, StatisticUpdateReason.Progress, new UploadStatisticInfo(item) { Done = done });
@@ -172,6 +148,62 @@
                 onStatisticsUpdated(cloud, StatisticUpdateReason.UploadAdded, new UploadStatisticInfo(item));
             };
             UploadService.Start();
+        }
+
+        private void UploadFailed(UploadInfo uploaditem, FailReason reason, string message)
+        {
+            var olditemPath = Path.Combine(UploadService.CachePath, uploaditem.Id);
+            File.Delete(olditemPath);
+
+            switch (reason)
+            {
+                case FailReason.ZeroLength:
+                    var item = GetItem(uploaditem.Path);
+                    item?.MakeNotUploading();
+                    onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFinished, new UploadStatisticInfo(uploaditem));
+                    return;
+                case FailReason.Conflict:
+                case FailReason.NoFolderNode:
+                    onStatisticsUpdated(cloud, StatisticUpdateReason.UploadAborted, new UploadStatisticInfo(uploaditem, message));
+                    return;
+                case FailReason.Cancelled:
+                    if (!uploaditem.Overwrite)
+                    {
+                        itemsTreeCache.DeleteFile(uploaditem.Path);
+                    }
+
+                    onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFinished, new UploadStatisticInfo(uploaditem));
+                    return;
+            }
+
+            onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFailed, new UploadStatisticInfo(uploaditem, message));
+            itemsTreeCache.DeleteFile(uploaditem.Path);
+        }
+
+        private void UploadFinished(UploadInfo item, FSItem.Builder node)
+        {
+            onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFinished, new UploadStatisticInfo(item));
+
+            var newitem = node.SetParentPath(Path.GetDirectoryName(item.Path)).Build();
+            var olditemPath = Path.Combine(UploadService.CachePath, item.Id);
+            var newitemPath = Path.Combine(SmallFilesCache.CachePath, node.Id);
+
+            if (!File.Exists(newitemPath))
+            {
+                File.Move(olditemPath, newitemPath);
+            }
+            else
+            {
+                File.Delete(olditemPath);
+            }
+
+            SmallFilesCache.AddExisting(newitem);
+            itemsTreeCache.Update(newitem);
+        }
+
+        public void Stop()
+        {
+            UploadService.Stop();
         }
 
         public long SmallFileSizeLimit { get; set; } = 20 * 1024 * 1024;
@@ -572,7 +604,14 @@
             {
                 if (item.ParentIds.Count == 1)
                 {
-                    cloud.Nodes.Trash(item.Id).Wait();
+                    if (item.IsUploading)
+                    {
+                        UploadService.CancelUpload(item.Id);
+                    }
+                    else
+                    {
+                        cloud.Nodes.Trash(item.Id).Wait();
+                    }
                 }
                 else
                 {
@@ -580,6 +619,10 @@
                     var dirItem = GetItem(dir);
                     cloud.Nodes.Remove(dirItem.Id, item.Id).Wait();
                 }
+            }
+            catch (AggregateException ex)
+            {
+                throw ex.Flatten();
             }
             catch (CloudException ex) when (ex.Error == HttpStatusCode.NotFound || ex.Error == HttpStatusCode.Conflict)
             {
@@ -662,6 +705,11 @@
             }
 
             return item;
+        }
+
+        public void CancelUpload(string id)
+        {
+            UploadService.CancelUpload(id);
         }
     }
 }

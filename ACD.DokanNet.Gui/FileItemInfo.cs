@@ -9,6 +9,8 @@
 
         private string errorMessage;
 
+        private bool dismissOnly;
+
         public event PropertyChangedEventHandler PropertyChanged;
 
         public long Total { get; set; }
@@ -73,6 +75,29 @@
         }
 
         public Visibility HasError => (ErrorMessage == null) ? Visibility.Collapsed : Visibility.Visible;
+
+        public string CloudId { get; internal set; }
+
+        public bool DismissOnly
+        {
+            get
+            {
+                return dismissOnly;
+            }
+
+            internal set
+            {
+                dismissOnly = value;
+                OnPropertyChanged(nameof(DismissButton));
+                OnPropertyChanged(nameof(CancelButton));
+            }
+        }
+
+        public Visibility CancelButton => dismissOnly ? Visibility.Collapsed : Visibility.Visible;
+
+        public Visibility DismissButton => (!dismissOnly) ? Visibility.Collapsed : Visibility.Visible;
+
+        public object FullPath { get; internal set; }
 
         public override bool Equals(object obj)
         {

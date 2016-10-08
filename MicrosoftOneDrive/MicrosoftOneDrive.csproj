@@ -39,8 +39,8 @@
     <AssemblyOriginatorKeyFile>LibraryKeyFile.pfx</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Microsoft.Graph.Core, Version=1.1.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Graph.Core.1.1.1\lib\portable45-net45+win8+wpa81\Microsoft.Graph.Core.dll</HintPath>
+    <Reference Include="Microsoft.Graph.Core, Version=1.2.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Graph.Core.1.2.1\lib\portable45-net45+win8+wpa81\Microsoft.Graph.Core.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.IdentityModel.Clients.ActiveDirectory, Version=2.22.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
@@ -56,7 +56,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.OneDrive.Sdk.Authentication.Desktop, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.OneDriveSDK.Authentication.1.0.4\lib\net451\Microsoft.OneDrive.Sdk.Authentication.Desktop.dll</HintPath>
+      <HintPath>..\packages\Microsoft.OneDriveSDK.Authentication.1.0.5\lib\net451\Microsoft.OneDrive.Sdk.Authentication.Desktop.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">

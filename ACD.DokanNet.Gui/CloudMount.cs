@@ -177,6 +177,8 @@
                 });
 
                 MountLetter = null;
+                Provider.Stop();
+                App.NotifyUnmount(cloudInfo.Id);
             }
             finally
             {
@@ -234,7 +236,7 @@
                 Provider.CachePath = Environment.ExpandEnvironmentVariables(Properties.Settings.Default.CacheFolder);
                 Provider.SmallFilesCacheSize = Properties.Settings.Default.SmallFilesCacheLimit * (1 << 20);
                 Provider.SmallFileSizeLimit = Properties.Settings.Default.SmallFileSizeLimit * (1 << 20);
-                ;
+
                 var cloudDrive = new VirtualDriveWrapper(Provider);
 
                 var mountedEvent = new TaskCompletionSource<char>();
@@ -301,7 +303,7 @@
 
         private void ProviderStatisticsUpdated(IHttpCloud cloud, StatisticUpdateReason reason, AStatisticFileInfo info)
         {
-            App.OnProviderStatisticsUpdated(CloudInfo, reason, info);
+            App?.OnProviderStatisticsUpdated(CloudInfo, reason, info);
         }
 
         private async Task<bool> Authenticate(IHttpCloud cloud, CancellationToken cs, bool interactiveAuth)

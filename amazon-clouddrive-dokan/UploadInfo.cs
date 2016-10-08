@@ -3,6 +3,7 @@
     using System.Collections.Concurrent;
     using System.Linq;
     using Common;
+    using System.Threading;
 
     public class UploadInfo
     {
@@ -29,6 +30,8 @@
         public bool Overwrite { get; set; } = false;
 
         public string FailReason { get; set; }
+
+        public CancellationTokenSource Cancellation { get; } = new CancellationTokenSource();
 
         internal FSItem ToFSItem()
         {
