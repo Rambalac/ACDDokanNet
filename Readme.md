@@ -4,14 +4,19 @@ This is [Dokan.NET](https://github.com/dokan-dev/dokan-dotnet) based driver for 
 In other words you can use Amazon Cloud Drive as real disk drive in Windows. 
 Not just in Windows Explorer, but in any application.
 
+Starting from version 1.6.0 multiple clouds are supported, as example I added Microsoft OneDrive. As it's not ACD only I'm looking for better name. CloudHold?
+
 ![Sample](/images/Amazon Cloud Drive as real drive.png)
 
+###Amazon CloudDrive
 Login is done via default web browser, so application itself can not get your login and password, 
 and if you already logged into Amazon Cloud Drive you don't need to enter anything, just click a button.
 
 Info
 ----
-Currently I'm making major update to version 2 which supports multiple cloud accounts and can be extended to support clouds other than Amazon Cloud. Just for example I implemented MS OneDrive. It will be released as soon as Dokan 2 release and I finish new type of caching that should eliminated most of file updating and big file reading issues.
+~~Currently I'm making major update to version 2 which supports multiple cloud accounts and can be extended to support clouds other than Amazon Cloud. Just for example I implemented MS OneDrive. It will be released as soon as Dokan 2 release and I finish new type of caching that should eliminated most of file updating and big file reading issues.~~
+
+I spent a lot of time trying different cachings but without success. So I just added better UI and updated to Dokany 1.0.0.
 
 Shell Extension
 ---------------
@@ -28,7 +33,6 @@ Pros
 * Driver does not create any special files on your Amazon Cloud Drive.
 * Same Amazon Cloud Drive can be used on multiple PCs with this Driver or in Web simultaneously (with issues). 
 
-
 Issues
 ------
 * Disk caching is done only for files with size less 20Mb. This can be changed, but be careful, Windows will try open all files you see in explorer. Big files are partially cached in memory and random access can be slow. Common video files are big and require random access to play. It's very unlikely you can play any video directly, but you can copy it to real drive first.
@@ -36,6 +40,7 @@ Issues
 * Some applications can report some files cannot be opened. Still such files can be reopened later.
 * Sometimes Explorer thumbnails get broken.
 * There can be a conflict if you try to upload files with same name from different apps or web, only the first uploaded file will remain.
+* There can be different problems if you try to mess with uploading files like rename or move.
 
 Issues reporting
 ----------------
@@ -52,26 +57,25 @@ If you did not get your cloud mounted or have other reason, sad to hear it. Here
 * If you have problems preventing to open settings windows in "Run as Administrator"
   * Open Windows Event Viewer, go to Windows Logs - Application
   * Filter by Event Source ACDDokan.NET.
-  * Check if events do no contain anything too private, events usually contain path to files, but there is no any account name or more over any password as application cannot get them. 
+  * Check if events do not contain anything too private, events usually contain path to files, but there is no any account name or more over any password as application cannot get them. 
   * If there are some really private messages select all and unselect bad, Save Selected Events...
   * If nothing wrong Save Filtered Log File As...
   * Go to https://github.com/Rambalac/ACDDokanNet/issues
   * Create new issue and attach log file
 
-
-
 Notes
 -----
+* All files copied to drive get to temp folder first and only then driver starts uploading. Because driver does not see what you doing in Explorer it cannot now where it was copied from and has to get solid copy for upload. There can be workaround with simlinks, but I did not try it yet.
 * Copying file from Amazon Cloud Drive into different folder in the same cloud will download file and reupload it back.
 * There is no limit for Upload cache folder where file copies for upload are stored.
-* Folders are cached in memory for 60 seconds. If you deleted or uploaded some files in other way they will not appear/disappear same time even if you refresh folder, you have to wait up to 60 seconds and then refresh.
+* Folders are cached in memory for 60 seconds. If you deleted or uploaded some files in other way like in web they will not appear/disappear same time even if you refresh folder, you have to wait up to 60 seconds and then refresh.
 * Communication between Amazon Cloud Drive and this driver is secured by SSL, but there is no built-in way, at least for now, to encrypt files before uploading to Amazon Cloud Drive.
 
 Prerequisites
 -------------
 - For use
     * Windows 7 or newer
-    * [Dokany 0.8.0](https://github.com/dokan-dev/dokany/releases/tag/v0.8.0) is required.
+    * [Dokany 1.0.0](https://github.com/dokan-dev/dokany/releases/tag/v0.8.0) is required.
 
 - For developing
     * VS 2015
@@ -80,15 +84,20 @@ Prerequisites
 
 Installation
 ------------
-* Read [Issues](#issues) section for limitations, it may not work for apps you want to use.
-* Install Dokany with DokanInstall_x.x.x_redist.exe from https://github.com/dokan-dev/dokany/releases .
+* Read [Issues](#issues) and [Notes](#notes) sections tobe sure you know about main limitations, it may not work for apps you want to use.
+
+* Install Dokany
+  * For versions after 1.6.0 install Dokany with DokanSetup-1.0.0.5000.exe from https://github.com/dokan-dev/dokany/releases/tag/v1.0.0 .
+  * For versions before 1.6.0 install DokanInstall_0.8.0_redist.exe from https://github.com/dokan-dev/dokany/releases/tag/v0.8.0 .
+
 * Install my latest release from https://github.com/Rambalac/ACDDokanNet/releases/latest .
 * Open Settings from App list.
-* Select drive letter if needed.
-* Mount
-* Amazon Cloud Drive page should be opened
-* Login and/or confirm to allow app to access Amazon Cloud Drive.
-* If I did everything right, you should get drive letter with your Amazon Cloud Drive.
+* Add cloud.
+* Select drive letter if needed and rename disk (renaming in explorer will work only till next mounting).
+* Mount.
+* Amazon Cloud Drive page should be opened (Or other login screen for other clouds).
+* Login and/or confirm to allow app to access cloud.
+* If I did everything right, you should get drive letter with your cloud.
 
 Tested apps
 -----------
@@ -104,6 +113,11 @@ Catalog backup currently does not work due requirement for write already created
 
 News
 ----
+### 2016-10-09
+* Prerelease 1.6.0.
+* Now you can mount multiple cloud services. As example and test Microsoft OneDrive was added. Theoretically it should support any libraries as Cloud.*.dll as Addons.
+* Uploading files list is displayed to show file name, progress and if failed error. Upload can be cancelled.
+
 ### 2016-04-14
 * Minor release 1.5.5. Fixed file names with special symbols.
 
