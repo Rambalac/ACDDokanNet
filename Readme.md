@@ -114,6 +114,9 @@ Catalog backup currently does not work due requirement for write already created
 News
 ----
 ### 2016-10-09
+Removed Prerelease 1.6.0 because of Windows Explorer locking out and only hardware Reset button helps. Looks like this happened after updating to Dokany 1.0.0, but need more testing.
+
+### 2016-10-09
 * Prerelease 1.6.0.
 * Now you can mount multiple cloud services. As example and test Microsoft OneDrive was added. Theoretically it should support any libraries as Cloud.*.dll as Addons.
 * Uploading files list is displayed to show file name, progress and if failed error. Upload can be cancelled.
