@@ -71,7 +71,7 @@ Prerequisites
 -------------
 - For use
     * Windows 7 or newer
-    * [Dokany](https://github.com/dokan-dev/dokany/releases) is required.
+    * [Dokany 0.8.0](https://github.com/dokan-dev/dokany/releases/tag/v0.8.0) is required.
 
 - For developing
     * VS 2015
