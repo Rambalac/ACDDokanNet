@@ -5,8 +5,6 @@
 
     public abstract class AbstractBlockStream : IBlockStream
     {
-        private int closed;
-
         public Action OnClose { get; set; }
 
         public abstract void Flush();
@@ -23,11 +21,6 @@
 
         public virtual void Close()
         {
-            if (Interlocked.CompareExchange(ref closed, 1, 0) != 0)
-            {
-                return;
-            }
-
             OnClose?.Invoke();
         }
 

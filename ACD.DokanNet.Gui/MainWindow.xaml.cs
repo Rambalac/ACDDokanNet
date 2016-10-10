@@ -61,6 +61,7 @@
         {
             e.Cancel = true;
             Hide();
+            Properties.Settings.Default.Save();
         }
 
         private void ExportLog_Click(object sender, RoutedEventArgs e)

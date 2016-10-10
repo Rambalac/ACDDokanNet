@@ -65,7 +65,7 @@
                 }
 
                 cachePath = Path.Combine(value, "SmallFiles");
-                Directory.CreateDirectory(cachePath);
+                
                 if (wasNull)
                 {
                     Task.Run(() => RecalculateTotalSize());
@@ -203,16 +203,22 @@
 
         public FileBlockReader OpenReadCachedOnly(FSItem item)
         {
+            CacheEntry entry;
             var path = Path.Combine(cachePath, item.Id);
             if (!File.Exists(path))
             {
+
+                access.TryRemove(item.Id, out entry);
                 return null;
             }
 
-            CacheEntry entry;
             if (access.TryGetValue(item.Id, out entry))
             {
                 entry.AccessTime = DateTime.UtcNow;
+            }
+            else
+            {
+                AddExisting(item);
             }
 
             Log.Trace("Opened cached: " + item.Id);
@@ -326,6 +332,8 @@
                 {
                     return downloaders[item.Path];
                 }
+
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
 
                 var writer = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite, 4096, FileOptions.Asynchronous | FileOptions.SequentialScan);
                 if (writer.Length == item.Length)

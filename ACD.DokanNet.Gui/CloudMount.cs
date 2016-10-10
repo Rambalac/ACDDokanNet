@@ -137,6 +137,7 @@
             {
                 await Instance.SignOut(CloudInfo.AuthSave);
             }
+
             App.DeleteCloud(this);
         }
 

@@ -163,6 +163,9 @@
         internal void DeleteCloud(CloudMount cloud)
         {
             Clouds.Remove(cloud);
+            var settings = Gui.Properties.Settings.Default;
+            settings.Clouds = new CloudInfoCollection(Clouds.Select(c => c.CloudInfo));
+            settings.Save();
         }
 
         private void ProcessArgs(string[] args)

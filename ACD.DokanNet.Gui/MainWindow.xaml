@@ -8,7 +8,8 @@
         xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
         x:Class="Azi.Cloud.DokanNet.Gui.MainWindow"
         mc:Ignorable="d"
-        Title="ACD Dokan.Net Settings" SizeToContent="WidthAndHeight" Closing="Window_Closing" MinWidth="300" MaxWidth="300" MinHeight="280">
+        Title="ACD Dokan.Net Settings" Closing="Window_Closing" MaxWidth="320" MinWidth="320" MinHeight="280"
+        Height="{Binding Source={x:Static p:Settings.Default}, Path=WinHeight, Mode=TwoWay}">
     <Window.Resources>
 
     </Window.Resources>
@@ -21,7 +22,7 @@
                 <ColumnDefinition/>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
-                <RowDefinition Height="100"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="5"/>
                 <RowDefinition/>
                 <RowDefinition Height="Auto"/>
@@ -99,7 +100,7 @@
                         <CheckBox Content="Start app on Windows start" IsChecked="{Binding IsAutorun}" Margin="5,5,5,5" Grid.ColumnSpan="3"/>
 
                         <Label Content="Cache path" Padding="5,0,0,0" Grid.ColumnSpan="2" Grid.Row="1" />
-                        
+
                         <Button x:Name="cacheDirButton" Content="Change dir" IsEnabled="{Binding CanMount}" Click="ChangeCacheDir" Margin="0,0,5,0" Grid.Column="1" Grid.Row="1" />
                         <Button x:Name="cacheClearButton" Content="Clear Cache" IsEnabled="{Binding CanMount}" Click="ClearSmallFilesCache" Margin="0,0,0,0" Grid.Column="2" Grid.Row="1" />
                         <TextBox IsReadOnly="True" Text="{Binding CacheFolder}" Grid.Row="2" MaxLines="1" Margin="0,5,0,0" Grid.ColumnSpan="3" />
@@ -113,14 +114,14 @@
                         <Label Content="Version" Padding="5,5,5,0" Grid.Row="5"/>
                         <TextBox IsReadOnly="True" Text="{Binding Version, Mode=OneTime}" MaxLines="1" Margin="0,5,0,5"  Grid.Row="5" Grid.Column="2"/>
 
-                        <Grid Grid.Row="6" Grid.ColumnSpan="3" HorizontalAlignment="Center" Margin="46,0" Grid.RowSpan="2">
+                        <Grid Grid.Row="6" Grid.ColumnSpan="3" HorizontalAlignment="Center">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="6.419" />
+                                <ColumnDefinition Width="6" />
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <Button Content="Export Log" Click="ExportLog_Click"/>
-                            <Button Content="Open GitHub Issue" Grid.Column="2" Click="OpenIssue_Click"/>
+                            <Button Content="Export Log" Padding="5,0,5,0" Click="ExportLog_Click"/>
+                            <Button Content="Open GitHub Issue" Padding="5,0,5,0" Grid.Column="2" Click="OpenIssue_Click"/>
                         </Grid>
                     </Grid>
                 </Expander>

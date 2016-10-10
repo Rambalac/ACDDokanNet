@@ -9,7 +9,6 @@
     {
         private readonly FSItem item;
         private readonly FileStream stream;
-        private int closed;
         private bool disposedValue;
         private string filePath;
 
@@ -22,15 +21,8 @@
 
         public override void Close()
         {
-            if (Interlocked.CompareExchange(ref closed, 1, 0) == 1)
-            {
-                return;
-            }
-
+            item.Length = stream.Length;
             stream.Dispose();
-
-            var info = new FileInfo(filePath);
-            item.Length = info.Length;
 
             Log.Trace($"Closed New file: {item.Path} of {item.Length} bytes");
             base.Close();
@@ -76,7 +68,6 @@
             {
                 if (disposing)
                 {
-                    Close();
                     stream.Dispose();
                 }
 

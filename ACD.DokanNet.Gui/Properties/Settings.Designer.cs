@@ -81,5 +81,17 @@ namespace Azi.Cloud.DokanNet.Gui.Properties {
                 this["Clouds"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int WinHeight {
+            get {
+                return ((int)(this["WinHeight"]));
+            }
+            set {
+                this["WinHeight"] = value;
+            }
+        }
     }
 }

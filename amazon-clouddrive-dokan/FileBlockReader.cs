@@ -33,14 +33,9 @@
 
         public override void Close()
         {
-            if (Interlocked.CompareExchange(ref closed, 1, 0) == 1)
-            {
-                return;
-            }
-
             Log.Trace(Path.GetFileName(filePath));
 
-            stream.Close();
+            stream.Dispose();
 
             base.Close();
         }
@@ -100,7 +95,7 @@
             {
                 if (disposing)
                 {
-                    Close();
+                    stream.Dispose();
                 }
 
                 disposedValue = true;
