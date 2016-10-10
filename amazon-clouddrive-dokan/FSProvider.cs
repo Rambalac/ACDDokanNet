@@ -293,9 +293,9 @@
             }
         }
 
-        public void ClearSmallFilesCache()
+        public async Task ClearSmallFilesCache()
         {
-            var task = SmallFilesCache.Clear();
+            await SmallFilesCache.Clear();
         }
 
         public bool Exists(string filePath)

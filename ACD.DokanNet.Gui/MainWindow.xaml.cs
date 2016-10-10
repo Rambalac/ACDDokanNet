@@ -45,11 +45,11 @@
             }
         }
 
-        private void ClearSmallFilesCache(object sender, RoutedEventArgs e)
+        private async void ClearSmallFilesCache(object sender, RoutedEventArgs e)
         {
             try
             {
-                App.Current.ClearCache();
+                await App.Current.ClearCache();
             }
             catch (InvalidOperationException ex)
             {

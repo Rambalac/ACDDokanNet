@@ -438,13 +438,23 @@
             MainWindow.Show();
         }
 
-        internal void ClearCache()
+        internal async Task ClearCache()
         {
-            // TODO
-            // if (provider != null)
-            // {
-            //    provider.ClearSmallFilesCache();
-            // }
+            bool any = false;
+            foreach (var mount in Clouds)
+            {
+                var provider = mount.Provider;
+                if (provider != null)
+                {
+                    any = true;
+                    await provider.ClearSmallFilesCache();
+                }
+            }
+
+            if (!any)
+            {
+                throw new InvalidOperationException("Mount at least one cloud");
+            }
         }
 
         private const string AppName = "ACDDokanNet";
