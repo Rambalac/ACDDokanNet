@@ -49,18 +49,12 @@
         {
             get
             {
-                lock (lengthLock)
-                {
-                    return length;
-                }
+                return Interlocked.Read(ref length);
             }
 
             set
             {
-                lock (lengthLock)
-                {
-                    length = value;
-                }
+                Interlocked.Exchange(ref length, value);
             }
         }
 
@@ -80,17 +74,6 @@
                 Path = path,
                 NotExistingDummy = true
             };
-        }
-
-        public void RiseLength(long newlength)
-        {
-            lock (lengthLock)
-            {
-                if (length < newlength)
-                {
-                    length = newlength;
-                }
-            }
         }
 
         public static FSItem MakeUploading(string path, string cachedId, string parentId, long length)

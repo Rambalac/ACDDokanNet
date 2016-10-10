@@ -23,7 +23,7 @@
 
         public string FileName { get; set; }
 
-        public int Progress => (int)(Done * 100 / Total);
+        public int Progress => Total != 0 ? (int)(Done * 100 / Total) : 0;
 
         public string ProgressTip
         {

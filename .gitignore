@@ -211,3 +211,5 @@ _Pvt_Extensions/
 ModelManifest.xml
 AmazonSecret.cs
 MicrosoftSecret.cs
+*.db
+*.opendb

@@ -10,7 +10,7 @@
     {
         private const int WaitForFile = 50;
 
-        private readonly ConcurrentBag<FileStream> files;
+        private readonly FileStream stream;
         private readonly long expectedLength;
         private readonly string filePath;
         private readonly object closeLock = new object();
@@ -21,14 +21,13 @@
         {
             filePath = path;
             expectedLength = length;
-            files = new ConcurrentBag<FileStream>();
+            stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
         }
 
         public static FileBlockReader Open(string filePath, long length)
         {
             var result = new FileBlockReader(filePath, length);
 
-            result.ReleaseFile(new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite));
             return result;
         }
 
@@ -41,10 +40,7 @@
 
             Log.Trace(Path.GetFileName(filePath));
 
-            foreach (var file in files)
-            {
-                file.Close();
-            }
+            stream.Close();
 
             base.Close();
         }
@@ -58,18 +54,18 @@
 
             var timeouttime = DateTime.UtcNow.AddMilliseconds(timeout);
             int red;
-            var file = GetFile();
-            int totalred = 0;
-            try
+
+            lock (stream)
             {
-                file.Position = position;
+                int totalred = 0;
+                stream.Position = position;
                 do
                 {
-                    red = file.Read(buffer, offset, Math.Min(count, buffer.Length - offset));
+                    red = stream.Read(buffer, offset, Math.Min(count, buffer.Length - offset));
                     totalred += red;
                     offset += red;
                     count -= red;
-                    if (file.Position < expectedLength && red == 0)
+                    if (stream.Position < expectedLength && red == 0)
                     {
                         Thread.Sleep(WaitForFile);
                     }
@@ -79,12 +75,8 @@
                         throw new TimeoutException();
                     }
                 }
-                while (file.Position < expectedLength && count > 0);
+                while (stream.Position < expectedLength && count > 0);
                 return totalred;
-            }
-            finally
-            {
-                ReleaseFile(file);
             }
         }
 
@@ -112,40 +104,6 @@
                 }
 
                 disposedValue = true;
-            }
-        }
-
-        private FileStream GetFile()
-        {
-            FileStream result;
-            if (files.TryTake(out result))
-            {
-                return result;
-            }
-
-            lock (closeLock)
-            {
-                if (closed == 1)
-                {
-                    throw new IOException("File is already closed");
-                }
-
-                return new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            }
-        }
-
-        private void ReleaseFile(FileStream file)
-        {
-            lock (closeLock)
-            {
-                if (closed != 1)
-                {
-                    files.Add(file);
-                }
-                else
-                {
-                    file.Close();
-                }
             }
         }
     }

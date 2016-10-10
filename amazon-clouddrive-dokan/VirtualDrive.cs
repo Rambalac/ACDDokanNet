@@ -251,7 +251,7 @@
         {
             try
             {
-                const long fakeSize = 100 << 40;
+                const long fakeSize = 100L << 40;
 
                 freeBytesAvailable = fakeSize - provider.TotalUsedSpace;
                 totalNumberOfBytes = fakeSize;

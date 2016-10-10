@@ -8,17 +8,16 @@
     public class NewFileBlockWriter : AbstractBlockStream
     {
         private readonly FSItem item;
-        private readonly ThreadLocal<FileStream> writer;
+        private readonly FileStream stream;
         private int closed;
-        private long lastPosition;
-        private bool disposedValue; // To detect redundant calls
+        private bool disposedValue;
         private string filePath;
 
         public NewFileBlockWriter(FSItem item, string filePath)
         {
             this.item = item;
             this.filePath = filePath;
-            writer = new ThreadLocal<FileStream>(() => new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite), true);
+            stream = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite);
         }
 
         public override void Close()
@@ -28,10 +27,7 @@
                 return;
             }
 
-            foreach (var stream in writer.Values)
-            {
-                stream.Close();
-            }
+            stream.Dispose();
 
             var info = new FileInfo(filePath);
             item.Length = info.Length;
@@ -42,7 +38,6 @@
 
         public override int Read(long position, byte[] buffer, int offset, int count, int timeout = 1000)
         {
-            var stream = writer.Value;
             lock (stream)
             {
                 stream.Position = position;
@@ -52,15 +47,13 @@
 
         public override void Write(long position, byte[] buffer, int offset, int count, int timeout = 1000)
         {
-            var stream = writer.Value;
             lock (stream)
             {
                 // if (lastPosition != position) Log.Warn($"Write Position in New file was changed from {lastPosition} to {position}");
                 stream.Position = position;
                 stream.Write(buffer, offset, count);
-                lastPosition = stream.Position;
 
-                item.RiseLength(lastPosition);
+                item.Length = stream.Length;
             }
 
             // Log.Trace("Write byte: " + count);
@@ -68,18 +61,12 @@
 
         public override void Flush()
         {
-            foreach (var stream in writer.Values)
-            {
-                lock (stream)
-                {
-                    stream.Flush();
-                }
-            }
+            stream.Flush();
         }
 
         public override void SetLength(long len)
         {
-            writer.Value.SetLength(len);
+            stream.SetLength(len);
             item.Length = len;
         }
 
@@ -90,7 +77,7 @@
                 if (disposing)
                 {
                     Close();
-                    writer.Dispose();
+                    stream.Dispose();
                 }
 
                 disposedValue = true;
