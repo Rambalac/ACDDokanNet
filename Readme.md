@@ -113,6 +113,10 @@ Catalog backup currently does not work due requirement for write already created
 
 News
 ----
+### 2016-10-11
+* Fixed v1.6.0 glitches with Dokany
+* Fixed some UI issues like cloud delete
+
 ### 2016-10-09
 Removed Prerelease 1.6.0 because of Windows Explorer locking out and only hardware Reset button helps. Looks like this happened after updating to Dokany 1.0.0, but need more testing.
 
