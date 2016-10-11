@@ -587,7 +587,9 @@
             return DokanResult.Success;
         }
 
+#pragma warning disable RECS0154 // Parameter is never used
         public NtStatus Unmount(DokanFileInfo info)
+#pragma warning restore RECS0154 // Parameter is never used
         {
             return DokanResult.Success;
         }
@@ -679,7 +681,9 @@
             return DokanResult.Success;
         }
 
+#pragma warning disable RECS0154 // Parameter is never used
         private NtStatus MainCreateDirectory(string fileName, DokanFileInfo info)
+#pragma warning restore RECS0154 // Parameter is never used
         {
             if (ReadOnly)
             {
@@ -714,6 +718,7 @@
                     }
 
                     return ProcessItemInfo(streamNameGroups, item, info);
+
                 case "Zone.Identifier":
                     if (mode != FileMode.CreateNew)
                     {
@@ -762,7 +767,9 @@
             return false;
         }
 
+#pragma warning disable RECS0154 // Parameter is never used
         private NtStatus MainOpenFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
+#pragma warning restore RECS0154 // Parameter is never used
         {
             bool readAccess = (access & DataReadAccess) != 0;
             bool writeAccess = (access & DataWriteAccess) != 0;

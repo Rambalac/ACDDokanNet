@@ -1,10 +1,9 @@
 ﻿namespace Azi.Cloud.DokanNet
 {
     using System;
-    using System.Collections.Concurrent;
     using System.IO;
     using System.Threading;
-    using Azi.Tools;
+    using Tools;
 
     public class FileBlockReader : AbstractBlockStream
     {
@@ -13,9 +12,7 @@
         private readonly FileStream stream;
         private readonly long expectedLength;
         private readonly string filePath;
-        private readonly object closeLock = new object();
         private bool disposedValue; // To detect redundant calls
-        private int closed;
 
         private FileBlockReader(string path, long length)
         {

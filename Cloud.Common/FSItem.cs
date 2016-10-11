@@ -135,7 +135,7 @@
             {
                 if (ParentPath == null)
                 {
-                    throw new ArgumentNullException("Path should be set");
+                    throw new NullReferenceException("ParentPath should be set");
                 }
 
                 var result = new FSItem

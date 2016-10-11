@@ -1,19 +1,18 @@
 ﻿using Azi.Cloud.Common;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Xunit;
 
 namespace Azi.Cloud.DokanNet.Tests
 {
-    public class NewFileBlockWriterTests : IDisposable
+    public sealed class NewFileBlockWriterTests : IDisposable
     {
-        NewFileBlockWriter writer;
-        FSItem item = new FSItem.Builder()
+        private NewFileBlockWriter writer;
+
+        private FSItem item = new FSItem.Builder()
         {
             Id = "id",
             ParentPath = "p",
@@ -21,7 +20,7 @@ namespace Azi.Cloud.DokanNet.Tests
             ParentIds = new System.Collections.Concurrent.ConcurrentBag<string>(new string[] { "id" })
         }.Build();
 
-        string tempPath = Path.Combine(Path.GetTempPath(), Path.GetTempFileName());
+        private string tempPath = Path.Combine(Path.GetTempPath(), Path.GetTempFileName());
 
         public NewFileBlockWriterTests()
         {
@@ -37,7 +36,6 @@ namespace Azi.Cloud.DokanNet.Tests
             }
         }
 
-
         public void ParallelWriteTest()
         {
             writer = new NewFileBlockWriter(item, tempPath);
@@ -50,13 +48,11 @@ namespace Azi.Cloud.DokanNet.Tests
                 var ii = i;
                 tasks[i] = Task.Factory.StartNew(() =>
                   {
-
                       writer.Write(ii * array.Length, array, 0, array.Length);
                   }, TaskCreationOptions.LongRunning);
             }
             Task.WaitAll(tasks);
             writer.Close();
-
 
             var info = new FileInfo(tempPath);
             Assert.Equal(array.Length * parts, info.Length);
@@ -76,16 +72,34 @@ namespace Azi.Cloud.DokanNet.Tests
             File.Delete(tempPath);
         }
 
-        public void Dispose()
+        private bool disposedValue = false; // To detect redundant calls
+
+        void Dispose(bool disposing)
         {
-            try
+            if (!disposedValue)
             {
-                File.Delete(tempPath);
-            }
-            catch (Exception e)
-            {
-                Debug.WriteLine(e);
+                if (disposing)
+                {
+                    try
+                    {
+                        File.Delete(tempPath);
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.WriteLine(e);
+                    }
+                    writer.Dispose();
+                }
+
+                disposedValue = true;
             }
         }
+
+        public void Dispose()
+        {
+            Dispose(true);
+        }
+
+
     }
 }

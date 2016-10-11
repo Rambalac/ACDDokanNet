@@ -194,6 +194,7 @@
                 case NodeShareType.ReadWrite:
                     t = "edit";
                     break;
+
                 default:
                     t = "view";
                     break;

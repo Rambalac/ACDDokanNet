@@ -4,29 +4,25 @@
     using System.Collections.Generic;
     using System.ComponentModel;
     using System.Diagnostics;
+    using System.IO;
     using System.Linq;
+    using System.Reflection;
     using System.Threading;
     using System.Threading.Tasks;
     using System.Windows;
-    using Azi.Cloud.DokanNet;
-    using Azi.Tools;
     using Common;
-    using System.Reflection;
-    using System.IO;
+    using DokanNet;
+    using Tools;
 
     public class CloudMount : INotifyPropertyChanged, IDisposable, IAuthUpdateListener
     {
         private readonly CloudInfo cloudInfo;
 
-        private ManualResetEventSlim unmountingEvent;
-
+        private bool disposedValue = false;
         private IHttpCloud instance;
-
         private bool mounting = false;
-
         private bool unmounting = false;
-
-        private bool disposedValue = false; // To detect redundant calls
+        private ManualResetEventSlim unmountingEvent;
 
         public CloudMount(CloudInfo info)
         {
@@ -36,6 +32,10 @@
 
         public event PropertyChangedEventHandler PropertyChanged;
 
+        public bool CanMount => (Instance != null) && (!mounting) && !(MountLetter != null);
+
+        public bool CanUnmount => (!unmounting) && (MountLetter != null);
+
         public CloudInfo CloudInfo
         {
             get
@@ -44,42 +44,7 @@
             }
         }
 
-        public IHttpCloud Instance
-        {
-            get
-            {
-                try
-                {
-                    if (instance == null)
-                    {
-                        instance = CreateInstance();
-                        instance.Id = CloudInfo.Id;
-                    }
-
-                    return instance;
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex);
-                    return null;
-                }
-            }
-        }
-
-        private IHttpCloud CreateInstance()
-        {
-            var assembly = Assembly.LoadFrom(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, CloudInfo.AssemblyFileName));
-
-            var types = assembly.GetExportedTypes().Where(t => typeof(IHttpCloud).IsAssignableFrom(t));
-
-            var assemblyName = types.Single(t => t.IsClass).Assembly.FullName;
-
-            return Activator.CreateInstance(assemblyName, CloudInfo.ClassName).Unwrap() as IHttpCloud;
-        }
-
         public string CloudServiceIcon => Instance?.CloudServiceIcon ?? "images/lib_load_error.png";
-
-        public char? MountLetter { get; set; }
 
         public IList<char> DriveLetters
         {
@@ -105,30 +70,43 @@
             }
         }
 
-        public bool CanMount => (Instance != null) && (!mounting) && !(MountLetter != null);
+        public IHttpCloud Instance
+        {
+            get
+            {
+                try
+                {
+                    if (instance == null)
+                    {
+                        instance = CreateInstance();
+                        instance.Id = CloudInfo.Id;
+                    }
 
-        public bool CanUnmount => (!unmounting) && (MountLetter != null);
+                    return instance;
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex);
+                    return null;
+                }
+            }
+        }
 
         public bool IsMounted => !mounting && !unmounting && (MountLetter != null);
 
         public bool IsUnmounted => !unmounting && !unmounting && !(MountLetter != null);
 
-        public Visibility MountVisible => (!unmounting && (MountLetter == null)) ? Visibility.Visible : Visibility.Collapsed;
-
-        public Visibility UnmountVisible => (!mounting && (MountLetter != null)) ? Visibility.Visible : Visibility.Collapsed;
-
         public CancellationTokenSource MountCancellation { get; } = new CancellationTokenSource();
+
+        public char? MountLetter { get; set; }
+
+        public Visibility MountVisible => (!unmounting && (MountLetter == null)) ? Visibility.Visible : Visibility.Collapsed;
 
         public FSProvider Provider { get; private set; }
 
-        private App App => App.Current;
+        public Visibility UnmountVisible => (!mounting && (MountLetter != null)) ? Visibility.Visible : Visibility.Collapsed;
 
-        // This code added to correctly implement the disposable pattern.
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-            Dispose(true);
-        }
+        private App App => App.Current;
 
         public async Task Delete()
         {
@@ -141,10 +119,11 @@
             App.DeleteCloud(this);
         }
 
-        public void OnAuthUpdated(IHttpCloud sender, string authinfo)
+        // This code added to correctly implement the disposable pattern.
+        public void Dispose()
         {
-            CloudInfo.AuthSave = authinfo;
-            App.SaveClouds();
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(true);
         }
 
         public async Task MountAsync(bool interactiveAuth = true)
@@ -176,6 +155,12 @@
                 mounting = false;
                 NotifyMount();
             }
+        }
+
+        public void OnAuthUpdated(IHttpCloud sender, string authinfo)
+        {
+            CloudInfo.AuthSave = authinfo;
+            App.SaveClouds();
         }
 
         public async Task UnmountAsync()
@@ -234,6 +219,26 @@
             }
         }
 
+        private async Task<bool> Authenticate(IHttpCloud cloud, CancellationToken cs, bool interactiveAuth)
+        {
+            var authinfo = CloudInfo.AuthSave;
+            if (!string.IsNullOrWhiteSpace(authinfo))
+            {
+                if (await cloud.AuthenticateSaved(cs, authinfo))
+                {
+                    return true;
+                }
+            }
+
+            Debug.WriteLine("No auth info: " + CloudInfo.Name);
+            if (!interactiveAuth)
+            {
+                return false;
+            }
+
+            return await cloud.AuthenticateNew(cs);
+        }
+
         private void CloudInfoChanged(object sender, PropertyChangedEventArgs e)
         {
             OnPropertyChanged(nameof(CloudInfo));
@@ -243,6 +248,17 @@
             }
 
             App.SaveClouds();
+        }
+
+        private IHttpCloud CreateInstance()
+        {
+            var assembly = Assembly.LoadFrom(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, CloudInfo.AssemblyFileName));
+
+            var types = assembly.GetExportedTypes().Where(t => typeof(IHttpCloud).IsAssignableFrom(t));
+
+            var assemblyName = types.Single(t => t.IsClass).Assembly.FullName;
+
+            return Activator.CreateInstance(assemblyName, CloudInfo.ClassName).Unwrap() as IHttpCloud;
         }
 
         private async Task<char> Mount(bool interactiveAuth = true)
@@ -328,41 +344,6 @@
             }
         }
 
-        private void ProviderStatisticsUpdated(IHttpCloud cloud, StatisticUpdateReason reason, AStatisticFileInfo info)
-        {
-            App?.OnProviderStatisticsUpdated(CloudInfo, reason, info);
-        }
-
-        private async Task<bool> Authenticate(IHttpCloud cloud, CancellationToken cs, bool interactiveAuth)
-        {
-            var authinfo = CloudInfo.AuthSave;
-            if (!string.IsNullOrWhiteSpace(authinfo))
-            {
-                if (await cloud.AuthenticateSaved(cs, authinfo))
-                {
-                    return true;
-                }
-            }
-
-            Debug.WriteLine("No auth info: " + CloudInfo.Name);
-            if (!interactiveAuth)
-            {
-                return false;
-            }
-
-            return await cloud.AuthenticateNew(cs);
-        }
-
-        private void RefreshLetters(object state)
-        {
-            if (!CanMount)
-            {
-                return;
-            }
-
-            OnPropertyChanged(nameof(DriveLetters));
-        }
-
         private void NotifyMount()
         {
             OnPropertyChanged(nameof(MountVisible));
@@ -373,6 +354,11 @@
             OnPropertyChanged(nameof(IsUnmounted));
 
             App.NotifyMountChanged(CloudInfo.Id);
+        }
+
+        private void ProviderStatisticsUpdated(IHttpCloud cloud, StatisticUpdateReason reason, AStatisticFileInfo info)
+        {
+            App?.OnProviderStatisticsUpdated(CloudInfo, reason, info);
         }
     }
 }

@@ -5,12 +5,10 @@
 #include <Windows.h>
 #include "Cloud.DokanNet.IntegrationTests.h"
 
-
 void TestOverlappedWrite(const wchar_t* dir)
 {
 	auto path = new wchar_t[1024];
 	GetTempFileName(dir, L"tmp", 1, path);
-
 
 	auto file = CreateFile(path, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, 0);
 
@@ -94,4 +92,3 @@ int main()
 	_wrmdir(path);
 	printf("All testest passed\r\n");
 }
-

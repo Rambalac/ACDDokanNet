@@ -1,9 +1,8 @@
 ﻿namespace Azi.Cloud.DokanNet
 {
     using System.IO;
-    using System.Threading;
-    using Azi.Cloud.Common;
-    using Azi.Tools;
+    using Common;
+    using Tools;
 
     public class NewFileBlockWriter : AbstractBlockStream
     {

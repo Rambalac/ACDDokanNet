@@ -3,7 +3,7 @@
     using System;
     using System.Threading;
     using System.Threading.Tasks;
-    using Azi.Cloud.Common;
+    using Common;
 
     public class Downloader
     {

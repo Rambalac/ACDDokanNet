@@ -77,10 +77,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AbstractBlockStream.cs" />
+    <Compile Include="AStatisticFileInfo.cs" />
     <Compile Include="Block.cs" />
     <Compile Include="BufferedHttpCloudBlockReader.cs" />
     <Compile Include="ByteArrayBlockReader.cs" />
     <Compile Include="Downloader.cs" />
+    <Compile Include="DownloadStatisticInfo.cs" />
     <Compile Include="DummyBlockStream.cs" />
     <Compile Include="FileBlockReader.cs" />
     <Compile Include="FSProvider.cs" />
@@ -94,6 +96,7 @@
     <Compile Include="SymbolicLink.cs" />
     <Compile Include="UploadInfo.cs" />
     <Compile Include="UploadService.cs" />
+    <Compile Include="UploadStatisticInfo.cs" />
     <Compile Include="VirtualDrive.cs" />
     <Compile Include="VirtualDriveWrapper.cs" />
   </ItemGroup>

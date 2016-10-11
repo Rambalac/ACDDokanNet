@@ -53,6 +53,12 @@
             return SelectedItemPaths.All((path) => FileSystem.AlternateDataStreamExists(path, CloudDokanNetItemInfo.StreamName));
         }
 
+        protected void CopyTempLink(object sender, EventArgs e)
+        {
+            Clipboard.SetText(string.Join("\r\n", SelectedItemPaths.Select(path => ReadInfo(path) as INodeExtendedInfoTempLink)
+                .Where(info => info.TempLink != null).Select(info => info.TempLink)));
+        }
+
         protected override ContextMenuStrip CreateMenu()
         {
             // Create the menu strip.
@@ -106,20 +112,6 @@
             return menu;
         }
 
-        private void CopyReadWriteLink(object sender, EventArgs e)
-        {
-            var path = SelectedItemPaths.Single();
-            var link = ReadString(path, CloudDokanNetAssetInfo.StreamNameShareReadWrite);
-            Clipboard.SetText(link);
-        }
-
-        private void CopyReadOnlyLink(object sender, EventArgs e)
-        {
-            var path = SelectedItemPaths.Single();
-            var link = ReadString(path, CloudDokanNetAssetInfo.StreamNameShareReadOnly);
-            Clipboard.SetText(link);
-        }
-
         protected void OpenAsUrl(object sender, EventArgs e)
         {
             var info = ReadInfo(SelectedItemPaths.Single()) as INodeExtendedInfoTempLink;
@@ -159,10 +151,18 @@
             }
         }
 
-        protected void CopyTempLink(object sender, EventArgs e)
+        private void CopyReadOnlyLink(object sender, EventArgs e)
         {
-            Clipboard.SetText(string.Join("\r\n", SelectedItemPaths.Select(path => ReadInfo(path) as INodeExtendedInfoTempLink)
-                .Where(info => info.TempLink != null).Select(info => info.TempLink)));
+            var path = SelectedItemPaths.Single();
+            var link = ReadString(path, CloudDokanNetAssetInfo.StreamNameShareReadOnly);
+            Clipboard.SetText(link);
+        }
+
+        private void CopyReadWriteLink(object sender, EventArgs e)
+        {
+            var path = SelectedItemPaths.Single();
+            var link = ReadString(path, CloudDokanNetAssetInfo.StreamNameShareReadWrite);
+            Clipboard.SetText(link);
         }
     }
 }

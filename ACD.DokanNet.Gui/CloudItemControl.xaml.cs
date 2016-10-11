@@ -10,16 +10,16 @@
     /// </summary>
     public partial class CloudItemControl : UserControl
     {
-        private CloudMount Model => (CloudMount)DataContext;
-
         public CloudItemControl()
         {
             InitializeComponent();
         }
 
-        private async void UnmountButton_Click(object sender, RoutedEventArgs e)
+        private CloudMount Model => (CloudMount)DataContext;
+
+        private async void DeleteButton_Click(object sender, RoutedEventArgs e)
         {
-            await Model.UnmountAsync();
+            await Model.Delete();
         }
 
         private async void MountButton_Click(object sender, RoutedEventArgs e)
@@ -37,9 +37,9 @@
             Window.GetWindow(this).Activate();
         }
 
-        private async void DeleteButton_Click(object sender, RoutedEventArgs e)
+        private async void UnmountButton_Click(object sender, RoutedEventArgs e)
         {
-            await Model.Delete();
+            await Model.UnmountAsync();
         }
     }
 }

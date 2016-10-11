@@ -7,8 +7,8 @@
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using Azi.Cloud.Common;
-    using Azi.Tools;
+    using Common;
+    using Tools;
 
     public class SmallFilesCache
     {
@@ -65,7 +65,7 @@
                 }
 
                 cachePath = Path.Combine(value, "SmallFiles");
-                
+
                 if (wasNull)
                 {
                     Task.Run(() => RecalculateTotalSize());
@@ -207,7 +207,6 @@
             var path = Path.Combine(cachePath, item.Id);
             if (!File.Exists(path))
             {
-
                 access.TryRemove(item.Id, out entry);
                 return null;
             }

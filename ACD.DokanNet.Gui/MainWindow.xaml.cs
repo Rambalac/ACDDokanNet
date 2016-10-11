@@ -3,19 +3,24 @@
     using System;
     using System.Diagnostics;
     using System.Windows;
-    using Azi.Tools;
     using Microsoft.WindowsAPICodePack.Dialogs;
+    using Tools;
 
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window
     {
-        private ViewModel Model => (ViewModel)DataContext;
-
         public MainWindow()
         {
             InitializeComponent();
+        }
+
+        private ViewModel Model => (ViewModel)DataContext;
+
+        private void AvailableCloudsList_Clicked(object sender, EventArgs e)
+        {
+            cloudAdd_DropDownButton.IsOpen = false;
         }
 
         private void ChangeCacheDir(object sender, RoutedEventArgs e)
@@ -57,13 +62,6 @@
             }
         }
 
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            e.Cancel = true;
-            Hide();
-            Properties.Settings.Default.Save();
-        }
-
         private void ExportLog_Click(object sender, RoutedEventArgs e)
         {
             MessageBox.Show(Properties.Resources.LogWarning);
@@ -100,9 +98,11 @@
             Process.Start("https://github.com/Rambalac/ACDDokanNet/issues/new");
         }
 
-        private void AvailableCloudsList_Clicked(object sender, EventArgs e)
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            cloudAdd_DropDownButton.IsOpen = false;
+            e.Cancel = true;
+            Hide();
+            Properties.Settings.Default.Save();
         }
     }
 }

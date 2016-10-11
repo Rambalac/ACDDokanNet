@@ -1,13 +1,16 @@
 ﻿namespace Azi.Cloud.DokanNet
 {
+    using System;
     using System.Collections.Concurrent;
     using System.Linq;
-    using Common;
     using System.Threading;
+    using Common;
     using Newtonsoft.Json;
 
-    public class UploadInfo
+    public class UploadInfo : IDisposable
     {
+        private bool disposedValue = false;
+
         public UploadInfo()
         {
         }
@@ -20,21 +23,26 @@
             Length = item.Length;
         }
 
-        public long Length { get; set; }
-
-        public string Id { get; set; }
-
-        public string Path { get; set; }
-
-        public string ParentId { get; set; }
-
-        public bool Overwrite { get; set; } = false;
+        [JsonIgnore]
+        public CancellationTokenSource Cancellation { get; } = new CancellationTokenSource();
 
         [JsonIgnore]
         public string FailReason { get; set; }
 
-        [JsonIgnore]
-        public CancellationTokenSource Cancellation { get; } = new CancellationTokenSource();
+        public string Id { get; set; }
+
+        public long Length { get; set; }
+
+        public bool Overwrite { get; set; } = false;
+
+        public string ParentId { get; set; }
+
+        public string Path { get; set; }
+
+        public void Dispose()
+        {
+            Dispose(true);
+        }
 
         internal FSItem ToFSItem()
         {
@@ -46,6 +54,19 @@
                 ParentIds = new ConcurrentBag<string>(new string[] { ParentId }),
                 ParentPath = System.IO.Path.GetDirectoryName(Path)
             }.Build();
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    Cancellation.Dispose();
+                }
+
+                disposedValue = true;
+            }
         }
     }
 }

@@ -1,8 +1,8 @@
-﻿using Xunit;
+﻿using System.Diagnostics;
 using System.IO;
-using System.Threading;
 using System.Linq;
-using System.Diagnostics;
+using System.Threading;
+using Xunit;
 
 namespace Azi.Cloud.DokanNet.Tests
 {

@@ -9,7 +9,6 @@
     using Common;
     using Newtonsoft.Json;
     using Tools;
-    using System.Collections.Generic;
 
     public enum FailReason
     {
@@ -27,14 +26,12 @@
         public const string UploadFolder = "Upload";
 
         private const int ReuploadDelay = 5000;
-        private readonly SemaphoreSlim uploadLimitSemaphore;
-
-        private readonly BlockingCollection<UploadInfo> leftUploads = new BlockingCollection<UploadInfo>();
         private readonly ConcurrentDictionary<string, UploadInfo> allUploads = new ConcurrentDictionary<string, UploadInfo>();
-
         private readonly CancellationTokenSource cancellation = new CancellationTokenSource();
         private readonly IHttpCloud cloud;
+        private readonly BlockingCollection<UploadInfo> leftUploads = new BlockingCollection<UploadInfo>();
         private readonly int uploadLimit;
+        private readonly SemaphoreSlim uploadLimitSemaphore;
         private string cachePath;
         private bool disposedValue; // To detect redundant calls
         private Task serviceTask;
@@ -46,19 +43,11 @@
             this.cloud = cloud;
         }
 
-        public delegate void OnUploadFinishedDelegate(UploadInfo item, FSItem.Builder amazonNode);
-
         public delegate void OnUploadFailedDelegate(UploadInfo item, FailReason reason, string message);
 
+        public delegate void OnUploadFinishedDelegate(UploadInfo item, FSItem.Builder amazonNode);
+
         public delegate void OnUploadProgressDelegate(UploadInfo item, long done);
-
-        public OnUploadFinishedDelegate OnUploadFinished { get; set; }
-
-        public OnUploadFailedDelegate OnUploadFailed { get; set; }
-
-        public OnUploadProgressDelegate OnUploadProgress { get; set; }
-
-        public Action<UploadInfo> OnUploadAdded { get; set; }
 
         public string CachePath
         {
@@ -82,6 +71,14 @@
             }
         }
 
+        public Action<UploadInfo> OnUploadAdded { get; set; }
+
+        public OnUploadFailedDelegate OnUploadFailed { get; set; }
+
+        public OnUploadFinishedDelegate OnUploadFinished { get; set; }
+
+        public OnUploadProgressDelegate OnUploadProgress { get; set; }
+
         public void AddOverwrite(FSItem item)
         {
             var info = new UploadInfo(item)
@@ -94,6 +91,25 @@
             leftUploads.Add(info);
             allUploads.TryAdd(info.Id, info);
             OnUploadAdded?.Invoke(info);
+        }
+
+        public void CancelUpload(string id)
+        {
+            UploadInfo outitem;
+            if (allUploads.TryGetValue(id, out outitem))
+            {
+                outitem.Cancellation.Cancel();
+            }
+        }
+
+        // This code added to correctly implement the disposable pattern.
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(true);
+
+            // TODO: uncomment the following line if the finalizer is overridden above.
+            // GC.SuppressFinalize(this);
         }
 
         public NewFileBlockWriter OpenNew(FSItem item)
@@ -121,6 +137,16 @@
             return result;
         }
 
+        public void Start()
+        {
+            if (serviceTask != null)
+            {
+                return;
+            }
+
+            serviceTask = Task.Factory.StartNew(() => UploadTask(), cancellation.Token, TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
+
         public void Stop()
         {
             if (serviceTask == null)
@@ -139,26 +165,6 @@
             }
 
             serviceTask = null;
-        }
-
-        public void Start()
-        {
-            if (serviceTask != null)
-            {
-                return;
-            }
-
-            serviceTask = Task.Factory.StartNew(() => UploadTask(), cancellation.Token, TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
-        }
-
-        // This code added to correctly implement the disposable pattern.
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-            Dispose(true);
-
-            // TODO: uncomment the following line if the finalizer is overridden above.
-            // GC.SuppressFinalize(this);
         }
 
         public void WaitForUploadsFinish()
@@ -191,36 +197,6 @@
                 // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
                 // TODO: set large fields to null.
                 disposedValue = true;
-            }
-        }
-
-        private void WriteInfo(string path, UploadInfo info)
-        {
-            using (var writer = new StreamWriter(new FileStream(path, FileMode.CreateNew, FileAccess.Write)))
-            {
-                writer.Write(JsonConvert.SerializeObject(info));
-            }
-        }
-
-        private void UploadTask()
-        {
-            try
-            {
-                UploadInfo upload;
-                while (leftUploads.TryTake(out upload, -1, cancellation.Token))
-                {
-                    var uploadCopy = upload;
-                    if (!uploadLimitSemaphore.Wait(-1, cancellation.Token))
-                    {
-                        return;
-                    }
-
-                    Task.Run(async () => await Upload(uploadCopy));
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                Log.Info("Upload service stopped");
             }
         }
 
@@ -259,6 +235,27 @@
                 {
                     Log.Error(ex);
                 }
+            }
+        }
+
+        private void CleanUpload(string path)
+        {
+            try
+            {
+                File.Delete(path);
+            }
+            catch (Exception dex)
+            {
+                Log.Error(dex);
+            }
+
+            try
+            {
+                File.Delete(path + ".info");
+            }
+            catch (Exception dex)
+            {
+                Log.Error(dex);
             }
         }
 
@@ -387,34 +384,33 @@
             item.Cancellation.Token.ThrowIfCancellationRequested();
         }
 
-        private void CleanUpload(string path)
+        private void UploadTask()
         {
             try
             {
-                File.Delete(path);
-            }
-            catch (Exception dex)
-            {
-                Log.Error(dex);
-            }
+                UploadInfo upload;
+                while (leftUploads.TryTake(out upload, -1, cancellation.Token))
+                {
+                    var uploadCopy = upload;
+                    if (!uploadLimitSemaphore.Wait(-1, cancellation.Token))
+                    {
+                        return;
+                    }
 
-            try
-            {
-                File.Delete(path + ".info");
+                    Task.Run(async () => await Upload(uploadCopy));
+                }
             }
-            catch (Exception dex)
+            catch (OperationCanceledException)
             {
-                Log.Error(dex);
+                Log.Info("Upload service stopped");
             }
-
         }
 
-        public void CancelUpload(string id)
+        private void WriteInfo(string path, UploadInfo info)
         {
-            UploadInfo outitem;
-            if (allUploads.TryGetValue(id, out outitem))
+            using (var writer = new StreamWriter(new FileStream(path, FileMode.CreateNew, FileAccess.Write)))
             {
-                outitem.Cancellation.Cancel();
+                writer.Write(JsonConvert.SerializeObject(info));
             }
         }
     }

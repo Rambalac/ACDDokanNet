@@ -8,9 +8,11 @@
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
-    using Azi.Tools;
     using Common;
     using Newtonsoft.Json;
+    using Tools;
+
+    public delegate void StatisticUpdateDelegate(IHttpCloud cloud, StatisticUpdateReason reason, AStatisticFileInfo info);
 
     public enum StatisticUpdateReason
     {
@@ -23,82 +25,6 @@
         Progress,
         UploadAborted
     }
-
-    public abstract class AStatisticFileInfo
-    {
-        public abstract long Total { get; }
-
-        public abstract string Id { get; }
-
-        public abstract string FileName { get; }
-
-        public abstract string Path { get; }
-
-        public string ErrorMessage { get; set; }
-
-        public bool HasError => ErrorMessage != null;
-
-        public long Done { get; set; }
-
-        public override bool Equals(object obj)
-        {
-            if (obj == null || GetType() != obj.GetType())
-            {
-                return false;
-            }
-
-            return Id == ((AStatisticFileInfo)obj).Id;
-        }
-
-        public override int GetHashCode()
-        {
-            return Id.GetHashCode();
-        }
-    }
-
-    public class DownloadStatisticInfo : AStatisticFileInfo
-    {
-        private FSItem info;
-
-        public DownloadStatisticInfo(FSItem info)
-        {
-            this.info = info;
-        }
-
-        public override long Total => info.Length;
-
-        public override string Id => info.Id;
-
-        public override string FileName => info.Name;
-
-        public override string Path => info.Path;
-    }
-
-    public class UploadStatisticInfo : AStatisticFileInfo
-    {
-        private UploadInfo info;
-
-        public UploadStatisticInfo(UploadInfo info)
-        {
-            this.info = info;
-        }
-
-        public UploadStatisticInfo(UploadInfo info, string message)
-        {
-            this.info = info;
-            ErrorMessage = message;
-        }
-
-        public override long Total => info.Length;
-
-        public override string Id => info.Id;
-
-        public override string FileName => System.IO.Path.GetFileName(info.Path);
-
-        public override string Path => info.Path;
-    }
-
-    public delegate void StatisticUpdateDelegate(IHttpCloud cloud, StatisticUpdateReason reason, AStatisticFileInfo info);
 
     public class FSProvider : IDisposable
     {
@@ -150,68 +76,6 @@
             UploadService.Start();
         }
 
-        private void UploadFailed(UploadInfo uploaditem, FailReason reason, string message)
-        {
-            var olditemPath = Path.Combine(UploadService.CachePath, uploaditem.Id);
-            File.Delete(olditemPath);
-
-            switch (reason)
-            {
-                case FailReason.ZeroLength:
-                    var item = GetItem(uploaditem.Path);
-                    item?.MakeNotUploading();
-                    onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFinished, new UploadStatisticInfo(uploaditem));
-                    return;
-                case FailReason.Conflict:
-                case FailReason.NoFolderNode:
-                    onStatisticsUpdated(cloud, StatisticUpdateReason.UploadAborted, new UploadStatisticInfo(uploaditem, message));
-                    return;
-                case FailReason.Cancelled:
-                    if (!uploaditem.Overwrite)
-                    {
-                        itemsTreeCache.DeleteFile(uploaditem.Path);
-                    }
-
-                    onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFinished, new UploadStatisticInfo(uploaditem));
-                    return;
-            }
-
-            onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFailed, new UploadStatisticInfo(uploaditem, message));
-            itemsTreeCache.DeleteFile(uploaditem.Path);
-        }
-
-        private void UploadFinished(UploadInfo item, FSItem.Builder node)
-        {
-            onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFinished, new UploadStatisticInfo(item));
-
-            var newitem = node.SetParentPath(Path.GetDirectoryName(item.Path)).Build();
-            var olditemPath = Path.Combine(UploadService.CachePath, item.Id);
-            var newitemPath = Path.Combine(SmallFilesCache.CachePath, node.Id);
-
-            if (!File.Exists(newitemPath))
-            {
-                File.Move(olditemPath, newitemPath);
-            }
-            else
-            {
-                File.Delete(olditemPath);
-            }
-
-            SmallFilesCache.AddExisting(newitem);
-            itemsTreeCache.Update(newitem);
-        }
-
-        public void Stop()
-        {
-            UploadService.Stop();
-        }
-
-        public long SmallFileSizeLimit { get; set; } = 20 * 1024 * 1024;
-
-        public SmallFilesCache SmallFilesCache { get; private set; }
-
-        public UploadService UploadService { get; private set; }
-
         public long AvailableFreeSpace => cloud.AvailableFreeSpace;
 
         public string CachePath
@@ -240,15 +104,9 @@
             }
         }
 
-        public long TotalSize => cloud.TotalSize;
-
-        public long TotalFreeSpace => cloud.TotalFreeSpace;
-
-        public long TotalUsedSpace => cloud.TotalUsedSpace;
-
-        public string VolumeName { get; set; }
-
         public string FileSystemName => "Cloud Drive";
+
+        public SmallFilesCache SmallFilesCache { get; private set; }
 
         public long SmallFilesCacheSize
         {
@@ -260,6 +118,62 @@
             set
             {
                 SmallFilesCache.CacheSize = value;
+            }
+        }
+
+        public long SmallFileSizeLimit { get; set; } = 20 * 1024 * 1024;
+
+        public long TotalFreeSpace => cloud.TotalFreeSpace;
+
+        public long TotalSize => cloud.TotalSize;
+
+        public long TotalUsedSpace => cloud.TotalUsedSpace;
+
+        public UploadService UploadService { get; private set; }
+
+        public string VolumeName { get; set; }
+
+        public async Task BuildItemInfo(FSItem item)
+        {
+            var info = await cloud.Nodes.GetNodeExtended(item.Id);
+
+            var str = JsonConvert.SerializeObject(info);
+            item.Info = Encoding.UTF8.GetBytes(str);
+        }
+
+        public void CancelUpload(string id)
+        {
+            UploadService.CancelUpload(id);
+        }
+
+        public async Task ClearSmallFilesCache()
+        {
+            await SmallFilesCache.Clear();
+        }
+
+        public void CreateDir(string filePath)
+        {
+            var dir = Path.GetDirectoryName(filePath);
+            var dirNode = GetItem(dir);
+
+            var name = Path.GetFileName(filePath);
+            var node = cloud.Nodes.CreateFolder(dirNode.Id, name).Result;
+
+            itemsTreeCache.Add(node.SetParentPath(Path.GetDirectoryName(filePath)).Build());
+        }
+
+        public void DeleteDir(string filePath)
+        {
+            var item = GetItem(filePath);
+            if (item != null)
+            {
+                if (!item.IsDir)
+                {
+                    throw new InvalidOperationException("Not dir");
+                }
+
+                DeleteItem(filePath, item);
+                itemsTreeCache.DeleteDir(filePath);
             }
         }
 
@@ -278,153 +192,19 @@
             }
         }
 
-        public void DeleteDir(string filePath)
+        // This code added to correctly implement the disposable pattern.
+        public void Dispose()
         {
-            var item = GetItem(filePath);
-            if (item != null)
-            {
-                if (!item.IsDir)
-                {
-                    throw new InvalidOperationException("Not dir");
-                }
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(true);
 
-                DeleteItem(filePath, item);
-                itemsTreeCache.DeleteDir(filePath);
-            }
-        }
-
-        public async Task ClearSmallFilesCache()
-        {
-            await SmallFilesCache.Clear();
+            // TODO: uncomment the following line if the finalizer is overridden above.
+            // GC.SuppressFinalize(this);
         }
 
         public bool Exists(string filePath)
         {
             return GetItem(filePath) != null;
-        }
-
-        public void CreateDir(string filePath)
-        {
-            var dir = Path.GetDirectoryName(filePath);
-            var dirNode = GetItem(dir);
-
-            var name = Path.GetFileName(filePath);
-            var node = cloud.Nodes.CreateFolder(dirNode.Id, name).Result;
-
-            itemsTreeCache.Add(node.SetParentPath(Path.GetDirectoryName(filePath)).Build());
-        }
-
-        public IBlockStream OpenFile(string filePath, FileMode mode, FileAccess fileAccess, FileShare share, FileOptions options)
-        {
-            var item = GetItem(filePath);
-            if (fileAccess == FileAccess.Read)
-            {
-                if (item == null)
-                {
-                    return null;
-                }
-
-                item = WaitForReal(item, 25000);
-
-                Log.Trace($"Opening {filePath} for Read");
-
-                if (item.Length < SmallFileSizeLimit)
-                {
-                    return SmallFilesCache.OpenReadWithDownload(item);
-                }
-
-                var result = SmallFilesCache.OpenReadCachedOnly(item);
-                if (result != null)
-                {
-                    return result;
-                }
-
-                onStatisticsUpdated(cloud, StatisticUpdateReason.DownloadAdded, new DownloadStatisticInfo(item));
-                var buffered = new BufferedHttpCloudBlockReader(item, cloud);
-                buffered.OnClose = () =>
-                  {
-                      onStatisticsUpdated(cloud, StatisticUpdateReason.DownloadFinished, new DownloadStatisticInfo(item));
-                  };
-
-                return buffered;
-            }
-
-            if (item == null || item.Length == 0)
-            {
-#if TRACE
-                Log.Trace($"Creating {filePath} as New because mode:{mode} and {((item == null) ? "item is null" : "length is 0")}");
-#endif
-
-                var dir = Path.GetDirectoryName(filePath);
-                var name = Path.GetFileName(filePath);
-                var dirItem = GetItem(dir);
-
-                item = FSItem.MakeUploading(filePath, Guid.NewGuid().ToString(), dirItem.Id, 0);
-
-                var file = UploadService.OpenNew(item);
-
-                itemsTreeCache.Add(item);
-
-                return file;
-            }
-
-            if (item == null)
-            {
-                return null;
-            }
-
-            item = WaitForReal(item, 25000);
-
-            if ((mode == FileMode.Create || mode == FileMode.Truncate) && item.Length > 0)
-            {
-#if TRACE
-                Log.Trace($"Opening {filePath} as Truncate because mode:{mode} and length {item.Length}");
-#endif
-                item.Length = 0;
-                SmallFilesCache.Delete(item);
-                item.MakeUploading();
-                var file = UploadService.OpenTruncate(item);
-
-                return file;
-            }
-
-            if (mode == FileMode.Open || mode == FileMode.Append || mode == FileMode.OpenOrCreate)
-            {
-#if TRACE
-                Log.Trace($"Opening {filePath} as ReadWrite because mode:{mode} and length {item.Length}");
-#endif
-                if (item.Length < SmallFileSizeLimit)
-                {
-                    var file = SmallFilesCache.OpenReadWrite(item);
-                    file.OnChangedAndClosed = (it, path) =>
-                    {
-                        it.LastWriteTime = DateTime.UtcNow;
-
-                        if (!it.IsUploading)
-                        {
-                            it.MakeUploading();
-                            var olditemPath = Path.Combine(SmallFilesCache.CachePath, item.Id);
-                            var newitemPath = Path.Combine(UploadService.CachePath, item.Id);
-
-                            if (File.Exists(newitemPath))
-                            {
-                                File.Delete(newitemPath);
-                            }
-
-                            SymbolicLink.CreateFile(GetRelativePath(olditemPath, Path.GetDirectoryName(newitemPath)), newitemPath);
-                            SmallFilesCache.AddExisting(it);
-                        }
-
-                        UploadService.AddOverwrite(it);
-                    };
-
-                    return file;
-                }
-
-                Log.Warn("File is too big for ReadWrite: " + filePath);
-            }
-
-            return null;
         }
 
         public async Task<IList<FSItem>> GetDirItems(string folderPath)
@@ -455,6 +235,21 @@
             return items;
         }
 
+        public byte[] GetExtendedInfo(List<string> streamNameGroups, FSItem item)
+        {
+            switch (streamNameGroups[1])
+            {
+                case CloudDokanNetAssetInfo.StreamNameShareReadOnly:
+                    return Encoding.UTF8.GetBytes(cloud.Nodes.ShareNode(item.Id, NodeShareType.ReadOnly).Result);
+
+                case CloudDokanNetAssetInfo.StreamNameShareReadWrite:
+                    return Encoding.UTF8.GetBytes(cloud.Nodes.ShareNode(item.Id, NodeShareType.ReadWrite).Result);
+
+                default:
+                    return new byte[0];
+            }
+        }
+
         public FSItem GetItem(string itemPath)
         {
             return FetchNode(itemPath).Result;
@@ -465,25 +260,6 @@
         //   // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
         //   Dispose(false);
         // }
-
-        // This code added to correctly implement the disposable pattern.
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-            Dispose(true);
-
-            // TODO: uncomment the following line if the finalizer is overridden above.
-            // GC.SuppressFinalize(this);
-        }
-
-        public async Task BuildItemInfo(FSItem item)
-        {
-            var info = await cloud.Nodes.GetNodeExtended(item.Id);
-
-            var str = JsonConvert.SerializeObject(info);
-            item.Info = Encoding.UTF8.GetBytes(str);
-        }
-
         public void MoveFile(string oldPath, string newPath, bool replace)
         {
             if (oldPath == newPath)
@@ -552,17 +328,118 @@
             }
         }
 
-        public byte[] GetExtendedInfo(List<string> streamNameGroups, FSItem item)
+#pragma warning disable RECS0154 // Parameter is never used
+        public IBlockStream OpenFile(string filePath, FileMode mode, FileAccess fileAccess, FileShare share, FileOptions options)
+#pragma warning restore RECS0154 // Parameter is never used
         {
-            switch (streamNameGroups[1])
+            var item = GetItem(filePath);
+            if (fileAccess == FileAccess.Read)
             {
-                case CloudDokanNetAssetInfo.StreamNameShareReadOnly:
-                    return Encoding.UTF8.GetBytes(cloud.Nodes.ShareNode(item.Id, NodeShareType.ReadOnly).Result);
-                case CloudDokanNetAssetInfo.StreamNameShareReadWrite:
-                    return Encoding.UTF8.GetBytes(cloud.Nodes.ShareNode(item.Id, NodeShareType.ReadWrite).Result);
-                default:
-                    return new byte[0];
+                if (item == null)
+                {
+                    return null;
+                }
+
+                item = WaitForReal(item, 25000);
+
+                Log.Trace($"Opening {filePath} for Read");
+
+                if (item.Length < SmallFileSizeLimit)
+                {
+                    return SmallFilesCache.OpenReadWithDownload(item);
+                }
+
+                var result = SmallFilesCache.OpenReadCachedOnly(item);
+                if (result != null)
+                {
+                    return result;
+                }
+
+                onStatisticsUpdated(cloud, StatisticUpdateReason.DownloadAdded, new DownloadStatisticInfo(item));
+                var buffered = new BufferedHttpCloudBlockReader(item, cloud);
+                buffered.OnClose = () =>
+                  {
+                      onStatisticsUpdated(cloud, StatisticUpdateReason.DownloadFinished, new DownloadStatisticInfo(item));
+                  };
+
+                return buffered;
             }
+
+            if (item == null || item.Length == 0)
+            {
+                Log.Trace($"Creating {filePath} as New because mode:{mode} and {((item == null) ? "item is null" : "length is 0")}");
+
+                var dir = Path.GetDirectoryName(filePath);
+                var name = Path.GetFileName(filePath);
+                var dirItem = GetItem(dir);
+
+                item = FSItem.MakeUploading(filePath, Guid.NewGuid().ToString(), dirItem.Id, 0);
+
+                var file = UploadService.OpenNew(item);
+
+                itemsTreeCache.Add(item);
+
+                return file;
+            }
+
+            if (item == null)
+            {
+                return null;
+            }
+
+            item = WaitForReal(item, 25000);
+
+            if ((mode == FileMode.Create || mode == FileMode.Truncate) && item.Length > 0)
+            {
+                Log.Trace($"Opening {filePath} as Truncate because mode:{mode} and length {item.Length}");
+                item.Length = 0;
+                SmallFilesCache.Delete(item);
+                item.MakeUploading();
+                var file = UploadService.OpenTruncate(item);
+
+                return file;
+            }
+
+            if (mode == FileMode.Open || mode == FileMode.Append || mode == FileMode.OpenOrCreate)
+            {
+                Log.Trace($"Opening {filePath} as ReadWrite because mode:{mode} and length {item.Length}");
+                if (item.Length < SmallFileSizeLimit)
+                {
+                    var file = SmallFilesCache.OpenReadWrite(item);
+                    file.OnChangedAndClosed = (it, path) =>
+                    {
+                        it.LastWriteTime = DateTime.UtcNow;
+
+                        if (!it.IsUploading)
+                        {
+                            it.MakeUploading();
+                            var olditemPath = Path.Combine(SmallFilesCache.CachePath, item.Id);
+                            var newitemPath = Path.Combine(UploadService.CachePath, item.Id);
+
+                            if (File.Exists(newitemPath))
+                            {
+                                File.Delete(newitemPath);
+                            }
+
+                            SymbolicLink.CreateFile(GetRelativePath(olditemPath, Path.GetDirectoryName(newitemPath)), newitemPath);
+                            SmallFilesCache.AddExisting(it);
+                        }
+
+                        UploadService.AddOverwrite(it);
+                    };
+
+                    return file;
+                }
+
+                Log.Warn("File is too big for ReadWrite: " + filePath);
+            }
+
+            return null;
+        }
+
+        public void Stop()
+        {
+            UploadService.Stop();
         }
 
         protected virtual void Dispose(bool disposing)
@@ -579,23 +456,6 @@
                 // TODO: set large fields to null.
                 disposedValue = true;
             }
-        }
-
-        private FSItem WaitForReal(FSItem item, int timeout)
-        {
-            var timeouttime = DateTime.UtcNow.AddMilliseconds(timeout);
-            while (item.IsUploading)
-            {
-                if (DateTime.UtcNow > timeouttime)
-                {
-                    throw new TimeoutException();
-                }
-
-                Thread.Sleep(100);
-                item = GetItem(item.Path);
-            }
-
-            return item;
         }
 
         private void DeleteItem(string filePath, FSItem item)
@@ -628,18 +488,6 @@
             {
                 Log.Warn(ex.Error.ToString());
             }
-        }
-
-        private string GetRelativePath(string filepath, string relativeto)
-        {
-            var pathUri = new Uri(filepath);
-            if (!relativeto.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.InvariantCulture))
-            {
-                relativeto += Path.DirectorySeparatorChar;
-            }
-
-            var relativetoUri = new Uri(relativeto);
-            return Uri.UnescapeDataString(relativetoUri.MakeRelativeUri(pathUri).ToString().Replace('/', Path.DirectorySeparatorChar));
         }
 
         private async Task<FSItem> FetchNode(string itemPath)
@@ -707,9 +555,86 @@
             return item;
         }
 
-        public void CancelUpload(string id)
+        private string GetRelativePath(string filepath, string relativeto)
         {
-            UploadService.CancelUpload(id);
+            var pathUri = new Uri(filepath);
+            if (!relativeto.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.InvariantCulture))
+            {
+                relativeto += Path.DirectorySeparatorChar;
+            }
+
+            var relativetoUri = new Uri(relativeto);
+            return Uri.UnescapeDataString(relativetoUri.MakeRelativeUri(pathUri).ToString().Replace('/', Path.DirectorySeparatorChar));
+        }
+
+        private void UploadFailed(UploadInfo uploaditem, FailReason reason, string message)
+        {
+            var olditemPath = Path.Combine(UploadService.CachePath, uploaditem.Id);
+            File.Delete(olditemPath);
+
+            switch (reason)
+            {
+                case FailReason.ZeroLength:
+                    var item = GetItem(uploaditem.Path);
+                    item?.MakeNotUploading();
+                    onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFinished, new UploadStatisticInfo(uploaditem));
+                    return;
+
+                case FailReason.Conflict:
+                case FailReason.NoFolderNode:
+                    onStatisticsUpdated(cloud, StatisticUpdateReason.UploadAborted, new UploadStatisticInfo(uploaditem, message));
+                    return;
+
+                case FailReason.Cancelled:
+                    if (!uploaditem.Overwrite)
+                    {
+                        itemsTreeCache.DeleteFile(uploaditem.Path);
+                    }
+
+                    onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFinished, new UploadStatisticInfo(uploaditem));
+                    return;
+            }
+
+            onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFailed, new UploadStatisticInfo(uploaditem, message));
+            itemsTreeCache.DeleteFile(uploaditem.Path);
+        }
+
+        private void UploadFinished(UploadInfo item, FSItem.Builder node)
+        {
+            onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFinished, new UploadStatisticInfo(item));
+
+            var newitem = node.SetParentPath(Path.GetDirectoryName(item.Path)).Build();
+            var olditemPath = Path.Combine(UploadService.CachePath, item.Id);
+            var newitemPath = Path.Combine(SmallFilesCache.CachePath, node.Id);
+
+            if (!File.Exists(newitemPath))
+            {
+                File.Move(olditemPath, newitemPath);
+            }
+            else
+            {
+                File.Delete(olditemPath);
+            }
+
+            SmallFilesCache.AddExisting(newitem);
+            itemsTreeCache.Update(newitem);
+        }
+
+        private FSItem WaitForReal(FSItem item, int timeout)
+        {
+            var timeouttime = DateTime.UtcNow.AddMilliseconds(timeout);
+            while (item.IsUploading)
+            {
+                if (DateTime.UtcNow > timeouttime)
+                {
+                    throw new TimeoutException();
+                }
+
+                Thread.Sleep(100);
+                item = GetItem(item.Path);
+            }
+
+            return item;
         }
     }
 }

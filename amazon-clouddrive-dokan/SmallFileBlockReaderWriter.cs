@@ -4,8 +4,8 @@
     using System.Collections.Concurrent;
     using System.IO;
     using System.Threading;
-    using Azi.Cloud.Common;
-    using Azi.Tools;
+    using Common;
+    using Tools;
 
     public class SmallFileBlockReaderWriter : AbstractBlockStream
     {

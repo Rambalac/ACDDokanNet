@@ -1,9 +1,9 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using Azi.Cloud.AmazonCloudDrive;
+using Azi.Cloud.Common;
+using System;
 using System.IO;
 using System.Threading;
-using Azi.Cloud.Common;
-using Azi.Cloud.AmazonCloudDrive;
+using System.Threading.Tasks;
 
 namespace Azi.Cloud.DokanNet.Tests
 {

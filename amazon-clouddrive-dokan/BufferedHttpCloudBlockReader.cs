@@ -5,8 +5,8 @@
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
-    using Azi.Cloud.Common;
-    using Azi.Tools;
+    using Common;
+    using Tools;
 
     public class BufferedHttpCloudBlockReader : AbstractBlockStream
     {
