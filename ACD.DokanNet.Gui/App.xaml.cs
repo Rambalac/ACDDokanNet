@@ -10,6 +10,7 @@
     using System.Threading.Tasks;
     using System.Windows;
     using System.Windows.Forms;
+    using System.Windows.Threading;
     using System.Xml;
     using Common;
     using Microsoft.Win32;
@@ -23,6 +24,10 @@
     public partial class App : Application, IDisposable
     {
         private const string AppName = "ACDDokanNet";
+
+        private static UpdateChecker updateCheck;
+        private static DispatcherTimer updateCheckTimer;
+
         private ObservableCollection<CloudMount> clouds;
         private bool disposedValue;
         private int downloadingCount;
@@ -372,6 +377,15 @@
         {
             Log.Info("Starting Version " + Assembly.GetEntryAssembly().GetName().Version);
 
+            updateCheck = new UpdateChecker("7804519");
+            updateCheckTimer = new DispatcherTimer()
+            {
+                Interval = new TimeSpan(1, 0, 0, 0, 0),
+            };
+            updateCheckTimer.Tick += async (sender2, arg) => { await UpdateCheckTimer_Tick(); };
+            updateCheckTimer.Start();
+            await UpdateCheckTimer_Tick();
+
             if (Gui.Properties.Settings.Default.NeedUpgrade)
             {
                 Gui.Properties.Settings.Default.Upgrade();
@@ -420,6 +434,26 @@
             }
 
             MainWindow.Show();
+        }
+
+        private async Task UpdateCheckTimer_Tick()
+        {
+            UpdateType update = await updateCheck.CheckUpdate();
+
+            if (update != UpdateType.None)
+            {
+                // Up to date!
+            }
+            else
+            {
+                // Ask the user if he wants to update
+                // You can use the prebuilt form for this if you want (it's really pretty!)
+                var result = new UpdateNotifyDialog(updateCheck).ShowDialog();
+                if (result == DialogResult.Yes)
+                {
+                    updateCheck.DownloadAsset("ACDDokanNetInstaller.msi"); // opens it in the user's browser
+                }
+            }
         }
 
         private void MenuExit_Click()
@@ -544,6 +578,6 @@
             }
         }
 
-         // To detect redundant calls
+        // To detect redundant calls
     }
 }
