@@ -25,8 +25,10 @@
     {
         private const string AppName = "ACDDokanNet";
 
-        private static UpdateChecker updateCheck;
+        private static UpdateChecker updateCheck = new UpdateChecker(47739891);
         private static DispatcherTimer updateCheckTimer;
+
+        private static UpdateChecker.UpdateInfo updateAvailable;
 
         private ObservableCollection<CloudMount> clouds;
         private bool disposedValue;
@@ -35,6 +37,7 @@
         private bool shuttingdown;
         private Mutex startedMutex;
         private ObservableCollection<FileItemInfo> uploadFiles = new ObservableCollection<FileItemInfo>();
+        private Action baloonAction;
 
         public event Action<string> MountChanged;
 
@@ -294,14 +297,6 @@
             settings.Save();
         }
 
-        internal bool GetAutorun()
-        {
-            using (var rk = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true))
-            {
-                return rk.GetValue(AppName) != null;
-            }
-        }
-
         internal void NotifyMountChanged(string id)
         {
             MountChanged?.Invoke(id);
@@ -321,6 +316,14 @@
             var settings = Gui.Properties.Settings.Default;
             settings.Clouds = new CloudInfoCollection(Clouds.Select(c => c.CloudInfo));
             settings.Save();
+        }
+
+        internal bool GetAutorun()
+        {
+            using (var rk = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true))
+            {
+                return rk.GetValue(AppName) != null;
+            }
         }
 
         internal void SetAutorun(bool isChecked)
@@ -353,8 +356,6 @@
                     }
                 }
 
-                // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
-                // TODO: set large fields to null.
                 disposedValue = true;
             }
         }
@@ -376,15 +377,6 @@
         private async void Application_Startup(object sender, StartupEventArgs e)
         {
             Log.Info("Starting Version " + Assembly.GetEntryAssembly().GetName().Version);
-
-            updateCheck = new UpdateChecker("7804519");
-            updateCheckTimer = new DispatcherTimer()
-            {
-                Interval = new TimeSpan(1, 0, 0, 0, 0),
-            };
-            updateCheckTimer.Tick += async (sender2, arg) => { await UpdateCheckTimer_Tick(); };
-            updateCheckTimer.Start();
-            await UpdateCheckTimer_Tick();
 
             if (Gui.Properties.Settings.Default.NeedUpgrade)
             {
@@ -414,11 +406,19 @@
             MainWindow = new MainWindow();
             SetupNotifyIcon();
 
+            updateCheckTimer = new DispatcherTimer()
+            {
+                Interval = new TimeSpan(1, 0, 0, 0, 0),
+            };
+            updateCheckTimer.Tick += UpdateCheckTimer_Tick;
+            updateCheckTimer.Start();
+            await UpdateCheck();
+
             MainWindow.Closing += (s2, e2) =>
             {
                 if (!shuttingdown)
                 {
-                    notifyIcon.ShowBalloonTip(5000, string.Empty, "Settings window is still accessible from here.\r\nTo close application totally click here with right button and select Exit.", ToolTipIcon.None);
+                    ShowSettingsBalloon();
                 }
             };
 
@@ -436,23 +436,25 @@
             MainWindow.Show();
         }
 
-        private async Task UpdateCheckTimer_Tick()
+        private async void UpdateCheckTimer_Tick(object sender, EventArgs e)
         {
-            UpdateType update = await updateCheck.CheckUpdate();
+            await UpdateCheck();
+        }
 
-            if (update != UpdateType.None)
+        private void ShowSettingsBalloon()
+        {
+            baloonAction = OpenSettings;
+            notifyIcon.ShowBalloonTip(5000, string.Empty, "Settings window is still accessible from here.\r\nTo close application totally click here with right button and select Exit.", ToolTipIcon.None);
+        }
+
+        private async Task UpdateCheck()
+        {
+            updateAvailable = await updateCheck.CheckUpdate();
+
+            if (updateAvailable != null)
             {
-                // Up to date!
-            }
-            else
-            {
-                // Ask the user if he wants to update
-                // You can use the prebuilt form for this if you want (it's really pretty!)
-                var result = new UpdateNotifyDialog(updateCheck).ShowDialog();
-                if (result == DialogResult.Yes)
-                {
-                    updateCheck.DownloadAsset("ACDDokanNetInstaller.msi"); // opens it in the user's browser
-                }
+                baloonAction = DownloadUpdate;
+                notifyIcon.ShowBalloonTip(5000, string.Empty, $"Update to {updateAvailable.Version} is available.\r\nClick here to download.", ToolTipIcon.None);
             }
         }
 
@@ -510,18 +512,36 @@
             notifyIcon.Text = $"Amazon Cloud Drive Dokan.NET driver settings.";
             notifyIcon.Visible = true;
 
+            notifyIcon.BalloonTipClicked += (sender, e) => baloonAction?.Invoke();
             notifyIcon.MouseClick += (sender, e) =>
             {
                 if (e.Button == MouseButtons.Left)
                 {
-                    ShowBalloon();
+                    ShowStateBalloon();
                 }
             };
         }
 
-        private void ShowBalloon()
+        private void ShowStateBalloon()
         {
-            notifyIcon.ShowBalloonTip(5000, "State", $"Downloading: {DownloadingCount}\r\nUploading: {UploadingCount}", ToolTipIcon.None);
+            var message = $"Downloading: {DownloadingCount}\r\nUploading: {UploadingCount}";
+            if (updateAvailable != null)
+            {
+                baloonAction = DownloadUpdate;
+                message += $"\r\n\r\nUpdate to {updateAvailable.Version} is available.\r\nClick here to download.";
+            }
+            else
+            {
+                baloonAction = OpenSettings;
+                message += "\r\nClick to open settings.";
+            }
+
+            notifyIcon.ShowBalloonTip(5000, "State", message, ToolTipIcon.None);
+        }
+
+        private void DownloadUpdate()
+        {
+            Process.Start(updateAvailable.Assets.First(a => a.Name == "ACDDokanNetInstaller.msi").BrowserUrl);
         }
 
         private void UpdateSettingsV1()

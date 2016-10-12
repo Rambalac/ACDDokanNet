@@ -244,9 +244,9 @@
             {
                 File.Delete(path);
             }
-            catch (Exception dex)
+            catch (Exception)
             {
-                Log.Error(dex);
+                Log.Info("CleanUpload did not find the file, probably successfully moved");
             }
 
             try
@@ -269,6 +269,8 @@
                     Log.Trace("Zero Length file: " + item.Path);
                     File.Delete(path + ".info");
                     OnUploadFailed(item, FailReason.ZeroLength, null);
+                    CleanUpload(path);
+                    item.Dispose();
                     return;
                 }
 
@@ -282,6 +284,8 @@
                         Log.Error("Folder does not exist to upload file: " + item.Path);
                         File.Delete(path + ".info");
                         OnUploadFailed(item, FailReason.NoFolderNode, "Parent folder is missing");
+                        CleanUpload(path);
+                        item.Dispose();
                         return;
                     }
 
@@ -299,6 +303,9 @@
                         Log.Error("File does not exist to be overwritten: " + item.Path);
                         File.Delete(path + ".info");
                         OnUploadFailed(item, FailReason.NoOverwriteNode, "No file to overwrite");
+                        CleanUpload(path);
+                        item.Dispose();
+
                         return;
                     }
 
@@ -318,6 +325,8 @@
                 node.ParentPath = Path.GetDirectoryName(item.Path);
                 OnUploadFinished(item, node);
                 Log.Trace("Finished upload: " + item.Path + " id:" + node.Id);
+                CleanUpload(path);
+                item.Dispose();
                 return;
             }
             catch (OperationCanceledException)
@@ -326,6 +335,8 @@
 
                 OnUploadFailed(item, FailReason.Cancelled, "Upload cancelled");
                 CleanUpload(path);
+                item.Dispose();
+
                 return;
             }
             catch (CloudException ex)
@@ -344,6 +355,7 @@
                     }
 
                     CleanUpload(path);
+                    item.Dispose();
 
                     return;
                 }
@@ -354,6 +366,7 @@
                     OnUploadFailed(item, FailReason.NoFolderNode, "Folder node for new file is not found");
 
                     CleanUpload(path);
+                    item.Dispose();
 
                     return;
                 }
