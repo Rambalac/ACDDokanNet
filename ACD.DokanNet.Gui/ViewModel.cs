@@ -6,12 +6,12 @@
     using System.ComponentModel;
     using System.Reflection;
     using System.Threading;
+    using System.Windows;
 
     public class ViewModel : INotifyPropertyChanged, IDisposable
     {
+        private bool disposedValue = false;
         private Timer refreshTimer;
-
-        private bool disposedValue = false; // To detect redundant calls
 
         public ViewModel()
         {
@@ -26,32 +26,8 @@
             }
         }
 
+        // To detect redundant calls
         public event PropertyChangedEventHandler PropertyChanged;
-
-        public ObservableCollection<CloudMount> Clouds => App?.Clouds;
-
-        public ObservableCollection<FileItemInfo> UploadFiles => App?.UploadFiles;
-
-        public bool IsAutorun
-        {
-            get
-            {
-                return App?.GetAutorun() ?? false;
-            }
-
-            set
-            {
-                App.SetAutorun(value);
-            }
-        }
-
-        public bool HasFreeLetters
-        {
-            get
-            {
-                return VirtualDriveWrapper.GetFreeDriveLettes().Count > 0;
-            }
-        }
 
         public string CacheFolder
         {
@@ -67,20 +43,30 @@
             }
         }
 
-        public int UploadingFilesCount => App?.UploadingCount ?? 0;
+        public ObservableCollection<CloudMount> Clouds => App?.Clouds;
 
         public int DownloadingFilesCount => App?.DownloadingCount ?? 0;
 
-        public long SmallFileSizeLimit
+        public bool HasFreeLetters
         {
             get
             {
-                return App.SmallFileSizeLimit;
+                return VirtualDriveWrapper.GetFreeDriveLettes().Count > 0;
+            }
+        }
+
+        public Visibility HasUpdate => App.UpdateAvailable != null ? Visibility.Visible : Visibility.Collapsed;
+
+        public bool IsAutorun
+        {
+            get
+            {
+                return App?.GetAutorun() ?? false;
             }
 
             set
             {
-                App.SmallFileSizeLimit = value;
+                App.SetAutorun(value);
             }
         }
 
@@ -96,6 +82,25 @@
                 App.SmallFilesCacheSize = value;
             }
         }
+
+        public long SmallFileSizeLimit
+        {
+            get
+            {
+                return App.SmallFileSizeLimit;
+            }
+
+            set
+            {
+                App.SmallFileSizeLimit = value;
+            }
+        }
+
+        public string UpdateVersion => App.UpdateAvailable?.Version ?? "";
+
+        public ObservableCollection<FileItemInfo> UploadFiles => App?.UploadFiles;
+
+        public int UploadingFilesCount => App?.UploadingCount ?? 0;
 
         public string Version => Assembly.GetEntryAssembly().GetName().Version.ToString();
 
@@ -133,15 +138,14 @@
             OnPropertyChanged(nameof(Clouds));
         }
 
-        private void UploadFiles_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
-        {
-            OnPropertyChanged(nameof(UploadFiles));
-            OnPropertyChanged(nameof(UploadingFilesCount));
-        }
-
         private void NotifyMount(string obj)
         {
             RefreshLetters(null);
+        }
+
+        private void OnProviderStatisticsUpdated()
+        {
+            OnPropertyChanged(nameof(DownloadingFilesCount));
         }
 
         private void RefreshLetters(object state)
@@ -159,9 +163,10 @@
             OnPropertyChanged(nameof(HasFreeLetters));
         }
 
-        private void OnProviderStatisticsUpdated()
+        private void UploadFiles_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
-            OnPropertyChanged(nameof(DownloadingFilesCount));
+            OnPropertyChanged(nameof(UploadFiles));
+            OnPropertyChanged(nameof(UploadingFilesCount));
         }
     }
 }

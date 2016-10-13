@@ -9,7 +9,6 @@
     using System.Threading;
     using System.Threading.Tasks;
     using System.Windows;
-    using System.Windows.Forms;
     using System.Windows.Threading;
     using System.Xml;
     using Common;
@@ -17,6 +16,8 @@
     using Newtonsoft.Json;
     using Tools;
     using Application = System.Windows.Application;
+    using Hardcodet.Wpf.TaskbarNotification;
+    using System.Windows.Controls;
 
     /// <summary>
     /// Interaction logic for App.xaml
@@ -24,16 +25,15 @@
     public partial class App : Application, IDisposable
     {
         private const string AppName = "ACDDokanNet";
-
+        private const string RegistryAutorunPath = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
         private static UpdateChecker updateCheck = new UpdateChecker(47739891);
         private static DispatcherTimer updateCheckTimer;
 
-        private static UpdateChecker.UpdateInfo updateAvailable;
+        public static UpdateChecker.UpdateInfo UpdateAvailable { get; private set; }
 
         private ObservableCollection<CloudMount> clouds;
         private bool disposedValue;
         private int downloadingCount;
-        private NotifyIcon notifyIcon;
         private bool shuttingdown;
         private Mutex startedMutex;
         private ObservableCollection<FileItemInfo> uploadFiles = new ObservableCollection<FileItemInfo>();
@@ -42,6 +42,8 @@
         public event Action<string> MountChanged;
 
         public event Action ProviderStatisticsUpdated;
+
+        public TaskbarIcon NotifyIcon { get; private set; }
 
         public static new App Current => Application.Current as App;
 
@@ -320,7 +322,7 @@
 
         internal bool GetAutorun()
         {
-            using (var rk = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true))
+            using (var rk = Registry.CurrentUser.OpenSubKey(RegistryAutorunPath, true))
             {
                 return rk.GetValue(AppName) != null;
             }
@@ -328,7 +330,7 @@
 
         internal void SetAutorun(bool isChecked)
         {
-            using (var rk = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true))
+            using (var rk = Registry.CurrentUser.OpenSubKey(RegistryAutorunPath, true))
             {
                 if (isChecked)
                 {
@@ -350,9 +352,9 @@
                 if (disposing)
                 {
                     startedMutex.Dispose();
-                    if (notifyIcon != null)
+                    if (NotifyIcon != null)
                     {
-                        notifyIcon.Dispose();
+                        NotifyIcon.Dispose();
                     }
                 }
 
@@ -362,10 +364,10 @@
 
         private void Application_Exit(object sender, ExitEventArgs e)
         {
-            if (notifyIcon != null)
+            if (NotifyIcon != null)
             {
-                notifyIcon.Dispose();
-                notifyIcon = null;
+                NotifyIcon.Dispose();
+                NotifyIcon = null;
             }
 
             foreach (var cloud in Clouds)
@@ -444,17 +446,17 @@
         private void ShowSettingsBalloon()
         {
             baloonAction = OpenSettings;
-            notifyIcon.ShowBalloonTip(5000, string.Empty, "Settings window is still accessible from here.\r\nTo close application totally click here with right button and select Exit.", ToolTipIcon.None);
+            //notifyIcon.ShowBalloonTip(5000, string.Empty, "Settings window is still accessible from here.\r\nTo close application totally click here with right button and select Exit.", ToolTipIcon.None);
         }
 
         private async Task UpdateCheck()
         {
-            updateAvailable = await updateCheck.CheckUpdate();
+            UpdateAvailable = await updateCheck.CheckUpdate();
 
-            if (updateAvailable != null)
+            if (UpdateAvailable != null)
             {
                 baloonAction = DownloadUpdate;
-                notifyIcon.ShowBalloonTip(5000, string.Empty, $"Update to {updateAvailable.Version} is available.\r\nClick here to download.", ToolTipIcon.None);
+                //notifyIcon.ShowBalloonTip(5000, string.Empty, $"Update to {updateAvailable.Version} is available.\r\nClick here to download.", ToolTipIcon.None);
             }
         }
 
@@ -487,7 +489,7 @@
             }
         }
 
-        private void OpenSettings()
+        public void OpenSettings()
         {
             MainWindow.Show();
             MainWindow.Activate();
@@ -496,52 +498,33 @@
         private void SetupNotifyIcon()
         {
             var components = new System.ComponentModel.Container();
-            notifyIcon = new NotifyIcon(components);
+            NotifyIcon = (TaskbarIcon)FindResource("MyNotifyIcon");
 
-            var contextMenu = new ContextMenu(
-                        new MenuItem[]
-                        {
-                            new MenuItem("&Settings", (s, e) => OpenSettings()),
-                            new MenuItem("-"),
-                            new MenuItem("E&xit", (s, e) => MenuExit_Click())
-                        });
+            //        var contextMenu = new ContextMenu();
+            //        contextMenu.Items.Add(new MenuItem() { }
+            //                    Items = new MenuItem[]
+            //                    {
+            //                        new MenuItem("&Settings", (s, e) => OpenSettings()),
+            //                        new MenuItem("-"),
+            //                        new MenuItem("E&xit", (s, e) => MenuExit_Click())
+            //                    }};
 
-            notifyIcon.Icon = Gui.Properties.Resources.app_all;
-            notifyIcon.ContextMenu = contextMenu;
+            //    notifyIcon.Icon = Gui.Properties.Resources.app_all;
+            //        notifyIcon.ContextMenu = contextMenu;
 
-            notifyIcon.Text = $"Amazon Cloud Drive Dokan.NET driver settings.";
-            notifyIcon.Visible = true;
+            //        notifyIcon.Text = $"Amazon Cloud Drive Dokan.NET driver settings.";
+            //        notifyIcon.Visible = true;
 
-            notifyIcon.BalloonTipClicked += (sender, e) => baloonAction?.Invoke();
-            notifyIcon.MouseClick += (sender, e) =>
-            {
-                if (e.Button == MouseButtons.Left)
-                {
-                    ShowStateBalloon();
-                }
-            };
-        }
-
-        private void ShowStateBalloon()
-        {
-            var message = $"Downloading: {DownloadingCount}\r\nUploading: {UploadingCount}";
-            if (updateAvailable != null)
-            {
-                baloonAction = DownloadUpdate;
-                message += $"\r\n\r\nUpdate to {updateAvailable.Version} is available.\r\nClick here to download.";
-            }
-            else
-            {
-                baloonAction = OpenSettings;
-                message += "\r\nClick to open settings.";
-            }
-
-            notifyIcon.ShowBalloonTip(5000, "State", message, ToolTipIcon.None);
+            //        notifyIcon.BalloonTipClicked += (sender, e) => baloonAction?.Invoke();
+            //    notifyIcon.Click += (sender, e) =>
+            //        {
+            //                ShowStateBalloon();
+            //};
         }
 
         private void DownloadUpdate()
         {
-            Process.Start(updateAvailable.Assets.First(a => a.Name == "ACDDokanNetInstaller.msi").BrowserUrl);
+            Process.Start(UpdateAvailable.Assets.First(a => a.Name == "ACDDokanNetInstaller.msi").BrowserUrl);
         }
 
         private void UpdateSettingsV1()
@@ -596,6 +579,16 @@
             {
                 File.Move(file, Path.Combine(newPath, Path.GetFileName(file)));
             }
+        }
+
+        private void ExitMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            MenuExit_Click();
+        }
+
+        private void SettingsMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            OpenSettings();
         }
 
         // To detect redundant calls
