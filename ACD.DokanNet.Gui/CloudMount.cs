@@ -352,8 +352,6 @@
             OnPropertyChanged(nameof(CanUnmount));
             OnPropertyChanged(nameof(IsMounted));
             OnPropertyChanged(nameof(IsUnmounted));
-
-            App.NotifyMountChanged(CloudInfo.Id);
         }
 
         private void ProviderStatisticsUpdated(IHttpCloud cloud, StatisticUpdateReason reason, AStatisticFileInfo info)

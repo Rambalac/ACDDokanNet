@@ -18,18 +18,33 @@
     using Application = System.Windows.Application;
     using Hardcodet.Wpf.TaskbarNotification;
     using System.Windows.Controls;
+    using System.ComponentModel;
 
     /// <summary>
     /// Interaction logic for App.xaml
     /// </summary>
-    public partial class App : Application, IDisposable
+    public partial class App : Application, IDisposable, INotifyPropertyChanged
     {
         private const string AppName = "ACDDokanNet";
         private const string RegistryAutorunPath = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
-        private static UpdateChecker updateCheck = new UpdateChecker(47739891);
-        private static DispatcherTimer updateCheckTimer;
+        private UpdateChecker updateCheck = new UpdateChecker(47739891);
+        private DispatcherTimer updateCheckTimer;
 
-        public static UpdateChecker.UpdateInfo UpdateAvailable { get; private set; }
+        private UpdateChecker.UpdateInfo updateAvailable;
+
+        public UpdateChecker.UpdateInfo UpdateAvailable
+        {
+            get
+            {
+                return updateAvailable;
+            }
+
+            private set
+            {
+                updateAvailable = value;
+                OnPropertyChanged(nameof(UpdateAvailable));
+            }
+        }
 
         private ObservableCollection<CloudMount> clouds;
         private bool disposedValue;
@@ -39,9 +54,7 @@
         private ObservableCollection<FileItemInfo> uploadFiles = new ObservableCollection<FileItemInfo>();
         private Action baloonAction;
 
-        public event Action<string> MountChanged;
-
-        public event Action ProviderStatisticsUpdated;
+        public event PropertyChangedEventHandler PropertyChanged;
 
         public TaskbarIcon NotifyIcon { get; private set; }
 
@@ -106,6 +119,11 @@
                 Gui.Properties.Settings.Default.SmallFilesCacheLimit = value;
                 Gui.Properties.Settings.Default.Save();
             }
+        }
+
+        private void OnPropertyChanged(string name)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
 
         public long SmallFileSizeLimit
@@ -209,17 +227,17 @@
 
                         case StatisticUpdateReason.DownloadAdded:
                             downloadingCount++;
-                            ProviderStatisticsUpdated?.Invoke();
+                            OnPropertyChanged(nameof(DownloadingCount));
                             break;
 
                         case StatisticUpdateReason.DownloadFinished:
                             downloadingCount--;
-                            ProviderStatisticsUpdated?.Invoke();
+                            OnPropertyChanged(nameof(DownloadingCount));
                             break;
 
                         case StatisticUpdateReason.DownloadFailed:
                             downloadingCount--;
-                            ProviderStatisticsUpdated?.Invoke();
+                            OnPropertyChanged(nameof(DownloadingCount));
                             break;
 
                         case StatisticUpdateReason.UploadFailed:
@@ -297,11 +315,6 @@
             var settings = Gui.Properties.Settings.Default;
             settings.Clouds = new CloudInfoCollection(Clouds.Select(c => c.CloudInfo));
             settings.Save();
-        }
-
-        internal void NotifyMountChanged(string id)
-        {
-            MountChanged?.Invoke(id);
         }
 
         internal void NotifyUnmount(string id)
@@ -456,7 +469,8 @@
             if (UpdateAvailable != null)
             {
                 baloonAction = DownloadUpdate;
-                //notifyIcon.ShowBalloonTip(5000, string.Empty, $"Update to {updateAvailable.Version} is available.\r\nClick here to download.", ToolTipIcon.None);
+                OnPropertyChanged(nameof(UpdateAvailable));
+                NotifyIcon.ShowBalloonTip(AppName, $"Update to {updateAvailable.Version} is available", BalloonIcon.None);
             }
         }
 
@@ -497,29 +511,7 @@
 
         private void SetupNotifyIcon()
         {
-            var components = new System.ComponentModel.Container();
             NotifyIcon = (TaskbarIcon)FindResource("MyNotifyIcon");
-
-            //        var contextMenu = new ContextMenu();
-            //        contextMenu.Items.Add(new MenuItem() { }
-            //                    Items = new MenuItem[]
-            //                    {
-            //                        new MenuItem("&Settings", (s, e) => OpenSettings()),
-            //                        new MenuItem("-"),
-            //                        new MenuItem("E&xit", (s, e) => MenuExit_Click())
-            //                    }};
-
-            //    notifyIcon.Icon = Gui.Properties.Resources.app_all;
-            //        notifyIcon.ContextMenu = contextMenu;
-
-            //        notifyIcon.Text = $"Amazon Cloud Drive Dokan.NET driver settings.";
-            //        notifyIcon.Visible = true;
-
-            //        notifyIcon.BalloonTipClicked += (sender, e) => baloonAction?.Invoke();
-            //    notifyIcon.Click += (sender, e) =>
-            //        {
-            //                ShowStateBalloon();
-            //};
         }
 
         private void DownloadUpdate()

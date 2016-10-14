@@ -9,7 +9,7 @@
         x:Class="Azi.Cloud.DokanNet.Gui.MainWindow"
         mc:Ignorable="d"
         Title="ACD Dokan.Net Settings" Closing="Window_Closing" MaxWidth="320" MinWidth="320" MinHeight="280"
-        Height="{Binding Source={x:Static p:Settings.Default}, Path=WinHeight, Mode=TwoWay}">
+        Height="{Binding Source={x:Static p:Settings.Default}, Path=WinHeight, Mode=TwoWay}" Width="320">
     <Window.Resources>
     </Window.Resources>
     <Window.DataContext>
@@ -113,7 +113,9 @@
                         <Label Content="Version" Padding="5,5,5,0" Grid.Row="5" />
                         <TextBox IsReadOnly="True" Text="{Binding Version, Mode=OneTime}" MaxLines="1" Margin="0,5,0,5"  Grid.Row="5" Grid.Column="2" />
 
-                        <Grid Grid.Row="6" Grid.ColumnSpan="3" HorizontalAlignment="Center">
+                        <Button Grid.Row="6" Grid.ColumnSpan="3" Content="{Binding UpdateVersion}" ContentStringFormat="Download update {0}" Margin="0,0,0,5" Visibility="{Binding HasUpdate}" Command="{StaticResource DownloadUpdateCommand}" Background="#FF34BD00" />
+
+                        <Grid Grid.Row="7" Grid.ColumnSpan="3" HorizontalAlignment="Center">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="6" />

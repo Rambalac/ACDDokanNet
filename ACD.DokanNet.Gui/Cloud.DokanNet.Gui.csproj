@@ -183,8 +183,8 @@
     <Compile Include="StatusToolTip.xaml.cs">
       <DependentUpon>StatusToolTip.xaml</DependentUpon>
     </Compile>
+    <Compile Include="TaskbarIcon Commands\DownloadUpdateCommand.cs" />
     <Compile Include="TaskbarIcon Commands\OpenAppSettingsCommand.cs" />
-    <Compile Include="TaskbarIcon Commands\TaskbarIconClickCommand.cs" />
     <Compile Include="UpdateChecker.cs" />
     <Compile Include="ViewModel.cs" />
     <Page Include="AvailableCloudsList.xaml">

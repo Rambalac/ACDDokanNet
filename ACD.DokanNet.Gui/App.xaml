@@ -7,15 +7,19 @@
              Startup="Application_Startup" Exit="Application_Exit"
              >
     <Application.Resources>
-        <local:TaskbarIconClickCommand x:Key="TaskbarIconClickCommand"/>
+        <local:DownloadUpdateCommand x:Key="DownloadUpdateCommand"/>
         <local:OpenAppSettingsCommand x:Key="OpenAppSettingsCommand"/>
         <tb:TaskbarIcon x:Key="MyNotifyIcon"
            IconSource="/images/app_all.ico"
            ToolTipText="Cloud Hold" 
            DoubleClickCommand="{StaticResource OpenAppSettingsCommand}">
+            <tb:TaskbarIcon.DataContext>
+                <local:ViewModel />
+            </tb:TaskbarIcon.DataContext>
             <tb:TaskbarIcon.ContextMenu>
                 <ContextMenu>
                     <MenuItem Header="Settings" Command="{StaticResource OpenAppSettingsCommand}" />
+                    <MenuItem Header="Download update" Command="{StaticResource DownloadUpdateCommand}" Visibility="{Binding HasUpdate}"/>
                     <Separator/>
                     <MenuItem Header="Exit" Click="ExitMenuItem_Click" />
                 </ContextMenu>

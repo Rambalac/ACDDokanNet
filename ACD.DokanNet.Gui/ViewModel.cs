@@ -17,8 +17,7 @@
         {
             if (App != null)
             {
-                App.MountChanged += NotifyMount;
-                App.ProviderStatisticsUpdated += OnProviderStatisticsUpdated;
+                App.PropertyChanged += App_PropertyChanged;
                 refreshTimer = new Timer(RefreshLetters, null, 1000, 1000);
 
                 Clouds.CollectionChanged += Clouds_CollectionChanged;
@@ -96,7 +95,7 @@
             }
         }
 
-        public string UpdateVersion => App.UpdateAvailable?.Version ?? "";
+        public string UpdateVersion => App.UpdateAvailable?.Version ?? string.Empty;
 
         public ObservableCollection<FileItemInfo> UploadFiles => App?.UploadFiles;
 
@@ -127,9 +126,21 @@
                     refreshTimer.Dispose();
                 }
 
-                // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
-                // TODO: set large fields to null.
                 disposedValue = true;
+            }
+        }
+
+        private void App_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case nameof(App.DownloadingCount):
+                    OnPropertyChanged(nameof(DownloadingFilesCount));
+                    break;
+                case nameof(App.UpdateAvailable):
+                    OnPropertyChanged(nameof(HasUpdate));
+                    OnPropertyChanged(nameof(UpdateVersion));
+                    break;
             }
         }
 
@@ -141,11 +152,6 @@
         private void NotifyMount(string obj)
         {
             RefreshLetters(null);
-        }
-
-        private void OnProviderStatisticsUpdated()
-        {
-            OnPropertyChanged(nameof(DownloadingFilesCount));
         }
 
         private void RefreshLetters(object state)
