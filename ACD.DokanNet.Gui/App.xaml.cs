@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.ObjectModel;
+    using System.ComponentModel;
     using System.Diagnostics;
     using System.IO;
     using System.Linq;
@@ -9,16 +10,15 @@
     using System.Threading;
     using System.Threading.Tasks;
     using System.Windows;
+    using System.Windows.Controls;
     using System.Windows.Threading;
     using System.Xml;
     using Common;
+    using Hardcodet.Wpf.TaskbarNotification;
     using Microsoft.Win32;
     using Newtonsoft.Json;
     using Tools;
     using Application = System.Windows.Application;
-    using Hardcodet.Wpf.TaskbarNotification;
-    using System.Windows.Controls;
-    using System.ComponentModel;
 
     /// <summary>
     /// Interaction logic for App.xaml
@@ -27,36 +27,17 @@
     {
         private const string AppName = "ACDDokanNet";
         private const string RegistryAutorunPath = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
-        private UpdateChecker updateCheck = new UpdateChecker(47739891);
-        private DispatcherTimer updateCheckTimer;
-
-        private UpdateChecker.UpdateInfo updateAvailable;
-
-        public UpdateChecker.UpdateInfo UpdateAvailable
-        {
-            get
-            {
-                return updateAvailable;
-            }
-
-            private set
-            {
-                updateAvailable = value;
-                OnPropertyChanged(nameof(UpdateAvailable));
-            }
-        }
-
         private ObservableCollection<CloudMount> clouds;
         private bool disposedValue;
         private int downloadingCount;
         private bool shuttingdown;
         private Mutex startedMutex;
+        private UpdateChecker.UpdateInfo updateAvailable;
+        private UpdateChecker updateCheck = new UpdateChecker(47739891);
+        private DispatcherTimer updateCheckTimer;
         private ObservableCollection<FileItemInfo> uploadFiles = new ObservableCollection<FileItemInfo>();
-        private Action baloonAction;
 
         public event PropertyChangedEventHandler PropertyChanged;
-
-        public TaskbarIcon NotifyIcon { get; private set; }
 
         public static new App Current => Application.Current as App;
 
@@ -82,6 +63,8 @@
         }
 
         public int DownloadingCount => downloadingCount;
+
+        public TaskbarIcon NotifyIcon { get; private set; }
 
         public string SmallFileCacheFolder
         {
@@ -121,11 +104,6 @@
             }
         }
 
-        private void OnPropertyChanged(string name)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-        }
-
         public long SmallFileSizeLimit
         {
             get
@@ -142,6 +120,20 @@
                 // }
                 Gui.Properties.Settings.Default.SmallFileSizeLimit = value;
                 Gui.Properties.Settings.Default.Save();
+            }
+        }
+
+        public UpdateChecker.UpdateInfo UpdateAvailable
+        {
+            get
+            {
+                return updateAvailable;
+            }
+
+            private set
+            {
+                updateAvailable = value;
+                OnPropertyChanged(nameof(UpdateAvailable));
             }
         }
 
@@ -279,6 +271,12 @@
             }
         }
 
+        public void OpenSettings()
+        {
+            MainWindow.Show();
+            MainWindow.Activate();
+        }
+
         internal void CancelUpload(FileItemInfo item)
         {
             var cloud = Clouds.SingleOrDefault(c => c.CloudInfo.Id == item.CloudId);
@@ -317,6 +315,14 @@
             settings.Save();
         }
 
+        internal bool GetAutorun()
+        {
+            using (var rk = Registry.CurrentUser.OpenSubKey(RegistryAutorunPath, true))
+            {
+                return rk.GetValue(AppName) != null;
+            }
+        }
+
         internal void NotifyUnmount(string id)
         {
             var toremove = uploadFiles.Where(f => f.CloudId == id).ToList();
@@ -331,14 +337,6 @@
             var settings = Gui.Properties.Settings.Default;
             settings.Clouds = new CloudInfoCollection(Clouds.Select(c => c.CloudInfo));
             settings.Save();
-        }
-
-        internal bool GetAutorun()
-        {
-            using (var rk = Registry.CurrentUser.OpenSubKey(RegistryAutorunPath, true))
-            {
-                return rk.GetValue(AppName) != null;
-            }
         }
 
         internal void SetAutorun(bool isChecked)
@@ -451,27 +449,14 @@
             MainWindow.Show();
         }
 
-        private async void UpdateCheckTimer_Tick(object sender, EventArgs e)
+        private void DownloadUpdate()
         {
-            await UpdateCheck();
+            Process.Start(UpdateAvailable.Assets.First(a => a.Name == "ACDDokanNetInstaller.msi").BrowserUrl);
         }
 
-        private void ShowSettingsBalloon()
+        private void ExitMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            baloonAction = OpenSettings;
-            //notifyIcon.ShowBalloonTip(5000, string.Empty, "Settings window is still accessible from here.\r\nTo close application totally click here with right button and select Exit.", ToolTipIcon.None);
-        }
-
-        private async Task UpdateCheck()
-        {
-            UpdateAvailable = await updateCheck.CheckUpdate();
-
-            if (UpdateAvailable != null)
-            {
-                baloonAction = DownloadUpdate;
-                OnPropertyChanged(nameof(UpdateAvailable));
-                NotifyIcon.ShowBalloonTip(AppName, $"Update to {updateAvailable.Version} is available", BalloonIcon.None);
-            }
+            MenuExit_Click();
         }
 
         private void MenuExit_Click()
@@ -503,10 +488,14 @@
             }
         }
 
-        public void OpenSettings()
+        private void OnPropertyChanged(string name)
         {
-            MainWindow.Show();
-            MainWindow.Activate();
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        }
+
+        private void SettingsMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            OpenSettings();
         }
 
         private void SetupNotifyIcon()
@@ -514,9 +503,25 @@
             NotifyIcon = (TaskbarIcon)FindResource("MyNotifyIcon");
         }
 
-        private void DownloadUpdate()
+        private void ShowSettingsBalloon()
         {
-            Process.Start(UpdateAvailable.Assets.First(a => a.Name == "ACDDokanNetInstaller.msi").BrowserUrl);
+            NotifyIcon.ShowBalloonTip(string.Empty, "Settings window is still accessible from here.\r\nTo close application totally click here with right button and select Exit.", BalloonIcon.None);
+        }
+
+        private async Task UpdateCheck()
+        {
+            UpdateAvailable = await updateCheck.CheckUpdate();
+
+            if (UpdateAvailable != null)
+            {
+                OnPropertyChanged(nameof(UpdateAvailable));
+                NotifyIcon.ShowBalloonTip(AppName, $"Update to {updateAvailable.Version} is available", BalloonIcon.None);
+            }
+        }
+
+        private async void UpdateCheckTimer_Tick(object sender, EventArgs e)
+        {
+            await UpdateCheck();
         }
 
         private void UpdateSettingsV1()
@@ -572,17 +577,5 @@
                 File.Move(file, Path.Combine(newPath, Path.GetFileName(file)));
             }
         }
-
-        private void ExitMenuItem_Click(object sender, RoutedEventArgs e)
-        {
-            MenuExit_Click();
-        }
-
-        private void SettingsMenuItem_Click(object sender, RoutedEventArgs e)
-        {
-            OpenSettings();
-        }
-
-        // To detect redundant calls
     }
 }

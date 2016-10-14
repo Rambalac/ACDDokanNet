@@ -149,11 +149,6 @@
             OnPropertyChanged(nameof(Clouds));
         }
 
-        private void NotifyMount(string obj)
-        {
-            RefreshLetters(null);
-        }
-
         private void RefreshLetters(object state)
         {
             if (App == null)

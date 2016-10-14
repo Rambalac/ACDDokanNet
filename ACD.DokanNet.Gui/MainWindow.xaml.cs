@@ -104,10 +104,5 @@
             Hide();
             Properties.Settings.Default.Save();
         }
-
-        private void Button_Click(object sender, RoutedEventArgs e)
-        {
-
-        }
     }
 }
