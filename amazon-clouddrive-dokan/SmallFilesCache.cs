@@ -19,7 +19,7 @@
 
         private readonly IHttpCloud cloud;
 
-        private long totalSize;
+        private long _totalSize;
         private bool cleaning;
 
         private ConcurrentDictionary<string, CacheEntry> access = new ConcurrentDictionary<string, CacheEntry>(10, 1000);
@@ -73,16 +73,41 @@
             }
         }
 
+        private object totalSizeLock = new object();
+
+        public void TotalSizeIncrease(long val)
+        {
+            lock (totalSizeLock)
+            {
+                _totalSize += val;
+            }
+        }
+
+        public void TotalSizeDecrease(long val)
+        {
+            lock (totalSizeLock)
+            {
+                _totalSize -= val;
+            }
+
+        }
+
         public long TotalSize
         {
             get
             {
-                return Interlocked.Read(ref totalSize);
+                lock (totalSizeLock)
+                {
+                    return _totalSize;
+                }
             }
 
             set
             {
-                Interlocked.Exchange(ref totalSize, value);
+                lock (totalSizeLock)
+                {
+                    _totalSize = value;
+                }
             }
         }
 
@@ -124,7 +149,7 @@
                         }
                     }
 
-                    TotalSize -= deleted;
+                    TotalSizeDecrease(deleted);
                 }
                 finally
                 {
@@ -190,7 +215,10 @@
 
         public void AddExisting(FSItem item)
         {
-            access.TryAdd(item.Id, new CacheEntry { Id = item.Id, AccessTime = DateTime.UtcNow });
+            if (access.TryAdd(item.Id, new CacheEntry { Id = item.Id, AccessTime = DateTime.UtcNow }))
+            {
+                TotalSizeIncrease(item.Length);
+            }
         }
 
         public IBlockStream OpenReadWithDownload(FSItem item)
@@ -207,7 +235,11 @@
             var path = Path.Combine(cachePath, item.Id);
             if (!File.Exists(path))
             {
-                access.TryRemove(item.Id, out entry);
+                if (access.TryRemove(item.Id, out entry))
+                {
+                    TotalSizeDecrease(item.Length);
+                }
+
                 return null;
             }
 
@@ -267,8 +299,11 @@
                     Log.Trace("Finished download: " + item.Id);
                     OnDownloaded?.Invoke(item);
 
-                    access.TryAdd(item.Id, new CacheEntry { Id = item.Id, AccessTime = DateTime.UtcNow, Length = item.Length });
-                    TotalSize += item.Length;
+                    if (access.TryAdd(item.Id, new CacheEntry { Id = item.Id, AccessTime = DateTime.UtcNow, Length = item.Length }))
+                    {
+                        TotalSizeIncrease(item.Length);
+                    }
+
                     if (TotalSize > CacheSize)
                     {
                         StartClear(TotalSize - CacheSize);
@@ -313,9 +348,13 @@
                     }
                 }
             }
-            catch (UnauthorizedAccessException)
+            catch (Exception ex) when (ex is UnauthorizedAccessException || ex is DirectoryNotFoundException)
             {
                 return;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex);
             }
 
             access = newaccess;

@@ -8,6 +8,8 @@
 
     public static class Log
     {
+        public const int Dokan = 100;
+
         private const string Source = "ACDDokan.Net";
         private static readonly string Query = $"*[System[Provider[@Name = '{Source}']]]";
 

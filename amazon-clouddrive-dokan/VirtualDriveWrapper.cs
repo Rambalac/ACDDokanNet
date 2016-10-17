@@ -6,6 +6,35 @@
     using System.Linq;
     using global::DokanNet;
     using Tools;
+    using global::DokanNet.Logging;
+
+    public class DokanLogger : ILogger
+    {
+        public void Debug(string message, params object[] args)
+        {
+            Log.Trace(message, Log.Dokan);
+        }
+
+        public void Error(string message, params object[] args)
+        {
+            Log.Error(message, Log.Dokan);
+        }
+
+        public void Fatal(string message, params object[] args)
+        {
+            Log.Error(message, Log.Dokan);
+        }
+
+        public void Info(string message, params object[] args)
+        {
+            Log.Info(message, Log.Dokan);
+        }
+
+        public void Warn(string message, params object[] args)
+        {
+            Log.Warn(message, Log.Dokan);
+        }
+    }
 
     public class VirtualDriveWrapper
     {
@@ -49,9 +78,9 @@
                 virtualDrive.MountPath = letter + ":\\";
                 mountLetter = letter;
 #if DEBUG
-                virtualDrive.Mount(virtualDrive.MountPath, DokanOptions.DebugMode | DokanOptions.AltStream | DokanOptions.FixedDrive, 0, 800, TimeSpan.FromSeconds(30), null);
+                virtualDrive.Mount(virtualDrive.MountPath, DokanOptions.DebugMode | DokanOptions.AltStream | DokanOptions.FixedDrive, 0, 800, TimeSpan.FromSeconds(30), new DokanLogger());
 #else
-                virtualDrive.Mount(virtualDrive.MountPath, DokanOptions.AltStream | DokanOptions.FixedDrive, 0, 1000, TimeSpan.FromSeconds(30), null);
+                virtualDrive.Mount(virtualDrive.MountPath, DokanOptions.AltStream | DokanOptions.FixedDrive, 0, 1000, TimeSpan.FromSeconds(30), new DokanLogger());
 #endif
             }
             catch (DokanException e)

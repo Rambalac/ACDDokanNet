@@ -19,6 +19,10 @@
             <TextBlock Margin="5,0,0,0" Grid.Column="1" HorizontalAlignment="Left" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Text="{Binding FileName}" ToolTip="{Binding FullPath}" />
             <Image Grid.Column="2" Source="/images/ErrorMark.png" ToolTip="{Binding ErrorMessage}" Width="20" RenderOptions.BitmapScalingMode="Fant" Visibility="{Binding HasError}" />
             <ProgressBar Margin="4,0,0,0" Grid.Column="3" Maximum="100" Width="40" Value="{Binding Progress, Mode=OneWay}" ToolTip="{Binding ProgressTip}" Visibility="{Binding CancelButton}" />
+            <TextBlock Margin="4,0,0,0" Grid.Column="3" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="{Binding ProgressTip}" Visibility="{Binding CancelButton}">
+                <Run Text="{Binding Progress, Mode=OneWay}"/>
+                <Run>%</Run>
+            </TextBlock>
             <Button Content="Cancel" Margin="5,0,0,0" Grid.Column="4" Visibility="{Binding CancelButton}" ToolTip="Cancel upload" Click="CancelButton_Click" />
             <Button Content="Dismiss" Margin="5,0,0,0" Grid.Column="4" Visibility="{Binding DismissButton}" ToolTip="Upload failed and cannot be retried. Dismiss only." Click="DismissButton_Click" />
         </Grid>

@@ -510,12 +510,19 @@
 
         private async Task UpdateCheck()
         {
-            UpdateAvailable = await updateCheck.CheckUpdate();
-
-            if (UpdateAvailable != null)
+            try
             {
-                OnPropertyChanged(nameof(UpdateAvailable));
-                NotifyIcon.ShowBalloonTip(AppName, $"Update to {updateAvailable.Version} is available", BalloonIcon.None);
+                UpdateAvailable = await updateCheck.CheckUpdate();
+
+                if (UpdateAvailable != null)
+                {
+                    OnPropertyChanged(nameof(UpdateAvailable));
+                    NotifyIcon.ShowBalloonTip(AppName, $"Update to {updateAvailable.Version} is available", BalloonIcon.None);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex);
             }
         }
 

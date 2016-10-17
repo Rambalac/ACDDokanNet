@@ -18,7 +18,8 @@
         NoOverwriteNode,
         Conflict,
         Unexpected,
-        Cancelled
+        Cancelled,
+        FileNotFound
     }
 
     public class UploadService : IDisposable
@@ -224,12 +225,22 @@
             {
                 try
                 {
+                    var id = Path.GetFileNameWithoutExtension(info.Name);
                     var uploadinfo = JsonConvert.DeserializeObject<UploadInfo>(File.ReadAllText(info.FullName));
-                    var fileinfo = new FileInfo(Path.Combine(info.DirectoryName, Path.GetFileNameWithoutExtension(info.Name)));
-                    var item = FSItem.MakeUploading(uploadinfo.Path, fileinfo.Name, uploadinfo.ParentId, fileinfo.Length);
-                    leftUploads.Add(uploadinfo);
-                    allUploads.TryAdd(uploadinfo.Id, uploadinfo);
-                    OnUploadAdded?.Invoke(uploadinfo);
+
+                    try
+                    {
+                        var fileinfo = new FileInfo(Path.Combine(info.DirectoryName, id));
+                        var item = FSItem.MakeUploading(uploadinfo.Path, id, uploadinfo.ParentId, fileinfo.Length);
+                        leftUploads.Add(uploadinfo);
+                        allUploads.TryAdd(id, uploadinfo);
+                        OnUploadAdded?.Invoke(uploadinfo);
+                    }
+                    catch (FileNotFoundException)
+                    {
+                        Log.Error("Cached upload file not found: " + uploadinfo.Path + " id:" + id);
+                        CleanUpload(Path.Combine(cachePath, id));
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -267,7 +278,6 @@
                 if (item.Length == 0)
                 {
                     Log.Trace("Zero Length file: " + item.Path);
-                    File.Delete(path + ".info");
                     OnUploadFailed(item, FailReason.ZeroLength, null);
                     CleanUpload(path);
                     item.Dispose();
@@ -278,12 +288,21 @@
                 FSItem.Builder node;
                 if (!item.Overwrite)
                 {
-                    var checknode = await cloud.Nodes.GetNode(item.ParentId);
-                    if (checknode == null || !checknode.IsDir)
+                    var checkparent = await cloud.Nodes.GetNode(item.ParentId);
+                    if (checkparent == null || !checkparent.IsDir)
                     {
                         Log.Error("Folder does not exist to upload file: " + item.Path);
-                        File.Delete(path + ".info");
                         OnUploadFailed(item, FailReason.NoFolderNode, "Parent folder is missing");
+                        CleanUpload(path);
+                        item.Dispose();
+                        return;
+                    }
+
+                    var checknode = await cloud.Nodes.GetChild(item.ParentId, Path.GetFileName(item.Path));
+                    if (checknode != null)
+                    {
+                        Log.Warn("File with such name already exists and Upload is New: " + item.Path);
+                        OnUploadFailed(item, FailReason.Conflict, "File already exists");
                         CleanUpload(path);
                         item.Dispose();
                         return;
@@ -323,10 +342,21 @@
                 File.Delete(path + ".info");
 
                 node.ParentPath = Path.GetDirectoryName(item.Path);
-                OnUploadFinished(item, node);
+
                 Log.Trace("Finished upload: " + item.Path + " id:" + node.Id);
+                OnUploadFinished(item, node);
+                File.Delete(path + ".info");
+                item.Dispose();
+                return;
+            }
+            catch (FileNotFoundException ex)
+            {
+                Log.Error($"Upload error upload file not found: {item.Path}\r\n{ex}");
+                OnUploadFailed(item, FailReason.FileNotFound, "Cached upload file is not found");
+
                 CleanUpload(path);
                 item.Dispose();
+
                 return;
             }
             catch (OperationCanceledException)
@@ -343,26 +373,25 @@
             {
                 if (ex.Error == System.Net.HttpStatusCode.Conflict)
                 {
-                    Log.Error($"Upload conflict: {item.Path}\r\n{ex}");
                     var node = await cloud.Nodes.GetChild(item.ParentId, Path.GetFileName(item.Path));
                     if (node != null)
                     {
+                        Log.Warn($"Upload finished with conflict and file does exist: {item.Path}\r\n{ex}");
                         OnUploadFinished(item, node);
+                        File.Delete(path + ".info");
+                        item.Dispose();
+                        return;
                     }
                     else
                     {
+                        Log.Error($"Upload conflict but no file: {item.Path}\r\n{ex}");
                         OnUploadFailed(item, FailReason.Unexpected, "Uploading failed with unexpected Conflict error");
                     }
-
-                    CleanUpload(path);
-                    item.Dispose();
-
-                    return;
                 }
 
                 if (ex.Error == System.Net.HttpStatusCode.NotFound)
                 {
-                    Log.Error($"Upload error NotFound: {item.Path}\r\n{ex}");
+                    Log.Error($"Upload error Folder Not Found: {item.Path}\r\n{ex}");
                     OnUploadFailed(item, FailReason.NoFolderNode, "Folder node for new file is not found");
 
                     CleanUpload(path);
@@ -371,6 +400,7 @@
                     return;
                 }
 
+                Log.Error($"Cloud exception: {item.Path}");
                 throw;
             }
             catch (Exception ex)

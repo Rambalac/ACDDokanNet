@@ -340,19 +340,19 @@
                     return null;
                 }
 
-                item = WaitForReal(item, 25000);
-
                 Log.Trace($"Opening {filePath} for Read");
-
-                if (item.Length < SmallFileSizeLimit)
-                {
-                    return SmallFilesCache.OpenReadWithDownload(item);
-                }
 
                 var result = SmallFilesCache.OpenReadCachedOnly(item);
                 if (result != null)
                 {
                     return result;
+                }
+
+                item = WaitForReal(item, 25000);
+
+                if (item.Length < SmallFileSizeLimit)
+                {
+                    return SmallFilesCache.OpenReadWithDownload(item);
                 }
 
                 onStatisticsUpdated(cloud, StatisticUpdateReason.DownloadAdded, new DownloadStatisticInfo(item));
@@ -580,6 +580,7 @@
                     onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFinished, new UploadStatisticInfo(uploaditem));
                     return;
 
+                case FailReason.FileNotFound:
                 case FailReason.Conflict:
                 case FailReason.NoFolderNode:
                     onStatisticsUpdated(cloud, StatisticUpdateReason.UploadAborted, new UploadStatisticInfo(uploaditem, message));
