@@ -57,7 +57,11 @@
 
         public override void SetLength(long len)
         {
-            stream.SetLength(len);
+            lock (stream)
+            {
+                stream.SetLength(len);
+            }
+
             item.Length = len;
         }
 

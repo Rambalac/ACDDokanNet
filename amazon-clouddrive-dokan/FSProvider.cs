@@ -569,9 +569,6 @@
 
         private void UploadFailed(UploadInfo uploaditem, FailReason reason, string message)
         {
-            var olditemPath = Path.Combine(UploadService.CachePath, uploaditem.Id);
-            File.Delete(olditemPath);
-
             switch (reason)
             {
                 case FailReason.ZeroLength:
@@ -631,7 +628,7 @@
                     throw new TimeoutException();
                 }
 
-                Thread.Sleep(100);
+                Thread.Sleep(1000);
                 item = GetItem(item.Path);
             }
 

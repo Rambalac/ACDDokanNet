@@ -47,29 +47,31 @@
             var timeouttime = DateTime.UtcNow.AddMilliseconds(timeout);
             int red;
 
-            lock (stream)
+            int totalred = 0;
+            do
             {
-                int totalred = 0;
-                stream.Position = position;
-                do
+                lock (stream)
                 {
+                    stream.Position = position;
                     red = stream.Read(buffer, offset, Math.Min(count, buffer.Length - offset));
-                    totalred += red;
-                    offset += red;
-                    count -= red;
-                    if (stream.Position < expectedLength && red == 0)
-                    {
-                        Thread.Sleep(WaitForFile);
-                    }
-
-                    if (DateTime.UtcNow > timeouttime)
-                    {
-                        throw new TimeoutException();
-                    }
                 }
-                while (stream.Position < expectedLength && count > 0);
-                return totalred;
+
+                totalred += red;
+                offset += red;
+                count -= red;
+                position += red;
+                if (position < expectedLength && red == 0)
+                {
+                    Thread.Sleep(WaitForFile);
+                }
+
+                if (DateTime.UtcNow > timeouttime)
+                {
+                    throw new TimeoutException();
+                }
             }
+            while (stream.Position < expectedLength && count > 0);
+            return totalred;
         }
 
         public override void Write(long position, byte[] buffer, int offset, int count, int timeout = 1000)

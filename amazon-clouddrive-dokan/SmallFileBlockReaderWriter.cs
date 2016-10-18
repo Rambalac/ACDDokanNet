@@ -11,14 +11,10 @@
     {
         private const int WaitForFile = 50;
 
-        private readonly FileStream writer;
-        private readonly ConcurrentBag<FileStream> readers = new ConcurrentBag<FileStream>();
+        private readonly FileStream file;
 
-        private readonly object fileLock = new object();
         private readonly object closeLock = new object();
         private Downloader downloader;
-        private int closed;
-        private long lastPosition;
         private bool written;
         private bool disposedValue; // To detect redundant calls
 
@@ -26,7 +22,7 @@
         {
             this.downloader = downloader;
 
-            writer = new FileStream(downloader.Path, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
+            file = new FileStream(downloader.Path, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
         }
 
         public Action<FSItem, string> OnChangedAndClosed { get; set; }
@@ -35,21 +31,8 @@
         {
             lock (closeLock)
             {
-                if (Interlocked.CompareExchange(ref closed, 1, 0) == 1)
-                {
-                    return;
-                }
-
-                lock (fileLock)
-                {
-                    downloader.Item.Length = writer.Length;
-                    writer.Close();
-                }
-
-                foreach (var file in readers)
-                {
-                    file.Close();
-                }
+                downloader.Item.Length = file.Length;
+                file.Close();
 
                 Log.Trace($"Closed ReadWrite file: {downloader.Item.Path} of {downloader.Item.Length} bytes");
                 base.Close();
@@ -75,34 +58,32 @@
             }
 
             int red;
-            var file = GetReader();
             int totalred = 0;
-            try
+            do
             {
-                file.Position = position;
-                do
+                lock (file)
                 {
+                    file.Position = position;
                     red = file.Read(buffer, offset, count);
-                    totalred += red;
-                    offset += red;
-                    count -= red;
-                    if (file.Position < downloader.Item.Length && red == 0)
-                    {
-                        Thread.Sleep(WaitForFile);
-                    }
-
-                    if (DateTime.UtcNow > timeouttime)
-                    {
-                        throw new TimeoutException();
-                    }
                 }
-                while (file.Position < downloader.Item.Length && count > 0);
-                return totalred;
+
+                totalred += red;
+                offset += red;
+                count -= red;
+                position += red;
+
+                if (position < downloader.Item.Length && red == 0)
+                {
+                    Thread.Sleep(WaitForFile);
+                }
+
+                if (DateTime.UtcNow > timeouttime)
+                {
+                    throw new TimeoutException();
+                }
             }
-            finally
-            {
-                ReleaseFile(file);
-            }
+            while (file.Position < downloader.Item.Length && count > 0);
+            return totalred;
         }
 
         public override void Write(long position, byte[] buffer, int offset, int count, int timeout = 1000)
@@ -115,33 +96,32 @@
                 }
             }
 
-            lock (fileLock)
+            lock (file)
             {
-                // if (lastPosition != position) Log.Warn($"Write Position in New file was changed from {lastPosition} to {position}");
-                writer.Position = position;
-                writer.Write(buffer, offset, count);
-                written = true;
-                lastPosition = writer.Position;
+                file.Position = position;
+                file.Write(buffer, offset, count);
             }
 
-            downloader.Item.Length = writer.Length;
+            written = true;
+            downloader.Item.Length = file.Length;
 
             // Log.Trace("Write bytes: " + count);
         }
 
         public override void Flush()
         {
-            writer.Flush();
+            file.Flush();
         }
 
         public override void SetLength(long len)
         {
-            lock (fileLock)
+            lock (file)
             {
-                writer.SetLength(len);
-                downloader.Item.Length = len;
-                written = true;
+                file.SetLength(len);
             }
+
+            downloader.Item.Length = len;
+            written = true;
         }
 
         protected override void Dispose(bool disposing)
@@ -151,49 +131,10 @@
                 if (disposing)
                 {
                     Close();
-                    writer.Dispose();
+                    file.Dispose();
                 }
 
                 disposedValue = true;
-            }
-        }
-
-        private FileStream GetReader()
-        {
-            if (closed == 1)
-            {
-                throw new IOException("File is already closed");
-            }
-
-            FileStream result;
-            if (readers.TryTake(out result))
-            {
-                return result;
-            }
-
-            lock (closeLock)
-            {
-                if (closed == 1)
-                {
-                    throw new IOException("File is already closed");
-                }
-
-                return new FileStream(downloader.Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            }
-        }
-
-        private void ReleaseFile(FileStream file)
-        {
-            lock (closeLock)
-            {
-                if (closed != 1)
-                {
-                    readers.Add(file);
-                }
-                else
-                {
-                    file.Close();
-                }
             }
         }
     }

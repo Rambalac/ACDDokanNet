@@ -345,7 +345,6 @@
 
                 Log.Trace("Finished upload: " + item.Path + " id:" + node.Id);
                 OnUploadFinished(item, node);
-                File.Delete(path + ".info");
                 item.Dispose();
                 return;
             }
@@ -378,15 +377,12 @@
                     {
                         Log.Warn($"Upload finished with conflict and file does exist: {item.Path}\r\n{ex}");
                         OnUploadFinished(item, node);
-                        File.Delete(path + ".info");
+                        CleanUpload(path);
                         item.Dispose();
                         return;
                     }
-                    else
-                    {
-                        Log.Error($"Upload conflict but no file: {item.Path}\r\n{ex}");
-                        OnUploadFailed(item, FailReason.Unexpected, "Uploading failed with unexpected Conflict error");
-                    }
+
+                    Log.Error($"Upload conflict but no file: {item.Path}\r\n{ex}");
                 }
 
                 if (ex.Error == System.Net.HttpStatusCode.NotFound)
@@ -406,7 +402,7 @@
             catch (Exception ex)
             {
                 Log.Error($"Upload failed: {item.Path}\r\n{ex}");
-                OnUploadFailed(item, FailReason.Unexpected, $"Unexpected Error. Upload will retry.\r\n{ex}");
+                OnUploadFailed(item, FailReason.Unexpected, $"Unexpected Error. Upload will retry.\r\n{ex.Message}");
             }
             finally
             {

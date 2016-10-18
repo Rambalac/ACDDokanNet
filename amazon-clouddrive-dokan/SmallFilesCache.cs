@@ -14,28 +14,19 @@
     {
         private static string cachePath;
 
-        private static ConcurrentDictionary<IHttpCloud, SmallFilesCache> instances = new ConcurrentDictionary<IHttpCloud, SmallFilesCache>(10, 3);
         private static ConcurrentDictionary<string, Downloader> downloaders = new ConcurrentDictionary<string, Downloader>(10, 3);
-
+        private static ConcurrentDictionary<IHttpCloud, SmallFilesCache> instances = new ConcurrentDictionary<IHttpCloud, SmallFilesCache>(10, 3);
         private readonly IHttpCloud cloud;
 
-        private long _totalSize;
-        private bool cleaning;
-
+        private long totalSize;
         private ConcurrentDictionary<string, CacheEntry> access = new ConcurrentDictionary<string, CacheEntry>(10, 1000);
+        private bool cleaning;
+        private object totalSizeLock = new object();
 
         public SmallFilesCache(IHttpCloud a)
         {
             cloud = a;
         }
-
-        public long CacheSize { get; internal set; }
-
-        public Action<FSItem> OnDownloadStarted { get; set; }
-
-        public Action<FSItem> OnDownloaded { get; set; }
-
-        public Action<FSItem> OnDownloadFailed { get; set; }
 
         public string CachePath
         {
@@ -73,24 +64,13 @@
             }
         }
 
-        private object totalSizeLock = new object();
+        public long CacheSize { get; internal set; }
 
-        public void TotalSizeIncrease(long val)
-        {
-            lock (totalSizeLock)
-            {
-                _totalSize += val;
-            }
-        }
+        public Action<FSItem> OnDownloaded { get; set; }
 
-        public void TotalSizeDecrease(long val)
-        {
-            lock (totalSizeLock)
-            {
-                _totalSize -= val;
-            }
+        public Action<FSItem> OnDownloadFailed { get; set; }
 
-        }
+        public Action<FSItem> OnDownloadStarted { get; set; }
 
         public long TotalSize
         {
@@ -98,7 +78,7 @@
             {
                 lock (totalSizeLock)
                 {
-                    return _totalSize;
+                    return totalSize;
                 }
             }
 
@@ -106,9 +86,107 @@
             {
                 lock (totalSizeLock)
                 {
-                    _totalSize = value;
+                    totalSize = value;
                 }
             }
+        }
+
+        public void AddExisting(FSItem item)
+        {
+            if (access.TryAdd(item.Id, new CacheEntry { Id = item.Id, AccessTime = DateTime.UtcNow }))
+            {
+                TotalSizeIncrease(item.Length);
+            }
+        }
+
+        public Task Clear()
+        {
+            var oldcachePath = cachePath;
+            return Task.Run(() =>
+            {
+                int failed = 0;
+                try
+                {
+                    foreach (var file in Directory.GetFiles(oldcachePath).ToList())
+                    {
+                        try
+                        {
+                            File.Delete(file);
+                        }
+                        catch (IOException)
+                        {
+                            failed++;
+                        }
+                    }
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    Log.Error("Cannot access folder: " + oldcachePath);
+                    return;
+                }
+                RecalculateTotalSize();
+
+                if (failed > 0)
+                {
+                    throw new InvalidOperationException("Can not delete all cached files. Some files are still in use.");
+                }
+            });
+        }
+
+        public void Delete(FSItem item)
+        {
+            var path = Path.Combine(cachePath, item.Id);
+            File.Delete(path);
+        }
+
+        public FileBlockReader OpenReadCachedOnly(FSItem item)
+        {
+            CacheEntry entry;
+            var path = Path.Combine(cachePath, item.Id);
+            if (!File.Exists(path))
+            {
+                if (access.TryRemove(item.Id, out entry))
+                {
+                    TotalSizeDecrease(item.Length);
+                }
+
+                return null;
+            }
+
+            if (access.TryGetValue(item.Id, out entry))
+            {
+                entry.AccessTime = DateTime.UtcNow;
+            }
+            else
+            {
+                AddExisting(item);
+            }
+
+            Log.Trace("Opened cached: " + item.Id);
+            return FileBlockReader.Open(path, item.Length);
+        }
+
+        public IBlockStream OpenReadWithDownload(FSItem item)
+        {
+            var path = Path.Combine(cachePath, item.Id);
+            StartDownload(item, path);
+
+            return OpenReadCachedOnly(item);
+        }
+
+        public SmallFileBlockReaderWriter OpenReadWrite(FSItem item)
+        {
+            var path = Path.Combine(cachePath, item.Id);
+            var downloader = StartDownload(item, path);
+
+            CacheEntry entry;
+            if (access.TryGetValue(item.Id, out entry))
+            {
+                entry.AccessTime = DateTime.UtcNow;
+            }
+
+            Log.Trace("Opened ReadWrite cached: " + item.Id);
+            return new SmallFileBlockReaderWriter(downloader);
         }
 
         public void StartClear(long size)
@@ -158,102 +236,20 @@
             });
         }
 
-        public Task Clear()
+        public void TotalSizeDecrease(long val)
         {
-            var oldcachePath = cachePath;
-            return Task.Run(() =>
+            lock (totalSizeLock)
             {
-                int failed = 0;
-                try
-                {
-                    foreach (var file in Directory.GetFiles(oldcachePath).ToList())
-                    {
-                        try
-                        {
-                            File.Delete(file);
-                        }
-                        catch (IOException)
-                        {
-                            failed++;
-                        }
-                    }
-                }
-                catch (UnauthorizedAccessException)
-                {
-                    Log.Error("Cannot access folder: " + oldcachePath);
-                    return;
-                }
-                RecalculateTotalSize();
-
-                if (failed > 0)
-                {
-                    throw new InvalidOperationException("Can not delete all cached files. Some files are still in use.");
-                }
-            });
-        }
-
-        public void Delete(FSItem item)
-        {
-            var path = Path.Combine(cachePath, item.Id);
-            File.Delete(path);
-        }
-
-        public SmallFileBlockReaderWriter OpenReadWrite(FSItem item)
-        {
-            var path = Path.Combine(cachePath, item.Id);
-            var downloader = StartDownload(item, path);
-
-            CacheEntry entry;
-            if (access.TryGetValue(item.Id, out entry))
-            {
-                entry.AccessTime = DateTime.UtcNow;
-            }
-
-            Log.Trace("Opened ReadWrite cached: " + item.Id);
-            return new SmallFileBlockReaderWriter(downloader);
-        }
-
-        public void AddExisting(FSItem item)
-        {
-            if (access.TryAdd(item.Id, new CacheEntry { Id = item.Id, AccessTime = DateTime.UtcNow }))
-            {
-                TotalSizeIncrease(item.Length);
+                totalSize -= val;
             }
         }
 
-        public IBlockStream OpenReadWithDownload(FSItem item)
+        public void TotalSizeIncrease(long val)
         {
-            var path = Path.Combine(cachePath, item.Id);
-            StartDownload(item, path);
-
-            return OpenReadCachedOnly(item);
-        }
-
-        public FileBlockReader OpenReadCachedOnly(FSItem item)
-        {
-            CacheEntry entry;
-            var path = Path.Combine(cachePath, item.Id);
-            if (!File.Exists(path))
+            lock (totalSizeLock)
             {
-                if (access.TryRemove(item.Id, out entry))
-                {
-                    TotalSizeDecrease(item.Length);
-                }
-
-                return null;
+                totalSize += val;
             }
-
-            if (access.TryGetValue(item.Id, out entry))
-            {
-                entry.AccessTime = DateTime.UtcNow;
-            }
-            else
-            {
-                AddExisting(item);
-            }
-
-            Log.Trace("Opened cached: " + item.Id);
-            return FileBlockReader.Open(path, item.Length);
         }
 
         private async Task Download(FSItem item, Stream writer, Downloader downloader)
@@ -403,10 +399,6 @@
             private readonly ReaderWriterLockSlim lk = new ReaderWriterLockSlim();
             private DateTime accessTime;
 
-            public string Id { get; set; }
-
-            public long Length { get; set; }
-
             public DateTime AccessTime
             {
                 get
@@ -435,6 +427,10 @@
                     }
                 }
             }
+
+            public string Id { get; set; }
+
+            public long Length { get; set; }
 
             public void Dispose()
             {
