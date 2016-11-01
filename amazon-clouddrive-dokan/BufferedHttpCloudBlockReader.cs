@@ -104,7 +104,7 @@
             var result = new List<Block>();
 
             Log.Trace($"Download file {item.Name} Offset: {pos} Size: {totallen}");
-            cloud.Files.Download(
+            var wait = cloud.Files.Download(
                 item.Id,
                 async (stream) =>
                 {
@@ -132,7 +132,12 @@
                     }
                 },
                 pos,
-                totallen).Wait();
+                totallen).Wait(30000);
+
+            if (!wait)
+            {
+                throw new TimeoutException();
+            }
 
             return result;
         }

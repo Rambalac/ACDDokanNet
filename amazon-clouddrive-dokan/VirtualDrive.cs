@@ -15,19 +15,18 @@
 
     public class VirtualDrive : IDokanOperations
     {
-        private const int ReadTimeout = 30000;
-
         private const FileAccess DataAccess = FileAccess.ReadData | FileAccess.WriteData | FileAccess.AppendData |
                               FileAccess.Execute |
                               FileAccess.GenericExecute | FileAccess.GenericWrite | FileAccess.GenericRead;
+
+        private const FileAccess DataReadAccess = FileAccess.ReadData | FileAccess.GenericExecute |
+                                                   FileAccess.Execute;
 
         private const FileAccess DataWriteAccess = FileAccess.WriteData | FileAccess.AppendData |
                                                    FileAccess.Delete |
                                                    FileAccess.GenericWrite;
 
-        private const FileAccess DataReadAccess = FileAccess.ReadData | FileAccess.GenericExecute |
-                                                   FileAccess.Execute;
-
+        private const int ReadTimeout = 30000;
 #if TRACE
         private string lastFilePath;
 #endif
@@ -40,11 +39,11 @@
             this.provider = provider;
         }
 
+        public string MountPath { get; internal set; }
+
         public Action OnMount { get; set; }
 
         public Action OnUnmount { get; set; }
-
-        public string MountPath { get; internal set; }
 
         public bool ReadOnly { get; internal set; }
 
@@ -136,8 +135,16 @@
                 return DokanResult.PathNotFound;
             }
 
-            provider.DeleteDir(fileName);
-            return DokanResult.Success;
+            try
+            {
+                provider.DeleteDir(fileName);
+                return DokanResult.Success;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex);
+                return DokanResult.Error;
+            }
         }
 
         public NtStatus DeleteFile(string fileName, DokanFileInfo info)
@@ -152,10 +159,18 @@
                 return DokanResult.PathNotFound;
             }
 
-            Log.Trace("Delete file:" + fileName);
+            try
+            {
+                Log.Trace("Delete file:" + fileName);
 
-            provider.DeleteFile(fileName);
-            return DokanResult.Success;
+                provider.DeleteFile(fileName);
+                return DokanResult.Success;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex);
+                return DokanResult.Error;
+            }
         }
 
         public NtStatus FindFiles(string fileName, out IList<FileInformation> files, DokanFileInfo info)
@@ -232,6 +247,43 @@
                 return DokanResult.Error;
             }
             */
+        }
+
+        public NtStatus FindStreams(string fileName, out IList<FileInformation> streams, DokanFileInfo info)
+        {
+            Log.Trace(fileName);
+            streams = new List<FileInformation>();
+            try
+            {
+                var item = provider.GetItem(fileName);
+                if (item == null)
+                {
+                    return DokanResult.FileNotFound;
+                }
+
+                if (!item.IsDir)
+                {
+                    var infostream = MakeFileInformation(item);
+                    infostream.FileName = "::$DATA";
+                    streams.Add(infostream);
+                }
+
+                {
+                    var infostream = new FileInformation
+                    {
+                        FileName = $":{CloudDokanNetItemInfo.StreamName}:$DATA",
+                        Length = 1
+                    };
+                    streams.Add(infostream);
+                }
+
+                return DokanResult.Success;
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+                return DokanResult.Error;
+            }
         }
 
         public NtStatus FlushFileBuffers(string fileName, DokanFileInfo info)
@@ -318,7 +370,305 @@
             }
         }
 
-        public NtStatus MainCreateFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
+        public NtStatus GetFileSecurity(string fileName, out FileSystemSecurity security, AccessControlSections sections, DokanFileInfo info)
+        {
+            Log.Trace(fileName);
+
+            var identity = WindowsIdentity.GetCurrent().Owner;
+            FileSystemSecurity result = info.IsDirectory
+                ? (FileSystemSecurity)new DirectorySecurity()
+                : (FileSystemSecurity)new FileSecurity();
+            if (sections.HasFlag(AccessControlSections.Access))
+            {
+                result.SetAccessRule(new FileSystemAccessRule(identity, FileSystemRights.FullControl, AccessControlType.Allow));
+                result.SetAccessRuleProtection(false, true);
+            }
+
+            if (sections.HasFlag(AccessControlSections.Owner))
+            {
+                result.SetOwner(identity);
+            }
+
+            security = result;
+            return DokanResult.Success;
+        }
+
+        public NtStatus GetVolumeInformation(out string volumeLabel, out FileSystemFeatures features, out string fileSystemName, DokanFileInfo info)
+        {
+            volumeLabel = provider.VolumeName;
+            features =
+                FileSystemFeatures.NamedStreams |
+                FileSystemFeatures.SupportsRemoteStorage |
+                FileSystemFeatures.CasePreservedNames |
+                FileSystemFeatures.CaseSensitiveSearch |
+                FileSystemFeatures.SupportsRemoteStorage |
+                FileSystemFeatures.UnicodeOnDisk |
+                FileSystemFeatures.SequentialWriteOnce;
+            if (ReadOnly)
+            {
+                features |= FileSystemFeatures.ReadOnlyVolume;
+            }
+
+            fileSystemName = provider.FileSystemName;
+            return DokanResult.Success;
+        }
+
+        public NtStatus LockFile(string fileName, long offset, long length, DokanFileInfo info)
+        {
+            try
+            {
+                return DokanResult.Success;
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+                return DokanResult.Error;
+            }
+        }
+
+        public NtStatus Mounted(DokanFileInfo info)
+        {
+            OnMount?.Invoke();
+            return DokanResult.Success;
+        }
+
+        public NtStatus MoveFile(string oldName, string newName, bool replace, DokanFileInfo info)
+        {
+            if (!HasAccess(info))
+            {
+                return DokanResult.AccessDenied;
+            }
+
+            if (ReadOnly)
+            {
+                return DokanResult.AccessDenied;
+            }
+
+            try
+            {
+                provider.MoveFile(oldName, newName, replace);
+                Log.Trace("Move file:" + oldName + " - " + newName);
+
+                return DokanResult.Success;
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+                return DokanResult.Error;
+            }
+        }
+
+        public NtStatus ReadFile(string fileName, byte[] buffer, out int bytesRead, long offset, DokanFileInfo info)
+        {
+            var start = DateTime.UtcNow;
+            try
+            {
+                var reader = info.Context as IBlockStream;
+
+                bytesRead = reader.Read(offset, buffer, 0, buffer.Length, ReadTimeout);
+                return DokanResult.Success;
+            }
+            catch (ObjectDisposedException)
+            {
+                bytesRead = 0;
+                return NtStatus.FileClosed;
+            }
+            catch (NotSupportedException)
+            {
+                Log.Warn("ReadWrite not supported: " + fileName);
+                bytesRead = 0;
+                return DokanResult.AccessDenied;
+            }
+            catch (TimeoutException)
+            {
+                Log.Warn("Timeout " + (DateTime.UtcNow - start).TotalMilliseconds);
+                bytesRead = 0;
+                return NtStatus.Timeout;
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+                bytesRead = 0;
+                return DokanResult.Error;
+            }
+        }
+
+        public NtStatus SetAllocationSize(string fileName, long length, DokanFileInfo info)
+        {
+            if (ReadOnly)
+            {
+                return DokanResult.AccessDenied;
+            }
+
+            // Log.Trace(fileName);
+            return DokanResult.Success;
+        }
+
+        public NtStatus SetEndOfFile(string fileName, long length, DokanFileInfo info)
+        {
+            try
+            {
+                if (ReadOnly)
+                {
+                    return DokanResult.AccessDenied;
+                }
+
+                // Log.Trace(fileName);
+                var file = info.Context as IBlockStream;
+                file.SetLength(length);
+                Log.Trace($"{fileName} to {length}");
+
+                return DokanResult.Success;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex);
+                return DokanResult.Error;
+            }
+        }
+
+        public NtStatus SetFileAttributes(string fileName, FileAttributes attributes, DokanFileInfo info)
+        {
+            if (ReadOnly)
+            {
+                return DokanResult.AccessDenied;
+            }
+
+            Log.Trace(fileName);
+            return DokanResult.Error;
+        }
+
+        public NtStatus SetFileSecurity(string fileName, FileSystemSecurity security, AccessControlSections sections, DokanFileInfo info)
+        {
+            if (ReadOnly)
+            {
+                return DokanResult.AccessDenied;
+            }
+
+            Log.Trace(fileName);
+            return DokanResult.NotImplemented;
+        }
+
+        public NtStatus SetFileTime(string fileName, DateTime? creationTime, DateTime? lastAccessTime, DateTime? lastWriteTime, DokanFileInfo info)
+        {
+            if (ReadOnly)
+            {
+                return DokanResult.AccessDenied;
+            }
+
+            Log.Trace(fileName);
+            return DokanResult.Error;
+        }
+
+        public NtStatus UnlockFile(string fileName, long offset, long length, DokanFileInfo info)
+        {
+            Log.Trace(fileName);
+            return DokanResult.Success;
+        }
+
+        public NtStatus Unmount(DokanFileInfo info)
+#pragma warning restore RECS0154 // Parameter is never used
+        {
+            return DokanResult.Success;
+        }
+
+        public NtStatus Unmounted(DokanFileInfo info)
+        {
+            OnUnmount?.Invoke();
+            return DokanResult.Success;
+        }
+
+        public NtStatus WriteFile(string fileName, byte[] buffer, out int bytesWritten, long offset, DokanFileInfo info)
+        {
+            if (ReadOnly)
+            {
+                bytesWritten = 0;
+                return DokanResult.AccessDenied;
+            }
+
+            try
+            {
+                if (info.Context != null)
+                {
+                    var writer = info.Context as IBlockStream;
+                    if (writer != null)
+                    {
+                        writer.Write(offset, buffer, 0, buffer.Length);
+                        bytesWritten = buffer.Length;
+                        return DokanResult.Success;
+                    }
+                }
+
+                bytesWritten = 0;
+                return DokanResult.AccessDenied;
+            }
+            catch (NotSupportedException)
+            {
+                Log.Warn("ReadWrite not supported: " + fileName);
+                bytesWritten = 0;
+                return DokanResult.AccessDenied;
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+                bytesWritten = 0;
+                return DokanResult.AccessDenied;
+            }
+        }
+
+        private NtStatus CheckStreams(string fileName, FileMode mode, DokanFileInfo info, string streamName, FSItem item)
+        {
+            Log.Trace($"Opening alternate stream {fileName}:{streamName}");
+
+            var streamNameGroups = streamName.Split(',');
+            switch (streamNameGroups[0])
+            {
+                case CloudDokanNetItemInfo.StreamName:
+                    return ProcessShellCommands(streamNameGroups, mode, item, info);
+
+                case "Zone.Identifier":
+                    if (mode != FileMode.CreateNew)
+                    {
+                        return DokanResult.PathNotFound;
+                    }
+
+                    return OpenAsDummyWrite(info);
+            }
+
+            return DokanResult.AccessDenied;
+        }
+
+        private bool HasAccess(DokanFileInfo info)
+        {
+            var watch = Stopwatch.StartNew();
+            var identity = Processes.GetProcessOwner(info.ProcessId);
+            if (identity == "NT AUTHORITY\\SYSTEM" || identity == creator)
+            {
+                return true;
+            }
+
+            Log.Warn($"User {identity} has no access to drive {MountPath}\r\nCreator User is {creator} - Identity User is {identity}");
+            return false;
+        }
+
+        private NtStatus MainCreateDirectory(string fileName, DokanFileInfo info)
+#pragma warning restore RECS0154 // Parameter is never used
+        {
+            if (ReadOnly)
+            {
+                return DokanResult.AccessDenied;
+            }
+
+            if (provider.Exists(fileName))
+            {
+                return DokanResult.AlreadyExists;
+            }
+
+            provider.CreateDir(fileName);
+            return DokanResult.Success;
+        }
+
+        private NtStatus MainCreateFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
         {
             if (!HasAccess(info))
             {
@@ -409,385 +759,7 @@
 
             return MainOpenFile(fileName, access, share, mode, options, attributes, info);
         }
-
-        public NtStatus GetFileSecurity(string fileName, out FileSystemSecurity security, AccessControlSections sections, DokanFileInfo info)
-        {
-            Log.Trace(fileName);
-
-            var identity = WindowsIdentity.GetCurrent().Owner;
-            FileSystemSecurity result = info.IsDirectory
-                ? (FileSystemSecurity)new DirectorySecurity()
-                : (FileSystemSecurity)new FileSecurity();
-            if (sections.HasFlag(AccessControlSections.Access))
-            {
-                result.SetAccessRule(new FileSystemAccessRule(identity, FileSystemRights.FullControl, AccessControlType.Allow));
-                result.SetAccessRuleProtection(false, true);
-            }
-
-            if (sections.HasFlag(AccessControlSections.Owner))
-            {
-                result.SetOwner(identity);
-            }
-
-            security = result;
-            return DokanResult.Success;
-        }
-
-        public NtStatus GetVolumeInformation(out string volumeLabel, out FileSystemFeatures features, out string fileSystemName, DokanFileInfo info)
-        {
-            volumeLabel = provider.VolumeName;
-            features =
-                FileSystemFeatures.NamedStreams |
-                FileSystemFeatures.SupportsRemoteStorage |
-                FileSystemFeatures.CasePreservedNames |
-                FileSystemFeatures.CaseSensitiveSearch |
-                FileSystemFeatures.SupportsRemoteStorage |
-                FileSystemFeatures.UnicodeOnDisk |
-                FileSystemFeatures.SequentialWriteOnce;
-            if (ReadOnly)
-            {
-                features |= FileSystemFeatures.ReadOnlyVolume;
-            }
-
-            fileSystemName = provider.FileSystemName;
-            return DokanResult.Success;
-        }
-
-        public NtStatus LockFile(string fileName, long offset, long length, DokanFileInfo info)
-        {
-            try
-            {
-                return DokanResult.Success;
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-                return DokanResult.Error;
-            }
-        }
-
-        public NtStatus MoveFile(string oldName, string newName, bool replace, DokanFileInfo info)
-        {
-            if (!HasAccess(info))
-            {
-                return DokanResult.AccessDenied;
-            }
-
-            if (ReadOnly)
-            {
-                return DokanResult.AccessDenied;
-            }
-
-            try
-            {
-                provider.MoveFile(oldName, newName, replace);
-                Log.Trace("Move file:" + oldName + " - " + newName);
-
-                return DokanResult.Success;
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-                return DokanResult.Error;
-            }
-        }
-
-        public NtStatus ReadFile(string fileName, byte[] buffer, out int bytesRead, long offset, DokanFileInfo info)
-        {
-            var start = DateTime.UtcNow;
-            try
-            {
-                var reader = info.Context as IBlockStream;
-
-                bytesRead = reader.Read(offset, buffer, 0, buffer.Length, ReadTimeout);
-                return DokanResult.Success;
-            }
-            catch (ObjectDisposedException)
-            {
-                bytesRead = 0;
-                return NtStatus.FileClosed;
-            }
-            catch (NotSupportedException)
-            {
-                Log.Warn("ReadWrite not supported: " + fileName);
-                bytesRead = 0;
-                return DokanResult.AccessDenied;
-            }
-            catch (TimeoutException)
-            {
-                Log.Warn("Timeout " + (DateTime.UtcNow - start).TotalMilliseconds);
-                bytesRead = 0;
-                return NtStatus.Timeout;
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-                bytesRead = 0;
-                return DokanResult.Error;
-            }
-        }
-
-        public NtStatus SetAllocationSize(string fileName, long length, DokanFileInfo info)
-        {
-            if (ReadOnly)
-            {
-                return DokanResult.AccessDenied;
-            }
-
-            // Log.Trace(fileName);
-            return DokanResult.Success;
-        }
-
-        public NtStatus SetEndOfFile(string fileName, long length, DokanFileInfo info)
-        {
-            if (ReadOnly)
-            {
-                return DokanResult.AccessDenied;
-            }
-
-            // Log.Trace(fileName);
-            var file = info.Context as IBlockStream;
-            file.SetLength(length);
-            Log.Trace($"{fileName} to {length}");
-
-            return DokanResult.Success;
-        }
-
-        public NtStatus SetFileAttributes(string fileName, FileAttributes attributes, DokanFileInfo info)
-        {
-            if (ReadOnly)
-            {
-                return DokanResult.AccessDenied;
-            }
-
-            Log.Trace(fileName);
-            return DokanResult.Error;
-        }
-
-        public NtStatus SetFileSecurity(string fileName, FileSystemSecurity security, AccessControlSections sections, DokanFileInfo info)
-        {
-            if (ReadOnly)
-            {
-                return DokanResult.AccessDenied;
-            }
-
-            Log.Trace(fileName);
-            return DokanResult.NotImplemented;
-        }
-
-        public NtStatus SetFileTime(string fileName, DateTime? creationTime, DateTime? lastAccessTime, DateTime? lastWriteTime, DokanFileInfo info)
-        {
-            if (ReadOnly)
-            {
-                return DokanResult.AccessDenied;
-            }
-
-            Log.Trace(fileName);
-            return DokanResult.Error;
-        }
-
-        public NtStatus UnlockFile(string fileName, long offset, long length, DokanFileInfo info)
-        {
-            Log.Trace(fileName);
-            return DokanResult.Success;
-        }
-
 #pragma warning disable RECS0154 // Parameter is never used
-        public NtStatus Unmount(DokanFileInfo info)
-#pragma warning restore RECS0154 // Parameter is never used
-        {
-            return DokanResult.Success;
-        }
-
-        public NtStatus WriteFile(string fileName, byte[] buffer, out int bytesWritten, long offset, DokanFileInfo info)
-        {
-            if (ReadOnly)
-            {
-                bytesWritten = 0;
-                return DokanResult.AccessDenied;
-            }
-
-            try
-            {
-                if (info.Context != null)
-                {
-                    var writer = info.Context as IBlockStream;
-                    if (writer != null)
-                    {
-                        writer.Write(offset, buffer, 0, buffer.Length);
-                        bytesWritten = buffer.Length;
-                        return DokanResult.Success;
-                    }
-                }
-
-                bytesWritten = 0;
-                return DokanResult.AccessDenied;
-            }
-            catch (NotSupportedException)
-            {
-                Log.Warn("ReadWrite not supported: " + fileName);
-                bytesWritten = 0;
-                return DokanResult.AccessDenied;
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-                bytesWritten = 0;
-                return DokanResult.AccessDenied;
-            }
-        }
-
-        public NtStatus FindStreams(string fileName, out IList<FileInformation> streams, DokanFileInfo info)
-        {
-            Log.Trace(fileName);
-            streams = new List<FileInformation>();
-            try
-            {
-                var item = provider.GetItem(fileName);
-                if (item == null)
-                {
-                    return DokanResult.FileNotFound;
-                }
-
-                if (!item.IsDir)
-                {
-                    var infostream = MakeFileInformation(item);
-                    infostream.FileName = "::$DATA";
-                    streams.Add(infostream);
-                }
-
-                {
-                    var infostream = new FileInformation
-                    {
-                        FileName = $":{CloudDokanNetItemInfo.StreamName}:$DATA",
-                        Length = 1
-                    };
-                    streams.Add(infostream);
-                }
-
-                return DokanResult.Success;
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-                return DokanResult.Error;
-            }
-        }
-
-        public NtStatus Mounted(DokanFileInfo info)
-        {
-            OnMount?.Invoke();
-            return DokanResult.Success;
-        }
-
-        public NtStatus Unmounted(DokanFileInfo info)
-        {
-            OnUnmount?.Invoke();
-            return DokanResult.Success;
-        }
-
-#pragma warning disable RECS0154 // Parameter is never used
-        private NtStatus MainCreateDirectory(string fileName, DokanFileInfo info)
-#pragma warning restore RECS0154 // Parameter is never used
-        {
-            if (ReadOnly)
-            {
-                return DokanResult.AccessDenied;
-            }
-
-            if (provider.Exists(fileName))
-            {
-                return DokanResult.AlreadyExists;
-            }
-
-            provider.CreateDir(fileName);
-            return DokanResult.Success;
-        }
-
-        private NtStatus CheckStreams(string fileName, FileMode mode, DokanFileInfo info, string streamName, FSItem item)
-        {
-            Log.Trace($"Opening alternate stream {fileName}:{streamName}");
-
-            var streamNameGroups = streamName.Split(',');
-            switch (streamNameGroups[0])
-            {
-                case CloudDokanNetItemInfo.StreamName:
-                    return ProcessShellCommands(streamNameGroups, mode, item, info);
-
-                case "Zone.Identifier":
-                    if (mode != FileMode.CreateNew)
-                    {
-                        return DokanResult.PathNotFound;
-                    }
-
-                    return OpenAsDummyWrite(info);
-            }
-
-            return DokanResult.AccessDenied;
-        }
-
-        private NtStatus ProcessShellCommands(string[] streamNameGroups, FileMode mode, FSItem item, DokanFileInfo info)
-        {
-            if (mode == FileMode.OpenOrCreate)
-            {
-                return ProcessUploadHere(item, info);
-            }
-
-            if (mode == FileMode.Open)
-            {
-                if (item.Info == null)
-                {
-                    provider.BuildItemInfo(item).Wait();
-                }
-
-                return ProcessItemInfo(streamNameGroups, item, info);
-            }
-
-            return NtStatus.AccessDenied;
-        }
-
-        private NtStatus ProcessUploadHere(FSItem item, DokanFileInfo info)
-        {
-            info.Context = provider.OpenUploadHere(item);
-            return DokanResult.Success;
-        }
-
-        private NtStatus ProcessItemInfo(string[] streamNameGroups, FSItem item, DokanFileInfo info)
-        {
-            if (streamNameGroups.Length == 1)
-            {
-                return OpenAsByteArray(item.Info, info);
-            }
-
-            var result = provider.GetExtendedInfo(streamNameGroups, item);
-            return OpenAsByteArray(result, info);
-        }
-
-        private NtStatus OpenAsDummyWrite(DokanFileInfo info)
-        {
-            info.Context = new DummyBlockStream();
-            return DokanResult.Success;
-        }
-
-        private NtStatus OpenAsByteArray(byte[] data, DokanFileInfo info)
-        {
-            info.Context = new ByteArrayBlockReader(data);
-            return DokanResult.Success;
-        }
-
-        private bool HasAccess(DokanFileInfo info)
-        {
-            var watch = Stopwatch.StartNew();
-            var identity = Processes.GetProcessOwner(info.ProcessId);
-            if (identity == "NT AUTHORITY\\SYSTEM" || identity == creator)
-            {
-                return true;
-            }
-
-            Log.Warn($"User {identity} has no access to drive {MountPath}\r\nCreator User is {creator} - Identity User is {identity}");
-            return false;
-        }
-
 #pragma warning disable RECS0154 // Parameter is never used
         private NtStatus MainOpenFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
 #pragma warning restore RECS0154 // Parameter is never used
@@ -840,5 +812,55 @@
 
             return result;
         }
+
+        private NtStatus OpenAsByteArray(byte[] data, DokanFileInfo info)
+        {
+            info.Context = new ByteArrayBlockReader(data);
+            return DokanResult.Success;
+        }
+
+        private NtStatus OpenAsDummyWrite(DokanFileInfo info)
+        {
+            info.Context = new DummyBlockStream();
+            return DokanResult.Success;
+        }
+
+        private NtStatus ProcessItemInfo(string[] streamNameGroups, FSItem item, DokanFileInfo info)
+        {
+            if (streamNameGroups.Length == 1)
+            {
+                return OpenAsByteArray(item.Info, info);
+            }
+
+            var result = provider.GetExtendedInfo(streamNameGroups, item);
+            return OpenAsByteArray(result, info);
+        }
+
+        private NtStatus ProcessShellCommands(string[] streamNameGroups, FileMode mode, FSItem item, DokanFileInfo info)
+        {
+            if (mode == FileMode.OpenOrCreate)
+            {
+                return ProcessUploadHere(item, info);
+            }
+
+            if (mode == FileMode.Open)
+            {
+                if (item.Info == null)
+                {
+                    provider.BuildItemInfo(item).Wait();
+                }
+
+                return ProcessItemInfo(streamNameGroups, item, info);
+            }
+
+            return NtStatus.AccessDenied;
+        }
+
+        private NtStatus ProcessUploadHere(FSItem item, DokanFileInfo info)
+        {
+            info.Context = provider.OpenUploadHere(item);
+            return DokanResult.Success;
+        }
+#pragma warning disable RECS0154 // Parameter is never used
     }
 }

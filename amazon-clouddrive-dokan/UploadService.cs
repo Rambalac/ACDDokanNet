@@ -280,16 +280,16 @@
             }
             catch (Exception)
             {
-                Log.Info("CleanUpload did not find the file, probably successfully moved");
+                Log.Warn("CleanUpload did not find the file, probably successfully moved");
             }
 
             try
             {
                 File.Delete(path + ".info");
             }
-            catch (Exception dex)
+            catch (Exception)
             {
-                Log.Error(dex);
+                Log.Warn("CleanUpload did not find the info file, probably successfully moved");
             }
         }
 
