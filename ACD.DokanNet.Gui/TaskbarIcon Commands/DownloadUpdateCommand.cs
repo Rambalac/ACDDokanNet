@@ -10,13 +10,15 @@
     {
         public event EventHandler CanExecuteChanged;
 
+        public ViewModel Model { get; set; }
+
         public bool CanExecute(object parameter) => true;
 
         public void Execute(object parameter)
         {
             try
             {
-                Process.Start(App.Current.UpdateAvailable.Assets.First(a => a.Name == "ACDDokanNetInstaller.msi").BrowserUrl);
+                Process.Start(Model.UpdateAvailable.Assets.First(a => a.Name == "ACDDokanNetInstaller.msi").BrowserUrl);
             }
             catch (Exception ex)
             {

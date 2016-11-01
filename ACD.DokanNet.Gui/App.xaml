@@ -4,9 +4,9 @@
              xmlns:local="clr-namespace:Azi.Cloud.DokanNet.Gui"
              xmlns:tb="http://www.hardcodet.net/taskbar"
              ShutdownMode="OnExplicitShutdown"
-             Startup="Application_Startup" Exit="Application_Exit"
-             >
+             Startup="Application_Startup" Exit="Application_Exit">
     <Application.Resources>
+        <local:ViewModel x:Key="Model"/>
         <local:DownloadUpdateCommand x:Key="DownloadUpdateCommand"/>
         <local:OpenAppSettingsCommand x:Key="OpenAppSettingsCommand"/>
         <tb:TaskbarIcon x:Key="MyNotifyIcon"

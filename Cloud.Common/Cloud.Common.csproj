@@ -60,6 +60,7 @@
     <Compile Include="CloudDokanNetAssetInfo.cs" />
     <Compile Include="CloudDokanNetAssetInfoImage.cs" />
     <Compile Include="CloudDokanNetItemInfo.cs" />
+    <Compile Include="CloudDokanNetUploadHereInfo.cs" />
     <Compile Include="CloudException.cs" />
     <Compile Include="CloudInfo.cs" />
     <Compile Include="CloudInfoCollection.cs" />

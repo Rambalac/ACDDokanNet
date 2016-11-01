@@ -28,8 +28,6 @@
         private const FileAccess DataReadAccess = FileAccess.ReadData | FileAccess.GenericExecute |
                                                    FileAccess.Execute;
 
-        private static readonly Regex StreamNameGroupsRegex = new Regex(@"([^,])+(?:,([^,]*))*");
-
 #if TRACE
         private string lastFilePath;
 #endif
@@ -170,7 +168,14 @@
 
             try
             {
-                var items = provider.GetDirItems(fileName).Result;
+                var itemsTask = provider.GetDirItems(fileName);
+                if (!itemsTask.Wait(15000))
+                {
+                    files = null;
+                    return NtStatus.Timeout;
+                }
+
+                var items = itemsTask.Result;
 
                 files = items.Select(i => new FileInformation
                 {
@@ -703,21 +708,11 @@
         {
             Log.Trace($"Opening alternate stream {fileName}:{streamName}");
 
-            var streamNameGroups = StreamNameGroupsRegex.Match(streamName).Groups.Cast<Group>().Skip(1).Select(g => g.Value).ToList();
+            var streamNameGroups = streamName.Split(',');
             switch (streamNameGroups[0])
             {
                 case CloudDokanNetItemInfo.StreamName:
-                    if (mode != FileMode.Open)
-                    {
-                        return NtStatus.AccessDenied;
-                    }
-
-                    if (item.Info == null)
-                    {
-                        provider.BuildItemInfo(item).Wait();
-                    }
-
-                    return ProcessItemInfo(streamNameGroups, item, info);
+                    return ProcessShellCommands(streamNameGroups, mode, item, info);
 
                 case "Zone.Identifier":
                     if (mode != FileMode.CreateNew)
@@ -731,9 +726,35 @@
             return DokanResult.AccessDenied;
         }
 
-        private NtStatus ProcessItemInfo(List<string> streamNameGroups, FSItem item, DokanFileInfo info)
+        private NtStatus ProcessShellCommands(string[] streamNameGroups, FileMode mode, FSItem item, DokanFileInfo info)
         {
-            if (streamNameGroups.Count == 1)
+            if (mode == FileMode.OpenOrCreate)
+            {
+                return ProcessUploadHere(item, info);
+            }
+
+            if (mode == FileMode.Open)
+            {
+                if (item.Info == null)
+                {
+                    provider.BuildItemInfo(item).Wait();
+                }
+
+                return ProcessItemInfo(streamNameGroups, item, info);
+            }
+
+            return NtStatus.AccessDenied;
+        }
+
+        private NtStatus ProcessUploadHere(FSItem item, DokanFileInfo info)
+        {
+            info.Context = provider.OpenUploadHere(item);
+            return DokanResult.Success;
+        }
+
+        private NtStatus ProcessItemInfo(string[] streamNameGroups, FSItem item, DokanFileInfo info)
+        {
+            if (streamNameGroups.Length == 1)
             {
                 return OpenAsByteArray(item.Info, info);
             }

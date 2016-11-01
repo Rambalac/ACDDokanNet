@@ -8,7 +8,7 @@
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>ShellExtension</RootNamespace>
-    <AssemblyName>ShellExtension</AssemblyName>
+    <AssemblyName>Azi.CloudHold.ShellExtension</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />

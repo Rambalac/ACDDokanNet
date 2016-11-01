@@ -13,16 +13,16 @@
             InitializeComponent();
         }
 
+        private FileItemInfo Item => (FileItemInfo)DataContext;
+
         private void DismissButton_Click(object sender, RoutedEventArgs e)
         {
-            var item = (FileItemInfo)DataContext;
-            App.Current.UploadFiles.Remove(item);
+            App.Current.Model.UploadFiles.Remove(Item);
         }
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)
         {
-            var item = (FileItemInfo)DataContext;
-            App.Current.CancelUpload(item);
+            App.Current.CancelUpload(Item);
         }
     }
 }

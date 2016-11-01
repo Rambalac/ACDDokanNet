@@ -82,7 +82,7 @@
             return FromNode(item);
         }
 
-        public async Task Download(string id, Func<Stream, Task<long>> streammer, Progress progress, long? fileOffset = default(long?), int? length = default(int?))
+        public async Task Download(string id, Func<Stream, Task> streammer, long? fileOffset = default(long?), long? length = default(int?))
         {
             using (var stream = await GetItem(id).Content.Request().GetAsync().ConfigureAwait(true))
             {

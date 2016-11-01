@@ -5,10 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:Azi.Cloud.DokanNet.Gui"
              mc:Ignorable="d"
-             d:DesignHeight="300" d:DesignWidth="300">
-    <UserControl.DataContext>
-        <local:AvailableCloudsModel />
-    </UserControl.DataContext>
+             d:DesignHeight="300" d:DesignWidth="300" DataContext="{StaticResource Model}">
     <Border Padding="2">
         <ItemsControl Name="list" ItemsSource="{Binding AvailableClouds}" Grid.IsSharedSizeScope="True">
             <ItemsControl.ItemTemplate>

@@ -44,6 +44,7 @@
     <WarningLevel>4</WarningLevel>
     <CodeAnalysisRuleSet>..\Cloud.DokanNet.ruleset</CodeAnalysisRuleSet>
     <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -162,10 +163,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="AvailableCloud.cs" />
     <Compile Include="AvailableCloudsList.xaml.cs">
       <DependentUpon>AvailableCloudsList.xaml</DependentUpon>
     </Compile>
-    <Compile Include="AvailableCloudsModel.cs" />
     <Compile Include="BoolToVisibility.cs" />
     <Compile Include="CloudItemControl.xaml.cs">
       <DependentUpon>CloudItemControl.xaml</DependentUpon>

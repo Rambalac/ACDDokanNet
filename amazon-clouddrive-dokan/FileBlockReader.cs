@@ -8,11 +8,13 @@
     public class FileBlockReader : AbstractBlockStream
     {
         private const int WaitForFile = 50;
+        private const int Maxtimeout = 5;
 
         private readonly FileStream stream;
         private readonly long expectedLength;
         private readonly string filePath;
         private bool disposedValue; // To detect redundant calls
+        private int timeoutcount;
 
         private FileBlockReader(string path, long length)
         {
@@ -67,6 +69,17 @@
 
                 if (DateTime.UtcNow > timeouttime)
                 {
+                    if (totalred > 0)
+                    {
+                        return totalred;
+                    }
+
+                    Interlocked.Increment(ref timeoutcount);
+                    if (timeoutcount > Maxtimeout)
+                    {
+                        throw new Exception($"Timeout more than {Maxtimeout} times");
+                    }
+
                     throw new TimeoutException();
                 }
             }

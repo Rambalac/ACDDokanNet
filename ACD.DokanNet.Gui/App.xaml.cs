@@ -23,252 +23,25 @@
     /// <summary>
     /// Interaction logic for App.xaml
     /// </summary>
-    public partial class App : Application, IDisposable, INotifyPropertyChanged
+    public partial class App : Application, IDisposable
     {
         private const string AppName = "ACDDokanNet";
         private const string RegistryAutorunPath = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
-        private ObservableCollection<CloudMount> clouds;
         private bool disposedValue;
-        private int downloadingCount;
         private bool shuttingdown;
         private Mutex startedMutex;
-        private UpdateChecker.UpdateInfo updateAvailable;
         private UpdateChecker updateCheck = new UpdateChecker(47739891);
         private DispatcherTimer updateCheckTimer;
-        private ObservableCollection<FileItemInfo> uploadFiles = new ObservableCollection<FileItemInfo>();
-
-        public event PropertyChangedEventHandler PropertyChanged;
 
         public static new App Current => Application.Current as App;
 
-        public ObservableCollection<CloudMount> Clouds
-        {
-            get
-            {
-                if (clouds == null)
-                {
-                    var settings = Gui.Properties.Settings.Default;
-                    if (settings.Clouds == null)
-                    {
-                        Debug.WriteLine("No clouds!");
-                        settings.Clouds = new CloudInfoCollection();
-                        settings.Save();
-                    }
-
-                    clouds = new ObservableCollection<CloudMount>(settings.Clouds.Select(s => new CloudMount(s)));
-                }
-
-                return clouds;
-            }
-        }
-
-        public int DownloadingCount => downloadingCount;
+        public ViewModel Model => FindResource("Model") as ViewModel;
 
         public TaskbarIcon NotifyIcon { get; private set; }
 
-        public string SmallFileCacheFolder
-        {
-            get
-            {
-                return Gui.Properties.Settings.Default.CacheFolder;
-            }
-
-            set
-            {
-                // TODO
-                // if (provider != null)
-                // {
-                //    provider.CachePath = Environment.ExpandEnvironmentVariables(value);
-                // }
-                Gui.Properties.Settings.Default.CacheFolder = value;
-                Gui.Properties.Settings.Default.Save();
-            }
-        }
-
-        public long SmallFilesCacheSize
-        {
-            get
-            {
-                return Gui.Properties.Settings.Default.SmallFilesCacheLimit;
-            }
-
-            set
-            {
-                // TODO
-                // if (provider != null)
-                // {
-                //    provider.SmallFilesCacheSize = value * (1 << 20);
-                // }
-                Gui.Properties.Settings.Default.SmallFilesCacheLimit = value;
-                Gui.Properties.Settings.Default.Save();
-            }
-        }
-
-        public long SmallFileSizeLimit
-        {
-            get
-            {
-                return Gui.Properties.Settings.Default.SmallFileSizeLimit;
-            }
-
-            set
-            {
-                // TODO
-                // if (provider != null)
-                // {
-                //    provider.SmallFileSizeLimit = value * (1 << 20);
-                // }
-                Gui.Properties.Settings.Default.SmallFileSizeLimit = value;
-                Gui.Properties.Settings.Default.Save();
-            }
-        }
-
-        public UpdateChecker.UpdateInfo UpdateAvailable
-        {
-            get
-            {
-                return updateAvailable;
-            }
-
-            private set
-            {
-                updateAvailable = value;
-                OnPropertyChanged(nameof(UpdateAvailable));
-            }
-        }
-
-        public ObservableCollection<FileItemInfo> UploadFiles => uploadFiles;
-
-        public int UploadingCount => uploadFiles.Count;
-
-        public void AddCloud(AvailableCloudsModel.AvailableCloud selectedItem)
-        {
-            var name = selectedItem.Name;
-            var letters = VirtualDriveWrapper.GetFreeDriveLettes();
-            if (letters.Count == 0)
-            {
-                throw new InvalidOperationException("No free letters");
-            }
-
-            if (Clouds.Any(c => c.CloudInfo.Name == name))
-            {
-                int i = 1;
-                while (Clouds.Any(c => c.CloudInfo.Name == name + " " + i))
-                {
-                    i++;
-                }
-
-                name = name + " " + i;
-            }
-
-            var info = new CloudInfo
-            {
-                Id = Guid.NewGuid().ToString(),
-                Name = name,
-                ClassName = selectedItem.ClassName,
-                AssemblyFileName = selectedItem.AssemblyFileName,
-                DriveLetter = letters[0]
-            };
-            var mount = new CloudMount(info);
-            Clouds.Add(mount);
-            var settings = Gui.Properties.Settings.Default;
-            settings.Clouds = new CloudInfoCollection(Clouds.Select(c => c.CloudInfo));
-            settings.Save();
-        }
-
-        // This code added to correctly implement the disposable pattern.
         public void Dispose()
         {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
             Dispose(true);
-
-            // TODO: uncomment the following line if the finalizer is overridden above.
-            // GC.SuppressFinalize(this);
-        }
-
-        public void OnProviderStatisticsUpdated(CloudInfo cloud, StatisticUpdateReason reason, AStatisticFileInfo info)
-        {
-            try
-            {
-                Dispatcher.Invoke(() =>
-                {
-                    switch (reason)
-                    {
-                        case StatisticUpdateReason.UploadAdded:
-                            {
-                                var mount = clouds.Single(c => c.CloudInfo.Id == cloud.Id);
-                                var item = new FileItemInfo
-                                {
-                                    CloudId = cloud.Id,
-                                    Id = info.Id,
-                                    CloudIcon = mount.Instance.CloudServiceIcon,
-                                    FileName = info.FileName,
-                                    FullPath = $"{mount.MountLetter}:{info.Path}",
-                                    ErrorMessage = info.ErrorMessage,
-                                    Total = info.Total,
-                                    CloudName = cloud.Name
-                                };
-                                uploadFiles.Remove(item);
-                                uploadFiles.Add(item);
-                            }
-                            break;
-
-                        case StatisticUpdateReason.UploadFinished:
-                            uploadFiles.Remove(new FileItemInfo { Id = info.Id });
-                            break;
-
-                        case StatisticUpdateReason.DownloadAdded:
-                            downloadingCount++;
-                            OnPropertyChanged(nameof(DownloadingCount));
-                            break;
-
-                        case StatisticUpdateReason.DownloadFinished:
-                            downloadingCount--;
-                            OnPropertyChanged(nameof(DownloadingCount));
-                            break;
-
-                        case StatisticUpdateReason.DownloadFailed:
-                            downloadingCount--;
-                            OnPropertyChanged(nameof(DownloadingCount));
-                            break;
-
-                        case StatisticUpdateReason.UploadFailed:
-                            {
-                                var item = UploadFiles.Single(f => f.Id == info.Id);
-                                item.ErrorMessage = info.ErrorMessage;
-                                UploadFiles.Remove(item);
-                                UploadFiles.Add(item);
-                            }
-                            break;
-
-                        case StatisticUpdateReason.UploadAborted:
-                            {
-                                var item = UploadFiles.Single(f => f.Id == info.Id);
-                                item.ErrorMessage = info.ErrorMessage;
-                                item.DismissOnly = true;
-                                UploadFiles.Remove(item);
-                                UploadFiles.Add(item);
-                            }
-                            break;
-
-                        case StatisticUpdateReason.Progress:
-                            {
-                                var item = UploadFiles.SingleOrDefault(f => f.Id == info.Id);
-                                if (item != null)
-                                {
-                                    item.Done = info.Done;
-                                }
-                            }
-                            break;
-
-                        default:
-                            throw new ArgumentOutOfRangeException();
-                    }
-                });
-            }
-            catch (TaskCanceledException)
-            {
-            }
         }
 
         public void OpenSettings()
@@ -279,7 +52,7 @@
 
         internal void CancelUpload(FileItemInfo item)
         {
-            var cloud = Clouds.SingleOrDefault(c => c.CloudInfo.Id == item.CloudId);
+            var cloud = Model.Clouds.SingleOrDefault(c => c.CloudInfo.Id == item.CloudId);
             if (cloud == null)
             {
                 return;
@@ -291,7 +64,7 @@
         internal async Task ClearCache()
         {
             bool any = false;
-            foreach (var mount in Clouds)
+            foreach (var mount in Model.Clouds)
             {
                 var provider = mount.Provider;
                 if (provider != null)
@@ -307,36 +80,12 @@
             }
         }
 
-        internal void DeleteCloud(CloudMount cloud)
-        {
-            Clouds.Remove(cloud);
-            var settings = Gui.Properties.Settings.Default;
-            settings.Clouds = new CloudInfoCollection(Clouds.Select(c => c.CloudInfo));
-            settings.Save();
-        }
-
         internal bool GetAutorun()
         {
             using (var rk = Registry.CurrentUser.OpenSubKey(RegistryAutorunPath, true))
             {
                 return rk.GetValue(AppName) != null;
             }
-        }
-
-        internal void NotifyUnmount(string id)
-        {
-            var toremove = uploadFiles.Where(f => f.CloudId == id).ToList();
-            foreach (var item in toremove)
-            {
-                uploadFiles.Remove(item);
-            }
-        }
-
-        internal void SaveClouds()
-        {
-            var settings = Gui.Properties.Settings.Default;
-            settings.Clouds = new CloudInfoCollection(Clouds.Select(c => c.CloudInfo));
-            settings.Save();
         }
 
         internal void SetAutorun(bool isChecked)
@@ -381,7 +130,7 @@
                 NotifyIcon = null;
             }
 
-            foreach (var cloud in Clouds)
+            foreach (var cloud in Model.Clouds)
             {
                 cloud.UnmountAsync().Wait(500);
             }
@@ -390,6 +139,18 @@
         private async void Application_Startup(object sender, StartupEventArgs e)
         {
             Log.Info("Starting Version " + Assembly.GetEntryAssembly().GetName().Version);
+
+            try
+            {
+                var test = Gui.Properties.Settings.Default.NeedUpgrade;
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Settings file got currupted. Resetting\r\n{ex}");
+                Gui.Properties.Settings.Default.Reset();
+                Gui.Properties.Settings.Default.Save();
+                var task = Dispatcher.BeginInvoke(new Action<App>((s) => { MessageBox.Show("Settings file got currupted and was reset"); }), new object[] { this });
+            }
 
             if (Gui.Properties.Settings.Default.NeedUpgrade)
             {
@@ -451,7 +212,7 @@
 
         private void DownloadUpdate()
         {
-            Process.Start(UpdateAvailable.Assets.First(a => a.Name == "ACDDokanNetInstaller.msi").BrowserUrl);
+            Process.Start(Model.UpdateAvailable.Assets.First(a => a.Name == "ACDDokanNetInstaller.msi").BrowserUrl);
         }
 
         private void ExitMenuItem_Click(object sender, RoutedEventArgs e)
@@ -461,11 +222,18 @@
 
         private void MenuExit_Click()
         {
-            if (UploadingCount > 0)
+            if (Model.UploadFiles.Count > 0)
             {
-                if (System.Windows.MessageBox.Show("Some files are not uploaded yet", "Are you sure?", MessageBoxButton.YesNo) != MessageBoxResult.Yes)
+                try
                 {
-                    return;
+                    if (MessageBox.Show("Some files are not uploaded yet", "Are you sure?", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No, MessageBoxOptions.DefaultDesktopOnly) != MessageBoxResult.Yes)
+                    {
+                        return;
+                    }
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
                 }
             }
 
@@ -475,7 +243,7 @@
 
         private async Task MountDefault()
         {
-            foreach (var cloud in Clouds.Where(c => c.CloudInfo.AutoMount))
+            foreach (var cloud in Model.Clouds.Where(c => c.CloudInfo.AutoMount))
             {
                 try
                 {
@@ -486,11 +254,6 @@
                     Log.Error(ex);
                 }
             }
-        }
-
-        private void OnPropertyChanged(string name)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
 
         private void SettingsMenuItem_Click(object sender, RoutedEventArgs e)
@@ -512,12 +275,11 @@
         {
             try
             {
-                UpdateAvailable = await updateCheck.CheckUpdate();
+                Model.UpdateAvailable = await updateCheck.CheckUpdate();
 
-                if (UpdateAvailable != null)
+                if (Model.UpdateAvailable != null)
                 {
-                    OnPropertyChanged(nameof(UpdateAvailable));
-                    NotifyIcon.ShowBalloonTip(AppName, $"Update to {updateAvailable.Version} is available", BalloonIcon.None);
+                    NotifyIcon.ShowBalloonTip(AppName, $"Update to {Model.UpdateAvailable.Version} is available", BalloonIcon.None);
                 }
             }
             catch (Exception ex)

@@ -18,13 +18,18 @@
         private static ConcurrentDictionary<IHttpCloud, SmallFilesCache> instances = new ConcurrentDictionary<IHttpCloud, SmallFilesCache>(10, 3);
         private readonly IHttpCloud cloud;
 
-        private long totalSize;
         private ConcurrentDictionary<string, CacheEntry> access = new ConcurrentDictionary<string, CacheEntry>(10, 1000);
-        private bool cleaning;
+        private long cacheSize;
+        private UniqueBackgroundWorker cleanAllWorker;
+
+        private UniqueBackgroundWorker<long> cleanSizeWorker;
+        private long totalSize;
         private object totalSizeLock = new object();
 
         public SmallFilesCache(IHttpCloud a)
         {
+            cleanAllWorker = new UniqueBackgroundWorker(ClearAll);
+            cleanSizeWorker = new UniqueBackgroundWorker<long>(ClearSize);
             cloud = a;
         }
 
@@ -64,7 +69,18 @@
             }
         }
 
-        public long CacheSize { get; internal set; }
+        public long CacheSize
+        {
+            get
+            {
+                return cacheSize;
+            }
+
+            internal set
+            {
+                cacheSize = value;
+            }
+        }
 
         public Action<FSItem> OnDownloaded { get; set; }
 
@@ -99,44 +115,37 @@
             }
         }
 
-        public Task Clear()
+        public Task ClearAllInBackground()
         {
-            var oldcachePath = cachePath;
-            return Task.Run(() =>
-            {
-                int failed = 0;
-                try
-                {
-                    foreach (var file in Directory.GetFiles(oldcachePath).ToList())
-                    {
-                        try
-                        {
-                            File.Delete(file);
-                        }
-                        catch (IOException)
-                        {
-                            failed++;
-                        }
-                    }
-                }
-                catch (UnauthorizedAccessException)
-                {
-                    Log.Error("Cannot access folder: " + oldcachePath);
-                    return;
-                }
-                RecalculateTotalSize();
-
-                if (failed > 0)
-                {
-                    throw new InvalidOperationException("Can not delete all cached files. Some files are still in use.");
-                }
-            });
+            return cleanAllWorker.Run();
         }
 
         public void Delete(FSItem item)
         {
             var path = Path.Combine(cachePath, item.Id);
             File.Delete(path);
+        }
+
+        public void MoveToCache(string olditemPath, FSItem newitem)
+        {
+            var newitemPath = Path.Combine(CachePath, newitem.Id);
+
+            try
+            {
+                if (!File.Exists(newitemPath))
+                {
+                    File.Move(olditemPath, newitemPath);
+                    AddExisting(newitem);
+                }
+                else
+                {
+                    File.Delete(olditemPath);
+                }
+            }
+            catch (Exception)
+            {
+                return;
+            }
         }
 
         public FileBlockReader OpenReadCachedOnly(FSItem item)
@@ -189,53 +198,6 @@
             return new SmallFileBlockReaderWriter(downloader);
         }
 
-        public void StartClear(long size)
-        {
-            if (cleaning)
-            {
-                return;
-            }
-
-            cleaning = true;
-            Task.Run(() =>
-            {
-                try
-                {
-                    long deleted = 0;
-                    foreach (var file in access.Values.OrderBy(f => f.AccessTime).TakeWhile(f =>
-                    {
-                        size -= f.Length;
-                        return size > 0;
-                    }).ToList())
-                    {
-                        try
-                        {
-                            var path = Path.Combine(cachePath, file.Id);
-                            var info = new FileInfo(path);
-                            File.Delete(path);
-                            deleted += info.Length;
-                            CacheEntry remove;
-                            access.TryRemove(file.Id, out remove);
-                        }
-                        catch (IOException)
-                        {
-                            // Skip if failed
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Error(ex);
-                        }
-                    }
-
-                    TotalSizeDecrease(deleted);
-                }
-                finally
-                {
-                    cleaning = false;
-                }
-            });
-        }
-
         public void TotalSizeDecrease(long val)
         {
             lock (totalSizeLock)
@@ -249,6 +211,76 @@
             lock (totalSizeLock)
             {
                 totalSize += val;
+            }
+        }
+
+        private void ClearAll()
+        {
+            var oldcachePath = cachePath;
+            int failed = 0;
+            try
+            {
+                foreach (var file in Directory.GetFiles(oldcachePath).ToList())
+                {
+                    try
+                    {
+                        File.Delete(file);
+                    }
+                    catch (IOException)
+                    {
+                        failed++;
+                    }
+                }
+            }
+            catch (UnauthorizedAccessException)
+            {
+                Log.Error("Cannot access folder: " + oldcachePath);
+                return;
+            }
+
+            RecalculateTotalSize();
+
+            if (failed > 0)
+            {
+                throw new InvalidOperationException("Can not delete all cached files. Some files are still in use.");
+            }
+        }
+
+        private void ClearSize(long size)
+        {
+            try
+            {
+                long deleted = 0;
+                foreach (var file in access.Values.OrderBy(f => f.AccessTime).TakeWhile(f =>
+                {
+                    size -= f.Length;
+                    return size > 0;
+                }).ToList())
+                {
+                    try
+                    {
+                        var path = Path.Combine(cachePath, file.Id);
+                        var info = new FileInfo(path);
+                        File.Delete(path);
+                        deleted += info.Length;
+                        CacheEntry remove;
+                        access.TryRemove(file.Id, out remove);
+                    }
+                    catch (IOException)
+                    {
+                        // Skip if failed
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(ex);
+                    }
+                }
+
+                TotalSizeDecrease(deleted);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
             }
         }
 
@@ -283,9 +315,7 @@
                                     downloader.Downloaded = writer.Length;
                                 }
                                 while (red > 0);
-                                return totalred;
-                            },
-                            progress: null);
+                            });
                         if (writer.Length < item.Length)
                         {
                             await Task.Delay(500);
@@ -302,7 +332,7 @@
 
                     if (TotalSize > CacheSize)
                     {
-                        StartClear(TotalSize - CacheSize);
+                        var task = cleanSizeWorker.Run(TotalSize - CacheSize);
                     }
                 }
                 catch (Exception ex)
@@ -384,7 +414,7 @@
                 }
 
                 downloader.Downloaded = writer.Length;
-                downloader.Task = Task.Run(async () => await Download(item, writer, downloader));
+                downloader.Task = Task.Factory.StartNew(async () => await Download(item, writer, downloader), TaskCreationOptions.LongRunning);
                 return downloader;
             }
             catch (IOException e)

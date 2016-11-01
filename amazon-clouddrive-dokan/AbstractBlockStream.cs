@@ -1,6 +1,7 @@
 ﻿namespace Azi.Cloud.DokanNet
 {
     using System;
+    using Tools;
 
     public abstract class AbstractBlockStream : IBlockStream
     {
@@ -20,7 +21,14 @@
 
         public virtual void Close()
         {
-            OnClose?.Invoke();
+            try
+            {
+                OnClose?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex);
+            }
         }
 
         public abstract void SetLength(long len);

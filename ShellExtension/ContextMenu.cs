@@ -14,14 +14,18 @@
     using Trinet.Core.IO.Ntfs;
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Interoperability", "CA1405:ComVisibleTypeBaseTypesShouldBeComVisible", Justification = "Must be COM visible")]
+    [Guid("CAEE83F5-A0B4-4FAD-A94B-8CEB0A78EA54")]
     [ComVisible(true)]
     [COMServerAssociation(AssociationType.AllFiles)]
     [COMServerAssociation(AssociationType.Directory)]
+    [COMServerAssociation(AssociationType.UnknownFiles)]
+    [COMServerAssociation(AssociationType.Directory)]
+    [COMServerAssociation(AssociationType.Drive)]
     public class ContextMenu : SharpContextMenu
     {
         protected new virtual IEnumerable<string> SelectedItemPaths
         {
-            get { return base.SelectedItemPaths; }
+            get { return (base.SelectedItemPaths.Count() > 0) ? base.SelectedItemPaths : new string[] { FolderPath }; }
         }
 
         protected static INodeExtendedInfo ReadInfo(string path)
@@ -48,9 +52,31 @@
             }
         }
 
+        protected static void WriteObject(object obj, string path, params string[] commands)
+        {
+            var str = JsonConvert.SerializeObject(obj);
+
+            var streamName = string.Join(",", new[] { CloudDokanNetItemInfo.StreamName }.Concat(commands ?? Enumerable.Empty<string>()));
+            using (var info = FileSystem.GetAlternateDataStream(path, streamName).OpenWrite())
+            using (var writer = new StreamWriter(info))
+            {
+                writer.Write(str);
+            }
+        }
+
         protected override bool CanShowMenu()
         {
-            return SelectedItemPaths.All((path) => FileSystem.AlternateDataStreamExists(path, CloudDokanNetItemInfo.StreamName));
+#if DEBUG
+            EventLog.WriteEntry("ACDDokan.Net", $"ContextMenu in {FolderPath} create: {string.Join(";", SelectedItemPaths)}", EventLogEntryType.Warning, 0, 0);
+#endif
+            if (SelectedItemPaths.Count() > 0)
+            {
+                return SelectedItemPaths.All((path) => FileSystem.AlternateDataStreamExists(path, CloudDokanNetItemInfo.StreamName));
+            }
+            else
+            {
+                return FileSystem.AlternateDataStreamExists(FolderPath, CloudDokanNetItemInfo.StreamName);
+            }
         }
 
         protected void CopyTempLink(object sender, EventArgs e)
@@ -71,6 +97,11 @@
                 if (File.Exists(SelectedItemPaths.Single()) && info is INodeExtendedInfoTempLink)
                 {
                     menu.Items.Add(new ToolStripMenuItem("Open as temp link", null, OpenAsUrl));
+                }
+
+                if (Directory.Exists(SelectedItemPaths.Single()) && Clipboard.ContainsFileDropList())
+                {
+                    menu.Items.Add(new ToolStripMenuItem("Upload here", null, UploadHere));
                 }
 
                 if (info is INodeExtendedInfoWebLink)
@@ -108,6 +139,8 @@
                 }
             }
 
+            menu.Items.Add("-");
+
             // Return the menu.
             return menu;
         }
@@ -139,7 +172,7 @@
             process.Start();
         }
 
-        protected void OpenInBrowser(object sender, EventArgs e)
+        private void OpenInBrowser(object sender, EventArgs e)
         {
             var info = ReadInfo(SelectedItemPaths.Single());
             var infoTemp = info as INodeExtendedInfoTempLink;
@@ -149,6 +182,16 @@
             {
                 Process.Start(infoTemp?.TempLink ?? infoWeb?.WebLink);
             }
+        }
+
+        private void UploadHere(object sender, EventArgs e)
+        {
+            var files = new CloudDokanNetUploadHereInfo
+            {
+                Files = Clipboard.GetFileDropList().Cast<string>().ToList()
+            };
+            var path = SelectedItemPaths.Single();
+            WriteObject(files, path, CloudDokanNetUploadHereInfo.StreamName);
         }
 
         private void CopyReadOnlyLink(object sender, EventArgs e)

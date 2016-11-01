@@ -240,7 +240,7 @@
             }
         }
 
-        async Task IHttpCloudFiles.Download(string id, Func<Stream, Task<long>> streammer, Progress progress, long? fileOffset, int? length)
+        async Task IHttpCloudFiles.Download(string id, Func<Stream, Task> streammer, long? fileOffset, long? length)
         {
             try
             {
@@ -260,7 +260,7 @@
 
                     using (var stream = response.GetResponseStream())
                     {
-                        expectedOffset += await streammer(stream);
+                        await streammer(stream);
                     }
                 });
             }

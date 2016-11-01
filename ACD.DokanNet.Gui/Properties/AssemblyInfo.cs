@@ -11,7 +11,7 @@ using System.Windows;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Rambalac")]
 [assembly: AssemblyProduct("ACD.DokanNet.Gui")]
-[assembly: AssemblyCopyright("Copyright ©  2015 Rambalac")]
+[assembly: AssemblyCopyright("Rambalac")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

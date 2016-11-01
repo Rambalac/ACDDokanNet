@@ -117,18 +117,21 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="app_all" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\images\app_all.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="LogWarning" xml:space="preserve">
     <value>Log file may contain some private information like folder and file names. But application does not know your email or Amazon Cloud Drive password.
 You can open log file in standard Windows Event Viewer just double clicking the file.</value>
+  </data>
+  <data name="SmallFileCacheSizeTooltip" xml:space="preserve">
+    <value>Size of all small files in cache.</value>
   </data>
   <data name="SmallFileSizeTooltip" xml:space="preserve">
     <value>Maximum size of files which will be cached whole on first request.</value>
   </data>
   <data name="WaitForRedirectMessage" xml:space="preserve">
     <value>Please follow Amazon Cloud Drive login page in your browser and retrun here after it's complete.</value>
-  </data>
-  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
-  <data name="app_all" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\images\app_all.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
 </root>

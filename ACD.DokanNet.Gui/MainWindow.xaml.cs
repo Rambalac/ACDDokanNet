@@ -25,7 +25,7 @@
 
         private void ChangeCacheDir(object sender, RoutedEventArgs e)
         {
-            var path = Environment.ExpandEnvironmentVariables(Model.CacheFolder);
+            var path = Environment.ExpandEnvironmentVariables(Model.SmallFileCacheFolder);
             using (var dlg = new CommonOpenFileDialog
             {
                 Title = "Select Cache Folder",
@@ -45,7 +45,7 @@
             {
                 if (dlg.ShowDialog() == CommonFileDialogResult.Ok)
                 {
-                    Model.CacheFolder = dlg.FileName;
+                    Model.SmallFileCacheFolder = dlg.FileName;
                 }
             }
         }

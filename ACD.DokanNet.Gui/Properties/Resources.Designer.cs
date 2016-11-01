@@ -81,6 +81,15 @@ namespace Azi.Cloud.DokanNet.Gui.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Size of all small files in cache..
+        /// </summary>
+        public static string SmallFileCacheSizeTooltip {
+            get {
+                return ResourceManager.GetString("SmallFileCacheSizeTooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Maximum size of files which will be cached whole on first request..
         /// </summary>
         public static string SmallFileSizeTooltip {

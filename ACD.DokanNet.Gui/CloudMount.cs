@@ -23,9 +23,11 @@
         private bool mounting = false;
         private bool unmounting = false;
         private ManualResetEventSlim unmountingEvent;
+        private ViewModel model;
 
-        public CloudMount(CloudInfo info)
+        public CloudMount(CloudInfo info, ViewModel model)
         {
+            this.model = model;
             cloudInfo = info;
             cloudInfo.PropertyChanged += CloudInfoChanged;
         }
@@ -116,7 +118,7 @@
                 await Instance.SignOut(CloudInfo.AuthSave);
             }
 
-            App.DeleteCloud(this);
+            model.DeleteCloud(this);
         }
 
         // This code added to correctly implement the disposable pattern.
@@ -160,7 +162,7 @@
         public void OnAuthUpdated(IHttpCloud sender, string authinfo)
         {
             CloudInfo.AuthSave = authinfo;
-            App.SaveClouds();
+            model.SaveClouds();
         }
 
         public async Task UnmountAsync()
@@ -190,7 +192,7 @@
 
                 MountLetter = null;
                 Provider.Stop();
-                App.NotifyUnmount(cloudInfo.Id);
+                model.NotifyUnmount(cloudInfo.Id);
             }
             finally
             {
@@ -245,7 +247,7 @@
                 Provider.VolumeName = CloudInfo.Name;
             }
 
-            App.SaveClouds();
+            model.SaveClouds();
         }
 
         private IHttpCloud CreateInstance()
@@ -289,51 +291,53 @@
 
                 NotifyMount();
 
-                var task = Task.Run(() =>
-                {
-                    try
+                var task = Task.Factory.StartNew(
+                    () =>
                     {
-                        cloudDrive.Mount(CloudInfo.DriveLetter, CloudInfo.ReadOnly);
-                        unmountingEvent.Set();
-                    }
-                    catch (InvalidOperationException)
-                    {
-                        Log.Warn($"Drive letter {CloudInfo.DriveLetter} is already used");
-                        Exception lastException = null;
-                        bool wasMounted = false;
-                        foreach (char letter in VirtualDriveWrapper.GetFreeDriveLettes())
+                        try
                         {
-                            try
+                            cloudDrive.Mount(CloudInfo.DriveLetter, CloudInfo.ReadOnly);
+                            unmountingEvent.Set();
+                        }
+                        catch (InvalidOperationException)
+                        {
+                            Log.Warn($"Drive letter {CloudInfo.DriveLetter} is already used");
+                            Exception lastException = null;
+                            bool wasMounted = false;
+                            foreach (char letter in VirtualDriveWrapper.GetFreeDriveLettes())
                             {
-                                cloudDrive.Mount(letter, CloudInfo.ReadOnly);
-                                unmountingEvent.Set();
+                                try
+                                {
+                                    cloudDrive.Mount(letter, CloudInfo.ReadOnly);
+                                    unmountingEvent.Set();
 
-                                wasMounted = true;
-                                break;
+                                    wasMounted = true;
+                                    break;
+                                }
+                                catch (InvalidOperationException ex)
+                                {
+                                    lastException = ex;
+                                    Log.Warn($"Drive letter {letter} is already used");
+                                }
                             }
-                            catch (InvalidOperationException ex)
+
+                            if (!wasMounted)
                             {
-                                lastException = ex;
-                                Log.Warn($"Drive letter {letter} is already used");
+                                var message = "Could not find free letter";
+                                if (lastException != null && lastException.InnerException != null)
+                                {
+                                    message = lastException.InnerException.Message;
+                                }
+
+                                mountedEvent.SetException(new InvalidOperationException(message));
                             }
                         }
-
-                        if (!wasMounted)
+                        catch (Exception ex)
                         {
-                            var message = "Could not find free letter";
-                            if (lastException != null && lastException.InnerException != null)
-                            {
-                                message = lastException.InnerException.Message;
-                            }
-
-                            mountedEvent.SetException(new InvalidOperationException(message));
+                            mountedEvent.SetException(ex);
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        mountedEvent.SetException(ex);
-                    }
-                });
+                    },
+                    TaskCreationOptions.LongRunning);
                 return await mountedEvent.Task;
             }
             finally
@@ -354,7 +358,17 @@
 
         private void ProviderStatisticsUpdated(IHttpCloud cloud, StatisticUpdateReason reason, AStatisticFileInfo info)
         {
-            App?.OnProviderStatisticsUpdated(CloudInfo, reason, info);
+            try
+            {
+                App.Dispatcher.Invoke(() =>
+                {
+                    model.OnProviderStatisticsUpdated(this, reason, info);
+                });
+            }
+            catch (TaskCanceledException)
+            {
+                Log.Trace("Task cancelled");
+            }
         }
     }
 }

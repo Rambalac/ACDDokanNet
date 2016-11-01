@@ -95,7 +95,7 @@
 
                 if (cachePath != null)
                 {
-                    SmallFilesCache.Clear().Wait();
+                    SmallFilesCache.ClearAllInBackground().Wait();
                 }
 
                 cachePath = val;
@@ -148,7 +148,7 @@
 
         public async Task ClearSmallFilesCache()
         {
-            await SmallFilesCache.Clear();
+            await SmallFilesCache.ClearAllInBackground();
         }
 
         public void CreateDir(string filePath)
@@ -190,6 +190,17 @@
                 DeleteItem(filePath, item);
                 itemsTreeCache.DeleteFile(filePath);
             }
+
+            try
+            {
+                SmallFilesCache.Delete(item);
+            }
+            catch (FileNotFoundException)
+            {
+                Log.Trace("Skip, File is not in SmallFilesCache");
+            }
+
+            UploadService.CancelUpload(item.Id);
         }
 
         // This code added to correctly implement the disposable pattern.
@@ -235,7 +246,7 @@
             return items;
         }
 
-        public byte[] GetExtendedInfo(List<string> streamNameGroups, FSItem item)
+        public byte[] GetExtendedInfo(string[] streamNameGroups, FSItem item)
         {
             switch (streamNameGroups[1])
             {
@@ -437,6 +448,30 @@
             return null;
         }
 
+        public ByteArrayBlockWriter OpenUploadHere(FSItem item)
+        {
+            Log.Trace($"Upload from Shell");
+            var result = new ByteArrayBlockWriter();
+            result.OnClose = () =>
+              {
+                  var bytes = result.Content.ToArray();
+                  var str = Encoding.UTF8.GetString(bytes);
+                  var list = JsonConvert.DeserializeObject<CloudDokanNetUploadHereInfo>(str);
+                  Task.Run(async () =>
+                  {
+                      try
+                      {
+                          await MakeUploads(item, list.Files);
+                      }
+                      catch (Exception ex)
+                      {
+                          Log.Error($"UploadHere error: {ex}");
+                      }
+                  });
+              };
+            return result;
+        }
+
         public void Stop()
         {
             UploadService.Stop();
@@ -456,6 +491,19 @@
                 // TODO: set large fields to null.
                 disposedValue = true;
             }
+        }
+
+        private async Task<FSItem> CheckCreateFolder(FSItem parent, string name)
+        {
+            var node = await cloud.Nodes.GetChild(parent.Id, name);
+            if (node != null)
+            {
+                return node.SetParentPath(parent.Path).Build();
+            }
+
+            var result = (await cloud.Nodes.CreateFolder(parent.Id, name)).SetParentPath(parent.Path).Build();
+            itemsTreeCache.Add(result);
+            return result;
         }
 
         private void DeleteItem(string filePath, FSItem item)
@@ -567,6 +615,31 @@
             return Uri.UnescapeDataString(relativetoUri.MakeRelativeUri(pathUri).ToString().Replace('/', Path.DirectorySeparatorChar));
         }
 
+        private async Task MakeUploads(FSItem dest, List<string> files)
+        {
+            var currentfiles = new Queue<UploadTaskItem>(files.Select(f => new UploadTaskItem { Parent = dest, File = f }));
+
+            while (currentfiles.Count > 0)
+            {
+                var item = currentfiles.Dequeue();
+                if (Directory.Exists(item.File))
+                {
+                    var created = await CheckCreateFolder(item.Parent, Path.GetFileName(item.File));
+                    if (created != null)
+                    {
+                        foreach (var file in Directory.EnumerateFileSystemEntries(item.File))
+                        {
+                            currentfiles.Enqueue(new UploadTaskItem { Parent = created, File = file });
+                        }
+                    }
+                }
+                else
+                {
+                    UploadService.AddUpload(item.Parent, item.File);
+                }
+            }
+        }
+
         private void UploadFailed(UploadInfo uploaditem, FailReason reason, string message)
         {
             switch (reason)
@@ -603,18 +676,8 @@
 
             var newitem = node.SetParentPath(Path.GetDirectoryName(item.Path)).Build();
             var olditemPath = Path.Combine(UploadService.CachePath, item.Id);
-            var newitemPath = Path.Combine(SmallFilesCache.CachePath, node.Id);
 
-            if (!File.Exists(newitemPath))
-            {
-                File.Move(olditemPath, newitemPath);
-            }
-            else
-            {
-                File.Delete(olditemPath);
-            }
-
-            SmallFilesCache.AddExisting(newitem);
+            SmallFilesCache.MoveToCache(olditemPath, newitem);
             itemsTreeCache.Update(newitem);
         }
 
@@ -633,6 +696,13 @@
             }
 
             return item;
+        }
+
+        private class UploadTaskItem
+        {
+            public string File { get; set; }
+
+            public FSItem Parent { get; set; }
         }
     }
 }

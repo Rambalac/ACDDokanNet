@@ -16,13 +16,13 @@
 
         public event EventHandler Clicked;
 
-        private App App => App.Current;
+        private ViewModel Model => (ViewModel)DataContext;
 
         private void ListBox_Selected(object sender, RoutedEventArgs e)
         {
             var button = (Button)sender;
 
-            App.AddCloud((AvailableCloudsModel.AvailableCloud)button.DataContext);
+            Model.AddCloud((AvailableCloud)button.DataContext);
 
             Clicked?.Invoke(this, null);
         }
