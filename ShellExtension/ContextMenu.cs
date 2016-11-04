@@ -19,49 +19,12 @@
     [COMServerAssociation(AssociationType.AllFiles)]
     [COMServerAssociation(AssociationType.Directory)]
     [COMServerAssociation(AssociationType.UnknownFiles)]
-    [COMServerAssociation(AssociationType.Directory)]
     [COMServerAssociation(AssociationType.Drive)]
     public class ContextMenu : SharpContextMenu
     {
         protected new virtual IEnumerable<string> SelectedItemPaths
         {
             get { return (base.SelectedItemPaths.Count() > 0) ? base.SelectedItemPaths : new string[] { FolderPath }; }
-        }
-
-        protected static INodeExtendedInfo ReadInfo(string path)
-        {
-            using (var info = FileSystem.GetAlternateDataStream(path, CloudDokanNetItemInfo.StreamName).OpenText())
-            {
-                var text = info.ReadToEnd();
-                var type = JsonConvert.DeserializeObject<NodeExtendedInfo>(text);
-                if (type.Type == nameof(CloudDokanNetItemInfo))
-                {
-                    return JsonConvert.DeserializeObject<CloudDokanNetItemInfo>(text);
-                }
-
-                return null;
-            }
-        }
-
-        protected static string ReadString(string path, params string[] commands)
-        {
-            var streamName = string.Join(",", new[] { CloudDokanNetItemInfo.StreamName }.Concat(commands ?? Enumerable.Empty<string>()));
-            using (var info = FileSystem.GetAlternateDataStream(path, streamName).OpenText())
-            {
-                return info.ReadToEnd();
-            }
-        }
-
-        protected static void WriteObject(object obj, string path, params string[] commands)
-        {
-            var str = JsonConvert.SerializeObject(obj);
-
-            var streamName = string.Join(",", new[] { CloudDokanNetItemInfo.StreamName }.Concat(commands ?? Enumerable.Empty<string>()));
-            using (var info = FileSystem.GetAlternateDataStream(path, streamName).OpenWrite())
-            using (var writer = new StreamWriter(info))
-            {
-                writer.Write(str);
-            }
         }
 
         protected override bool CanShowMenu()
@@ -81,7 +44,7 @@
 
         protected void CopyTempLink(object sender, EventArgs e)
         {
-            Clipboard.SetText(string.Join("\r\n", SelectedItemPaths.Select(path => ReadInfo(path) as INodeExtendedInfoTempLink)
+            Clipboard.SetText(string.Join("\r\n", SelectedItemPaths.Select(path => Common.ReadInfo(path) as INodeExtendedInfoTempLink)
                 .Where(info => info.TempLink != null).Select(info => info.TempLink)));
         }
 
@@ -93,7 +56,7 @@
             menu.Items.Add("-");
             if (SelectedItemPaths.Count() == 1)
             {
-                var info = ReadInfo(SelectedItemPaths.Single());
+                var info = Common.ReadInfo(SelectedItemPaths.Single());
                 if (File.Exists(SelectedItemPaths.Single()) && info is INodeExtendedInfoTempLink)
                 {
                     menu.Items.Add(new ToolStripMenuItem("Open as temp link", null, OpenAsUrl));
@@ -132,7 +95,7 @@
             var firstFile = SelectedItemPaths.FirstOrDefault(File.Exists);
             if (firstFile != null)
             {
-                var info = ReadInfo(firstFile);
+                var info = Common.ReadInfo(firstFile);
                 if (info is INodeExtendedInfoTempLink)
                 {
                     menu.Items.Add(new ToolStripMenuItem("Copy temp links", null, CopyTempLink));
@@ -147,7 +110,7 @@
 
         protected void OpenAsUrl(object sender, EventArgs e)
         {
-            var info = ReadInfo(SelectedItemPaths.Single()) as INodeExtendedInfoTempLink;
+            var info = Common.ReadInfo(SelectedItemPaths.Single()) as INodeExtendedInfoTempLink;
             if (info == null)
             {
                 return;
@@ -174,7 +137,7 @@
 
         private void OpenInBrowser(object sender, EventArgs e)
         {
-            var info = ReadInfo(SelectedItemPaths.Single());
+            var info = Common.ReadInfo(SelectedItemPaths.Single());
             var infoTemp = info as INodeExtendedInfoTempLink;
             var infoWeb = info as INodeExtendedInfoWebLink;
             string link = infoTemp?.TempLink ?? infoWeb?.WebLink;
@@ -191,20 +154,20 @@
                 Files = Clipboard.GetFileDropList().Cast<string>().ToList()
             };
             var path = SelectedItemPaths.Single();
-            WriteObject(files, path, CloudDokanNetUploadHereInfo.StreamName);
+            Common.WriteObject(files, path, CloudDokanNetUploadHereInfo.StreamName);
         }
 
         private void CopyReadOnlyLink(object sender, EventArgs e)
         {
             var path = SelectedItemPaths.Single();
-            var link = ReadString(path, CloudDokanNetAssetInfo.StreamNameShareReadOnly);
+            var link = Common.ReadString(path, CloudDokanNetAssetInfo.StreamNameShareReadOnly);
             Clipboard.SetText(link);
         }
 
         private void CopyReadWriteLink(object sender, EventArgs e)
         {
             var path = SelectedItemPaths.Single();
-            var link = ReadString(path, CloudDokanNetAssetInfo.StreamNameShareReadWrite);
+            var link = Common.ReadString(path, CloudDokanNetAssetInfo.StreamNameShareReadWrite);
             Clipboard.SetText(link);
         }
     }

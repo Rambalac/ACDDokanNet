@@ -122,8 +122,15 @@
 
         public void Delete(FSItem item)
         {
-            var path = Path.Combine(cachePath, item.Id);
-            File.Delete(path);
+            try
+            {
+                var path = Path.Combine(cachePath, item.Id);
+                File.Delete(path);
+            }
+            catch (Exception)
+            {
+                Log.Warn($"Could not delete small file in cache {item.Name}");
+            }
         }
 
         public void MoveToCache(string olditemPath, FSItem newitem)

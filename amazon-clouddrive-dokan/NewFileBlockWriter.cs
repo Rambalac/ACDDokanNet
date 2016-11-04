@@ -1,5 +1,6 @@
 ﻿namespace Azi.Cloud.DokanNet
 {
+    using System;
     using System.IO;
     using Common;
     using Tools;
@@ -18,6 +19,13 @@
             stream = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite);
         }
 
+        public bool Cancelled { get; private set; }
+
+        public void CancelUpload()
+        {
+            Cancelled = true;
+        }
+
         public override void Close()
         {
             item.Length = stream.Length;
@@ -27,6 +35,11 @@
             base.Close();
         }
 
+        public override void Flush()
+        {
+            stream.Flush();
+        }
+
         public override int Read(long position, byte[] buffer, int offset, int count, int timeout = 1000)
         {
             lock (stream)
@@ -34,6 +47,16 @@
                 stream.Position = position;
                 return stream.Read(buffer, offset, count);
             }
+        }
+
+        public override void SetLength(long len)
+        {
+            lock (stream)
+            {
+                stream.SetLength(len);
+            }
+
+            item.Length = len;
         }
 
         public override void Write(long position, byte[] buffer, int offset, int count, int timeout = 1000)
@@ -48,21 +71,6 @@
             }
 
             // Log.Trace("Write byte: " + count);
-        }
-
-        public override void Flush()
-        {
-            stream.Flush();
-        }
-
-        public override void SetLength(long len)
-        {
-            lock (stream)
-            {
-                stream.SetLength(len);
-            }
-
-            item.Length = len;
         }
 
         protected override void Dispose(bool disposing)

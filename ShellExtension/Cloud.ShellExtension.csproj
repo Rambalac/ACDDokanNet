@@ -73,6 +73,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Common.cs" />
     <Compile Include="ContextMenu.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="NativeMethods.cs" />

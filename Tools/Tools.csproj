@@ -55,12 +55,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BackgroundWorker.cs" />
+    <Compile Include="BackgroundWorker{P}.cs" />
     <Compile Include="HttpWebRequestExtensions.cs" />
     <Compile Include="IBackgroundWorker.cs" />
     <Compile Include="Log.cs" />
     <Compile Include="Processes.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="UniqueBackgroundWorker.cs" />
+    <Compile Include="UniqueBackgroundWorker{P}.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

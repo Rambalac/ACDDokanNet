@@ -142,7 +142,10 @@
             var result = new NewFileBlockWriter(item, path);
             result.OnClose = () =>
               {
-                  AddUpload(item);
+                  if (!result.Cancelled)
+                  {
+                      AddUpload(item);
+                  }
               };
 
             return result;
@@ -155,7 +158,10 @@
             result.SetLength(0);
             result.OnClose = () =>
             {
-                AddOverwrite(item);
+                if (!result.Cancelled)
+                {
+                    AddOverwrite(item);
+                }
             };
 
             return result;

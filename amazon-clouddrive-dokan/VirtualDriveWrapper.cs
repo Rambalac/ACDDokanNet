@@ -5,7 +5,6 @@
     using System.Diagnostics.Contracts;
     using System.Linq;
     using global::DokanNet;
-    using global::DokanNet.Logging;
     using Tools;
 
     public class VirtualDriveWrapper
@@ -50,9 +49,9 @@
                 virtualDrive.MountPath = letter + ":\\";
                 mountLetter = letter;
 #if DEBUG
-                virtualDrive.Mount(virtualDrive.MountPath, DokanOptions.DebugMode | DokanOptions.AltStream | DokanOptions.FixedDrive, 0, 800, TimeSpan.FromSeconds(30), new DokanLogger());
+                virtualDrive.Mount(virtualDrive.MountPath, DokanOptions.DebugMode | DokanOptions.AltStream | DokanOptions.FixedDrive, 0, 800, TimeSpan.FromSeconds(30));
 #else
-                virtualDrive.Mount(virtualDrive.MountPath, DokanOptions.AltStream | DokanOptions.FixedDrive, 0, 1000, TimeSpan.FromSeconds(30), new DokanLogger());
+                virtualDrive.Mount(virtualDrive.MountPath, DokanOptions.AltStream | DokanOptions.FixedDrive, 0, 1000, TimeSpan.FromSeconds(30));
 #endif
             }
             catch (DokanException e)

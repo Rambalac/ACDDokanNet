@@ -199,8 +199,6 @@
             {
                 Log.Trace("Skip, File is not in SmallFilesCache");
             }
-
-            UploadService.CancelUpload(item.Id);
         }
 
         // This code added to correctly implement the disposable pattern.

@@ -7,7 +7,6 @@
     using System.Linq;
     using System.Security.AccessControl;
     using System.Security.Principal;
-    using System.Text.RegularExpressions;
     using Common;
     using global::DokanNet;
     using Tools;
@@ -164,6 +163,11 @@
                 Log.Trace("Delete file:" + fileName);
 
                 provider.DeleteFile(fileName);
+                var newfile = info.Context as NewFileBlockWriter;
+                if (newfile != null)
+                {
+                    newfile.CancelUpload();
+                }
                 return DokanResult.Success;
             }
             catch (Exception ex)
@@ -211,43 +215,43 @@
             }
         }
 
-        public NtStatus FindFilesWithPattern(string fileName, string searchPattern, out IList<FileInformation> files, DokanFileInfo info)
-        {
-            files = new List<FileInformation>();
-            return DokanResult.NotImplemented;
+        //public NtStatus FindFilesWithPattern(string fileName, string searchPattern, out IList<FileInformation> files, DokanFileInfo info)
+        //{
+        //    files = new List<FileInformation>();
+        //    return DokanResult.NotImplemented;
 
-            /*
-            if (!HasAccess(info))
-            {
-                files = null;
-                return DokanResult.AccessDenied;
-            }
+        //    /*
+        //    if (!HasAccess(info))
+        //    {
+        //        files = null;
+        //        return DokanResult.AccessDenied;
+        //    }
 
-            try
-            {
-                var items = provider.GetDirItems(fileName).Result;
+        //    try
+        //    {
+        //        var items = provider.GetDirItems(fileName).Result;
 
-                var regex = new Regex(Regex.Escape(searchPattern).Replace("\\?", ".").Replace("\\*", ".*"));
+        //        var regex = new Regex(Regex.Escape(searchPattern).Replace("\\?", ".").Replace("\\*", ".*"));
 
-                files = items.Where(i=>regex.IsMatch(Path.GetFileName(i.Name))).Select(i => new FileInformation
-                {
-                    Length = i.Length,
-                    FileName = i.Name,
-                    Attributes = i.IsDir ? FileAttributes.Directory : FileAttributes.Normal,
-                    LastAccessTime = i.LastAccessTime,
-                    LastWriteTime = i.LastWriteTime,
-                    CreationTime = i.CreationTime
-                }).ToList();
-                return DokanResult.Success;
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-                files = new List<FileInformation>();
-                return DokanResult.Error;
-            }
-            */
-        }
+        //        files = items.Where(i=>regex.IsMatch(Path.GetFileName(i.Name))).Select(i => new FileInformation
+        //        {
+        //            Length = i.Length,
+        //            FileName = i.Name,
+        //            Attributes = i.IsDir ? FileAttributes.Directory : FileAttributes.Normal,
+        //            LastAccessTime = i.LastAccessTime,
+        //            LastWriteTime = i.LastWriteTime,
+        //            CreationTime = i.CreationTime
+        //        }).ToList();
+        //        return DokanResult.Success;
+        //    }
+        //    catch (Exception e)
+        //    {
+        //        Log.Error(e);
+        //        files = new List<FileInformation>();
+        //        return DokanResult.Error;
+        //    }
+        //    */
+        //}
 
         public NtStatus FindStreams(string fileName, out IList<FileInformation> streams, DokanFileInfo info)
         {
@@ -481,7 +485,7 @@
             }
             catch (TimeoutException)
             {
-                Log.Warn("Timeout " + (DateTime.UtcNow - start).TotalMilliseconds);
+                Log.Warn($"Timeout {(DateTime.UtcNow - start).TotalMilliseconds} File: {fileName}");
                 bytesRead = 0;
                 return NtStatus.Timeout;
             }
@@ -566,6 +570,7 @@
             return DokanResult.Success;
         }
 
+#pragma warning disable RECS0154 // Parameter is never used
         public NtStatus Unmount(DokanFileInfo info)
 #pragma warning restore RECS0154 // Parameter is never used
         {
@@ -651,6 +656,7 @@
             return false;
         }
 
+#pragma warning disable RECS0154 // Parameter is never used
         private NtStatus MainCreateDirectory(string fileName, DokanFileInfo info)
 #pragma warning restore RECS0154 // Parameter is never used
         {
@@ -759,7 +765,7 @@
 
             return MainOpenFile(fileName, access, share, mode, options, attributes, info);
         }
-#pragma warning disable RECS0154 // Parameter is never used
+
 #pragma warning disable RECS0154 // Parameter is never used
         private NtStatus MainOpenFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
 #pragma warning restore RECS0154 // Parameter is never used
@@ -861,6 +867,5 @@
             info.Context = provider.OpenUploadHere(item);
             return DokanResult.Success;
         }
-#pragma warning disable RECS0154 // Parameter is never used
     }
 }

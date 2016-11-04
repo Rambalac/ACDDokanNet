@@ -139,75 +139,81 @@
         private async void Application_Startup(object sender, StartupEventArgs e)
         {
             Log.Info("Starting Version " + Assembly.GetEntryAssembly().GetName().Version);
-
             try
             {
-                var test = Gui.Properties.Settings.Default.NeedUpgrade;
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"Settings file got currupted. Resetting\r\n{ex}");
-                Gui.Properties.Settings.Default.Reset();
-                Gui.Properties.Settings.Default.Save();
-                var task = Dispatcher.BeginInvoke(new Action<App>((s) => { MessageBox.Show("Settings file got currupted and was reset"); }), new object[] { this });
-            }
-
-            if (Gui.Properties.Settings.Default.NeedUpgrade)
-            {
-                Gui.Properties.Settings.Default.Upgrade();
-
                 try
                 {
-                    UpdateSettingsV1();
+                    var test = Gui.Properties.Settings.Default.NeedUpgrade;
                 }
                 catch (Exception ex)
                 {
-                    Log.Error(ex);
+                    Log.Error($"Settings file got currupted. Resetting\r\n{ex}");
+                    Gui.Properties.Settings.Default.Reset();
+                    Gui.Properties.Settings.Default.Save();
+                    var task = Dispatcher.BeginInvoke(new Action<App>((s) => { MessageBox.Show("Settings file got currupted and was reset"); }), new object[] { this });
                 }
 
-                Gui.Properties.Settings.Default.NeedUpgrade = false;
-                Gui.Properties.Settings.Default.Save();
-            }
-
-            bool created;
-            startedMutex = new Mutex(false, AppName, out created);
-            if (!created)
-            {
-                Shutdown();
-                return;
-            }
-
-            MainWindow = new MainWindow();
-            SetupNotifyIcon();
-
-            updateCheckTimer = new DispatcherTimer()
-            {
-                Interval = new TimeSpan(1, 0, 0, 0, 0),
-            };
-            updateCheckTimer.Tick += UpdateCheckTimer_Tick;
-            updateCheckTimer.Start();
-            await UpdateCheck();
-
-            MainWindow.Closing += (s2, e2) =>
-            {
-                if (!shuttingdown)
+                if (Gui.Properties.Settings.Default.NeedUpgrade)
                 {
-                    ShowSettingsBalloon();
+                    Gui.Properties.Settings.Default.Upgrade();
+
+                    try
+                    {
+                        UpdateSettingsV1();
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(ex);
+                    }
+
+                    Gui.Properties.Settings.Default.NeedUpgrade = false;
+                    Gui.Properties.Settings.Default.Save();
                 }
-            };
 
-            if (GetAutorun())
-            {
-                await MountDefault();
+                bool created;
+                startedMutex = new Mutex(false, AppName, out created);
+                if (!created)
+                {
+                    Shutdown();
+                    return;
+                }
+
+                MainWindow = new MainWindow();
+                SetupNotifyIcon();
+
+                updateCheckTimer = new DispatcherTimer()
+                {
+                    Interval = new TimeSpan(1, 0, 0, 0, 0),
+                };
+                updateCheckTimer.Tick += UpdateCheckTimer_Tick;
+                updateCheckTimer.Start();
+                await UpdateCheck();
+
+                MainWindow.Closing += (s2, e2) =>
+                {
+                    if (!shuttingdown)
+                    {
+                        ShowSettingsBalloon();
+                    }
+                };
+
+                if (GetAutorun())
+                {
+                    await MountDefault();
+                }
+
+                if (e.Args.Length > 0)
+                {
+                    // ProcessArgs(e.Args);
+                    return;
+                }
+
+                MainWindow.Show();
             }
-
-            if (e.Args.Length > 0)
+            catch (Exception ex)
             {
-                // ProcessArgs(e.Args);
-                return;
+                Log.Error(ex);
             }
-
-            MainWindow.Show();
         }
 
         private void DownloadUpdate()
