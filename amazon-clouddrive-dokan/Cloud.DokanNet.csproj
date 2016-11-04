@@ -82,7 +82,6 @@
     <Compile Include="BufferedHttpCloudBlockReader.cs" />
     <Compile Include="ByteArrayBlockReader.cs" />
     <Compile Include="ByteArrayBlockWriter.cs" />
-    <Compile Include="DokanLogger.cs" />
     <Compile Include="Downloader.cs" />
     <Compile Include="DownloadStatisticInfo.cs" />
     <Compile Include="DummyBlockStream.cs" />
