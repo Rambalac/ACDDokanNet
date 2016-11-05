@@ -2017,7 +2017,7 @@
             {
             "AssemblyRegister" = "3:1"
             "AssemblyIsInGAC" = "11:FALSE"
-            "AssemblyAsmDisplayName" = "8:Tools, Version=1.5.2.22516, Culture=neutral, PublicKeyToken=b2898b62922e46f4, processorArchitecture=MSIL"
+            "AssemblyAsmDisplayName" = "8:Tools, Version=1.5.2.22569, Culture=neutral, PublicKeyToken=b2898b62922e46f4, processorArchitecture=MSIL"
                 "ScatterAssemblies"
                 {
                     "_2BDC5ECDCFE8ADC0A3882BA9F86E3376"
@@ -3319,7 +3319,7 @@
             {
             "AssemblyRegister" = "3:1"
             "AssemblyIsInGAC" = "11:FALSE"
-            "AssemblyAsmDisplayName" = "8:amazon-clouddrive-dokan, Version=1.6.1.22517, Culture=neutral, PublicKeyToken=b2898b62922e46f4, processorArchitecture=MSIL"
+            "AssemblyAsmDisplayName" = "8:amazon-clouddrive-dokan, Version=1.6.1.22570, Culture=neutral, PublicKeyToken=b2898b62922e46f4, processorArchitecture=MSIL"
                 "ScatterAssemblies"
                 {
                     "_AE24DB195703AE7BFF50E330215BFC76"
@@ -4044,8 +4044,8 @@
             {
             "Name" = "8:DokanExists"
             "Condition" = "8:DOKANEXISTS"
-            "Message" = "8:This User level driver requires kernal driver Dokan.NET version 0.8.0. Do you want to open its page now?"
-            "InstallUrl" = "8:https://github.com/dokan-dev/dokany/releases/tag/v0.8.0"
+            "Message" = "8:This User level driver requires kernal driver Dokany version 1.0.1. You need to download DokanSetup_redist.exe and install it. Do you want to open its page now?"
+            "InstallUrl" = "8:https://github.com/dokan-dev/dokany/releases/tag/v1.0.1"
             }
         }
         "Locator"
@@ -4076,7 +4076,7 @@
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:ACDDokanNet"
         "ProductCode" = "8:{416874E2-63AB-4598-8140-B62203E48740}"
-        "PackageCode" = "8:{02562BA7-1E3D-4CC1-A66E-A9A36322E01A}"
+        "PackageCode" = "8:{8C615DAF-7025-4F90-A3E0-D0077C5486BE}"
         "UpgradeCode" = "8:{8818562C-90F4-4776-A0AD-516460DB8E73}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
