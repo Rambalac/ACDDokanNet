@@ -2017,7 +2017,7 @@
             {
             "AssemblyRegister" = "3:1"
             "AssemblyIsInGAC" = "11:FALSE"
-            "AssemblyAsmDisplayName" = "8:Tools, Version=1.5.2.19810, Culture=neutral, PublicKeyToken=b2898b62922e46f4, processorArchitecture=MSIL"
+            "AssemblyAsmDisplayName" = "8:Tools, Version=1.5.2.22516, Culture=neutral, PublicKeyToken=b2898b62922e46f4, processorArchitecture=MSIL"
                 "ScatterAssemblies"
                 {
                     "_2BDC5ECDCFE8ADC0A3882BA9F86E3376"
@@ -3319,7 +3319,7 @@
             {
             "AssemblyRegister" = "3:1"
             "AssemblyIsInGAC" = "11:FALSE"
-            "AssemblyAsmDisplayName" = "8:amazon-clouddrive-dokan, Version=1.6.1.19812, Culture=neutral, PublicKeyToken=b2898b62922e46f4, processorArchitecture=MSIL"
+            "AssemblyAsmDisplayName" = "8:amazon-clouddrive-dokan, Version=1.6.1.22517, Culture=neutral, PublicKeyToken=b2898b62922e46f4, processorArchitecture=MSIL"
                 "ScatterAssemblies"
                 {
                     "_AE24DB195703AE7BFF50E330215BFC76"
@@ -4075,15 +4075,15 @@
         {
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:ACDDokanNet"
-        "ProductCode" = "8:{53972918-5767-4C7B-A7D3-E4D2AED530C4}"
-        "PackageCode" = "8:{933C61B7-82C3-4309-AEFA-D8CC87B1B3E4}"
+        "ProductCode" = "8:{416874E2-63AB-4598-8140-B62203E48740}"
+        "PackageCode" = "8:{02562BA7-1E3D-4CC1-A66E-A9A36322E01A}"
         "UpgradeCode" = "8:{8818562C-90F4-4776-A0AD-516460DB8E73}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
         "RemovePreviousVersions" = "11:TRUE"
         "DetectNewerInstalledVersion" = "11:TRUE"
         "InstallAllUsers" = "11:TRUE"
-        "ProductVersion" = "8:1.6.2.1"
+        "ProductVersion" = "8:1.6.2"
         "Manufacturer" = "8:Rambalac"
         "ARPHELPTELEPHONE" = "8:"
         "ARPHELPLINK" = "8:https://github.com/Rambalac/ACDDokanNet"
