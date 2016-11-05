@@ -20,11 +20,17 @@ I spent a lot of time trying different cachings but without success. So I just a
 
 Shell Extension
 ---------------
+###Links
 ![Context Menu](/images/Context Menu.png)
 
-Now you can get temp links in Windows Explorer for selected files or open temp link of one selected file in your app used for that file extension. Temp links will work for few days only, Amazon Cloud Drive does not provide any way to create permanent links to files.
+You can get temp links in Windows Explorer for selected files or open temp link of one selected file in your app used for that file extension. Temp links will work for few days only, Amazon Cloud Drive does not provide any way to create permanent links to files.
 
 Also you can open folders in browser on Amazon Cloud Drive web site.
+
+###Upload here
+![Upload Here](/images/Uploadhere.png)
+
+You can copy files in Explorer and with *Upload here* in destination cloud folder context menu (right mouse button) start upload files and folders instantly.
 
 Pros
 ----
@@ -65,7 +71,7 @@ If you did not get your cloud mounted or have other reason, sad to hear it. Here
 
 Notes
 -----
-* All files copied to drive get to temp folder first and only then driver starts uploading. Because driver does not see what you doing in Explorer it cannot now where it was copied from and has to get solid copy for upload. There can be workaround with simlinks, but I did not try it yet.
+* All files copied to cloud drive get to temp folder first and only then driver starts uploading. Because driver does not see what you are doing in Explorer it cannot now where it was copied from and has to get solid copy for upload. There is workaround with *Upload here* in context menu
 * Copying file from Amazon Cloud Drive into different folder in the same cloud will download file and reupload it back.
 * There is no limit for Upload cache folder where file copies for upload are stored.
 * Folders are cached in memory for 60 seconds. If you deleted or uploaded some files in other way like in web they will not appear/disappear same time even if you refresh folder, you have to wait up to 60 seconds and then refresh.
