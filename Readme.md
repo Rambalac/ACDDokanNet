@@ -12,12 +12,6 @@ Starting from version 1.6.0 multiple clouds are supported, as example I added Mi
 Login is done via default web browser, so application itself can not get your login and password, 
 and if you already logged into Amazon Cloud Drive you don't need to enter anything, just click a button.
 
-Info
-----
-~~Currently I'm making major update to version 2 which supports multiple cloud accounts and can be extended to support clouds other than Amazon Cloud. Just for example I implemented MS OneDrive. It will be released as soon as Dokan 2 release and I finish new type of caching that should eliminated most of file updating and big file reading issues.~~
-
-I spent a lot of time trying different cachings but without success. So I just added better UI and updated to Dokany 1.0.0.
-
 Shell Extension
 ---------------
 ###Links
@@ -47,27 +41,6 @@ Issues
 * Sometimes Explorer thumbnails get broken.
 * There can be a conflict if you try to upload files with same name from different apps or web, only the first uploaded file will remain.
 * There can be different problems if you try to mess with uploading files like rename or move.
-
-Issues reporting
-----------------
-If you did not get your cloud mounted or have other reason, sad to hear it. Here what you can do.
-* First thing to try - check for the latest version
-* If it does not help
-  * Close app in System Tray
-  * Run it again through "Run as Administrator"
-  * Mount and try to repeat your problem.
-  * Go to Options section
-  * Click Export Log, select location and file name, Save
-  * Click Open GitHub issue, follow GitHub instruction to create Issue and attach exported log.
- 
-* If you have problems preventing to open settings windows in "Run as Administrator"
-  * Open Windows Event Viewer, go to Windows Logs - Application
-  * Filter by Event Source ACDDokan.NET.
-  * Check if events do not contain anything too private, events usually contain path to files, but there is no any account name or more over any password as application cannot get them. 
-  * If there are some really private messages select all and unselect bad, Save Selected Events...
-  * If nothing wrong Save Filtered Log File As...
-  * Go to https://github.com/Rambalac/ACDDokanNet/issues
-  * Create new issue and attach log file
 
 Notes
 -----
@@ -116,6 +89,27 @@ Keep catalog on real drive.
 Browsing and editing generally works. There can be some glitches with some files. Open file in develop mode, if you see an error then switch to another file and after few seconds switch back, repeat if needed.
 
 Catalog backup currently does not work due requirement for write already created files.
+
+Issues reporting
+----------------
+If you did not get your cloud mounted or have other reason, sad to hear it. Here what you can do.
+* First thing to try - check for the latest version
+* If it does not help
+  * Close app in System Tray
+  * Run it again through "Run as Administrator"
+  * Mount and try to repeat your problem.
+  * Go to Options section
+  * Click Export Log, select location and file name, Save
+  * Click Open GitHub issue, follow GitHub instruction to create Issue and attach exported log.
+ 
+* If you have problems preventing to open settings windows in "Run as Administrator"
+  * Open Windows Event Viewer, go to Windows Logs - Application
+  * Filter by Event Source ACDDokan.NET.
+  * Check if events do not contain anything too private, events usually contain path to files, but there is no any account name or more over any password as application cannot get them. 
+  * If there are some really private messages select all and unselect bad, Save Selected Events...
+  * If nothing wrong Save Filtered Log File As...
+  * Go to https://github.com/Rambalac/ACDDokanNet/issues
+  * Create new issue and attach log file
 
 News
 ----
