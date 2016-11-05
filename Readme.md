@@ -113,6 +113,14 @@ Catalog backup currently does not work due requirement for write already created
 
 News
 ----
+### 2016-11-05
+* Release 1.6.2.
+* New feature! "**Upload here**" from cloud folder context menu in Explorer will upload files copied into clipboard **without** buffering that files in temp folder. Upload starts immediately. Folders are supported.
+* Fixed some operations with uploading files like cancel in the list and cancel Explorer copy.
+* Some tuning upload errors processing.
+* Added automatic update check but need to be tested better. Still update should be run manually.
+* Dokany got update to 1.0.1 use it. https://github.com/dokan-dev/dokany/releases/tag/v1.0.1
+
 ### 2016-10-11
 * Fixed v1.6.0 glitches with Dokany
 * Fixed some UI issues like cloud delete
