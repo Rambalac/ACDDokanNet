@@ -5,97 +5,26 @@
     using System.IO;
     using System.Linq;
     using System.Threading;
+    using System.Threading.Tasks;
     using Common;
+    using Tools;
 
     public class ItemsTreeCache : IDisposable
     {
         private readonly ReaderWriterLockSlim lok = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
-        private readonly Dictionary<string, FSItem> pathToNode = new Dictionary<string, FSItem>();
         private readonly Dictionary<string, DirItem> pathToDirItem = new Dictionary<string, DirItem>();
+        private readonly Dictionary<string, FSItem> pathToNode = new Dictionary<string, FSItem>();
+        private CancellationTokenSource cancellation = new CancellationTokenSource();
         private bool disposedValue; // To detect redundant calls
+
+        public ItemsTreeCache()
+        {
+            Task.Factory.StartNew(async () => await Cleaner(), TaskCreationOptions.LongRunning);
+        }
 
         public int DirItemsExpirationSeconds { get; set; } = 60;
 
         public int FSItemsExpirationSeconds { get; set; } = 5 * 60;
-
-        public FSItem GetItem(string filePath)
-        {
-            lok.EnterUpgradeableReadLock();
-            FSItem item;
-            try
-            {
-                if (!pathToNode.TryGetValue(filePath, out item))
-                {
-                    return null;
-                }
-
-                if (!item.IsUploading && item.IsExpired(FSItemsExpirationSeconds))
-                {
-                    lok.EnterWriteLock();
-                    try
-                    {
-                        pathToNode.Remove(filePath);
-                        return null;
-                    }
-                    finally
-                    {
-                        lok.ExitWriteLock();
-                    }
-                }
-
-                return item;
-            }
-            finally
-            {
-                lok.ExitUpgradeableReadLock();
-            }
-        }
-
-        public IEnumerable<string> GetDir(string filePath)
-        {
-            DirItem item;
-            lok.EnterUpgradeableReadLock();
-            try
-            {
-                if (!pathToDirItem.TryGetValue(filePath, out item))
-                {
-                    return null;
-                }
-
-                if (!item.IsExpired)
-                {
-                    return item.Items;
-                }
-
-                lok.EnterWriteLock();
-                try
-                {
-                    pathToDirItem.Remove(filePath);
-                    return null;
-                }
-                finally
-                {
-                    lok.ExitWriteLock();
-                }
-            }
-            finally
-            {
-                lok.ExitUpgradeableReadLock();
-            }
-        }
-
-        public void AddItemOnly(FSItem item)
-        {
-            lok.EnterWriteLock();
-            try
-            {
-                pathToNode[item.Path] = item;
-            }
-            finally
-            {
-                lok.ExitWriteLock();
-            }
-        }
 
         public void Add(FSItem item)
         {
@@ -132,64 +61,15 @@
             }
         }
 
-        public void MoveFile(string oldPath, FSItem newNode)
+        public void AddItemOnly(FSItem item)
         {
             lok.EnterWriteLock();
             try
             {
-                DeleteFile(oldPath);
-                Add(newNode);
+                pathToNode[item.Path] = item;
             }
             finally
             {
-                lok.ExitWriteLock();
-            }
-        }
-
-        public void MoveDir(string oldPath, FSItem newNode)
-        {
-            lok.EnterWriteLock();
-            try
-            {
-                DeleteDir(oldPath);
-                Add(newNode);
-            }
-            finally
-            {
-                lok.ExitWriteLock();
-            }
-        }
-
-        public void Update(FSItem newitem)
-        {
-            lok.EnterWriteLock();
-            try
-            {
-                pathToNode[newitem.Path] = newitem;
-            }
-            finally
-            {
-                lok.ExitWriteLock();
-            }
-        }
-
-        public void DeleteFile(string filePath)
-        {
-            lok.EnterWriteLock();
-            try
-            {
-                var dirPath = Path.GetDirectoryName(filePath);
-                DirItem dirItem;
-                if (pathToDirItem.TryGetValue(dirPath, out dirItem))
-                {
-                    dirItem.Items.Remove(filePath);
-                }
-
-                pathToNode.Remove(filePath);
-            }
-            finally
-            {
-                // Log.Warn("File deleted: " + filePath);
                 lok.ExitWriteLock();
             }
         }
@@ -222,6 +102,27 @@
             }
         }
 
+        public void DeleteFile(string filePath)
+        {
+            lok.EnterWriteLock();
+            try
+            {
+                var dirPath = Path.GetDirectoryName(filePath);
+                DirItem dirItem;
+                if (pathToDirItem.TryGetValue(dirPath, out dirItem))
+                {
+                    dirItem.Items.Remove(filePath);
+                }
+
+                pathToNode.Remove(filePath);
+            }
+            finally
+            {
+                // Log.Warn("File deleted: " + filePath);
+                lok.ExitWriteLock();
+            }
+        }
+
         // This code added to correctly implement the disposable pattern.
         public void Dispose()
         {
@@ -230,6 +131,113 @@
 
             // TODO: uncomment the following line if the finalizer is overridden above.
             // GC.SuppressFinalize(this);
+        }
+
+        public IEnumerable<string> GetDir(string filePath)
+        {
+            DirItem item;
+            lok.EnterUpgradeableReadLock();
+            try
+            {
+                if (!pathToDirItem.TryGetValue(filePath, out item))
+                {
+                    return null;
+                }
+
+                if (!item.IsExpired)
+                {
+                    return item.Items;
+                }
+
+                lok.EnterWriteLock();
+                try
+                {
+                    pathToDirItem.Remove(filePath);
+                    return null;
+                }
+                finally
+                {
+                    lok.ExitWriteLock();
+                }
+            }
+            finally
+            {
+                lok.ExitUpgradeableReadLock();
+            }
+        }
+
+        public FSItem GetItem(string filePath)
+        {
+            lok.EnterUpgradeableReadLock();
+            FSItem item;
+            try
+            {
+                if (!pathToNode.TryGetValue(filePath, out item))
+                {
+                    return null;
+                }
+
+                if (!item.IsUploading && item.IsExpired(FSItemsExpirationSeconds))
+                {
+                    lok.EnterWriteLock();
+                    try
+                    {
+                        pathToNode.Remove(filePath);
+                        return null;
+                    }
+                    finally
+                    {
+                        lok.ExitWriteLock();
+                    }
+                }
+
+                return item;
+            }
+            finally
+            {
+                lok.ExitUpgradeableReadLock();
+            }
+        }
+
+        public void MoveDir(string oldPath, FSItem newNode)
+        {
+            lok.EnterWriteLock();
+            try
+            {
+                DeleteDir(oldPath);
+                Add(newNode);
+            }
+            finally
+            {
+                lok.ExitWriteLock();
+            }
+        }
+
+        public void MoveFile(string oldPath, FSItem newNode)
+        {
+            lok.EnterWriteLock();
+            try
+            {
+                DeleteFile(oldPath);
+                Add(newNode);
+            }
+            finally
+            {
+                lok.ExitWriteLock();
+            }
+        }
+
+        public void Update(FSItem newitem)
+        {
+            lok.EnterWriteLock();
+            try
+            {
+                pathToNode[newitem.Path] = newitem;
+            }
+            finally
+            {
+                lok.ExitWriteLock();
+            }
         }
 
         protected virtual void Dispose(bool disposing)
@@ -247,6 +255,48 @@
             }
         }
 
+        private async Task Cleaner()
+        {
+            var token = cancellation.Token;
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    lok.EnterWriteLock();
+                    try
+                    {
+                        foreach (var key in pathToNode.Where((p) => p.Value.IsExpired(FSItemsExpirationSeconds)).Select((p) => p.Key).ToList())
+                        {
+                            pathToNode.Remove(key);
+                        }
+                    }
+                    finally
+                    {
+                        lok.ExitWriteLock();
+                    }
+
+                    lok.EnterWriteLock();
+                    try
+                    {
+                        foreach (var key in pathToDirItem.Where((p) => p.Value.IsExpired).Select((p) => p.Key).ToList())
+                        {
+                            pathToNode.Remove(key);
+                        }
+                    }
+                    finally
+                    {
+                        lok.ExitWriteLock();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex);
+                }
+
+                await Task.Delay(FSItemsExpirationSeconds * 6, token);
+            }
+        }
+
         private class DirItem
         {
             public DirItem(IList<string> items, int expirationSeconds)
@@ -257,9 +307,9 @@
 
             public DateTime ExpirationTime { get; }
 
-            public HashSet<string> Items { get; }
-
             public bool IsExpired => DateTime.UtcNow > ExpirationTime;
+
+            public HashSet<string> Items { get; }
         }
     }
 }

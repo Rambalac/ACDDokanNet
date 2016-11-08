@@ -15,7 +15,6 @@
         private static string cachePath;
 
         private static ConcurrentDictionary<string, Downloader> downloaders = new ConcurrentDictionary<string, Downloader>(10, 3);
-        private static ConcurrentDictionary<IHttpCloud, SmallFilesCache> instances = new ConcurrentDictionary<IHttpCloud, SmallFilesCache>(10, 3);
         private readonly IHttpCloud cloud;
 
         private ConcurrentDictionary<string, CacheEntry> access = new ConcurrentDictionary<string, CacheEntry>(10, 1000);
@@ -126,6 +125,8 @@
             {
                 var path = Path.Combine(cachePath, item.Id);
                 File.Delete(path);
+                CacheEntry outitem;
+                access.TryRemove(item.Id, out outitem);
             }
             catch (Exception)
             {
