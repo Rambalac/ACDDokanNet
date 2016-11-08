@@ -12,19 +12,19 @@ Starting from version 1.6.0 multiple clouds are supported, as example I added Mi
 Login is done via default web browser, so application itself can not get your login and password, 
 and if you already logged into Amazon Cloud Drive you don't need to enter anything, just click a button.
 
-Info
-----
-~~Currently I'm making major update to version 2 which supports multiple cloud accounts and can be extended to support clouds other than Amazon Cloud. Just for example I implemented MS OneDrive. It will be released as soon as Dokan 2 release and I finish new type of caching that should eliminated most of file updating and big file reading issues.~~
-
-I spent a lot of time trying different cachings but without success. So I just added better UI and updated to Dokany 1.0.0.
-
 Shell Extension
 ---------------
+###Links
 ![Context Menu](/images/Context Menu.png)
 
-Now you can get temp links in Windows Explorer for selected files or open temp link of one selected file in your app used for that file extension. Temp links will work for few days only, Amazon Cloud Drive does not provide any way to create permanent links to files.
+You can get temp links in Windows Explorer for selected files or open temp link of one selected file in your app used for that file extension. Temp links will work for few days only, Amazon Cloud Drive does not provide any way to create permanent links to files.
 
 Also you can open folders in browser on Amazon Cloud Drive web site.
+
+###Upload here
+![Upload Here](/images/Uploadhere.png)
+
+You can copy files in Explorer and with *Upload here* in destination cloud folder context menu (right mouse button) start upload files and folders instantly.
 
 Pros
 ----
@@ -42,30 +42,9 @@ Issues
 * There can be a conflict if you try to upload files with same name from different apps or web, only the first uploaded file will remain.
 * There can be different problems if you try to mess with uploading files like rename or move.
 
-Issues reporting
-----------------
-If you did not get your cloud mounted or have other reason, sad to hear it. Here what you can do.
-* First thing to try - check for the latest version
-* If it does not help
-  * Close app in System Tray
-  * Run it again through "Run as Administrator"
-  * Mount and try to repeat your problem.
-  * Go to Options section
-  * Click Export Log, select location and file name, Save
-  * Click Open GitHub issue, follow GitHub instruction to create Issue and attach exported log.
- 
-* If you have problems preventing to open settings windows in "Run as Administrator"
-  * Open Windows Event Viewer, go to Windows Logs - Application
-  * Filter by Event Source ACDDokan.NET.
-  * Check if events do not contain anything too private, events usually contain path to files, but there is no any account name or more over any password as application cannot get them. 
-  * If there are some really private messages select all and unselect bad, Save Selected Events...
-  * If nothing wrong Save Filtered Log File As...
-  * Go to https://github.com/Rambalac/ACDDokanNet/issues
-  * Create new issue and attach log file
-
 Notes
 -----
-* All files copied to drive get to temp folder first and only then driver starts uploading. Because driver does not see what you doing in Explorer it cannot now where it was copied from and has to get solid copy for upload. There can be workaround with simlinks, but I did not try it yet.
+* All files copied to cloud drive get to temp folder first and only then driver starts uploading. Because driver does not see what you are doing in Explorer it cannot now where it was copied from and has to get solid copy for upload. There is workaround with *Upload here* in context menu
 * Copying file from Amazon Cloud Drive into different folder in the same cloud will download file and reupload it back.
 * There is no limit for Upload cache folder where file copies for upload are stored.
 * Folders are cached in memory for 60 seconds. If you deleted or uploaded some files in other way like in web they will not appear/disappear same time even if you refresh folder, you have to wait up to 60 seconds and then refresh.
@@ -111,8 +90,37 @@ Browsing and editing generally works. There can be some glitches with some files
 
 Catalog backup currently does not work due requirement for write already created files.
 
+Issues reporting
+----------------
+If you did not get your cloud mounted or have other reason, sad to hear it. Here what you can do.
+* First thing to try - check for the latest version
+* If it does not help
+  * Close app in System Tray
+  * Run it again through "Run as Administrator"
+  * Mount and try to repeat your problem.
+  * Go to Options section
+  * Click Export Log, select location and file name, Save
+  * Click Open GitHub issue, follow GitHub instruction to create Issue and attach exported log.
+ 
+* If you have problems preventing to open settings windows in "Run as Administrator"
+  * Open Windows Event Viewer, go to Windows Logs - Application
+  * Filter by Event Source ACDDokan.NET.
+  * Check if events do not contain anything too private, events usually contain path to files, but there is no any account name or more over any password as application cannot get them. 
+  * If there are some really private messages select all and unselect bad, Save Selected Events...
+  * If nothing wrong Save Filtered Log File As...
+  * Go to https://github.com/Rambalac/ACDDokanNet/issues
+  * Create new issue and attach log file
+
 News
 ----
+### 2016-11-05
+* Release 1.6.2.
+* New feature! "**Upload here**" from cloud folder context menu in Explorer will upload files copied into clipboard **without** buffering that files in temp folder. Upload starts immediately. Folders are supported.
+* Fixed some operations with uploading files like cancel in the list and cancel Explorer copy.
+* Some tuning upload errors processing.
+* Added automatic update check but need to be tested better. Still update should be run manually.
+* Dokany got update to 1.0.1 use it. https://github.com/dokan-dev/dokany/releases/tag/v1.0.1
+
 ### 2016-10-11
 * Fixed v1.6.0 glitches with Dokany
 * Fixed some UI issues like cloud delete
