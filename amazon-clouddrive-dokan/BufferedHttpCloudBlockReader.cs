@@ -8,16 +8,24 @@
     using System.Threading.Tasks;
     using Common;
     using Tools;
+    using global::Tools;
+    using System.Threading;
+    using System.Diagnostics;
 
     public class BufferedHttpCloudBlockReader : AbstractBlockStream
     {
-        private const int BlockSize = 1 * 1024 * 1024;
-        private const int KeepLastBlocks = 5;
+        private const int TotalCache = 50 * 1024 * 1024;
+        private const int BlockSize = 64 * 1024;
+        private const int KeepLastBlocks = TotalCache / BlockSize;
 
-        private readonly ConcurrentDictionary<long, Block> blocks = new ConcurrentDictionary<long, Block>(5, KeepLastBlocks * 5);
+        private volatile int streamsCount;
+
+        private readonly static ConcurrentDictionary<string, Block> blocks = new ConcurrentDictionary<string, Block>(5, KeepLastBlocks * 5);
         private IHttpCloud cloud;
         private FSItem item;
         private long lastBlock;
+        private SemaphoreSlim readStreamSync = new SemaphoreSlim(1, 1);
+        private Stream stream;
 
         public BufferedHttpCloudBlockReader(FSItem item, IHttpCloud cloud)
         {
@@ -44,7 +52,15 @@
             Log.Trace($"Big read {item.Name} Offset: {position} Size: {count}");
             var bs = position / BlockSize;
             var be = (position + count - 1) / BlockSize;
-            var blocksRead = GetBlocks(bs, be);
+            var readTask = GetBlocks(bs, be);
+            var wait = readTask.Wait(30000);
+            if (!wait)
+            {
+                throw new TimeoutException();
+            }
+
+            var blocksRead = readTask.Result;
+
             var bspos = bs * BlockSize;
             var bepos = ((be + 1) * BlockSize) - 1;
             if (bs == be)
@@ -81,15 +97,33 @@
             throw new NotSupportedException();
         }
 
-        protected override void Dispose(bool disposing)
+        public override void Close()
         {
+            stream?.Close();
+            base.Close();
         }
 
-        private List<Block> DownloadBlocks(long block, long blockCount)
+        protected override void Dispose(bool disposing)
         {
+            stream?.Dispose();
+        }
+
+        private void CheckCacheSize()
+        {
+            while (blocks.Count > KeepLastBlocks)
+            {
+                var del = blocks.Values.Aggregate((curMin, x) => (curMin == null || (x.Access < curMin.Access)) ? x : curMin);
+                Block remove;
+                blocks.TryRemove(del.Key, out remove);
+            }
+        }
+
+        private async Task<List<Block>> DownloadBlocks(long block, long blockCount)
+        {
+            var start = Stopwatch.StartNew();
             if (lastBlock != block)
             {
-                Log.Warn($"Buffered Read block changed from {lastBlock} to {block}");
+                Log.Warn($"Buffered Read block changed from {lastBlock} to {block}", Log.BigFile);
             }
 
             var pos = block * BlockSize;
@@ -103,46 +137,66 @@
 
             var result = new List<Block>();
 
-            Log.Trace($"Download file {item.Name} Offset: {pos} Size: {totallen}");
-            var wait = cloud.Files.Download(
-                item.Id,
-                async (stream) =>
-                {
-                    var buff = new byte[BlockSize];
-                    while (left > 0)
-                    {
-                        var blockLeft = (int)((left < BlockSize) ? left : BlockSize);
-                        var membuf = new MemoryStream(BlockSize);
-                        while (blockLeft > 0)
-                        {
-                            var red = await stream.ReadAsync(buff, 0, blockLeft);
-                            if (red == 0)
-                            {
-                                Log.Error("Download 0");
-                                throw new InvalidOperationException("Download 0");
-                            }
-                            blockLeft -= red;
-                            membuf.Write(buff, 0, red);
-                            left -= red;
-                        }
-                        var arr = membuf.ToArray();
-                        result.Add(new Block(block, arr));
-                        block++;
-                        lastBlock = block;
-                    }
-                },
-                pos,
-                totallen).Wait(30000);
+            Log.Trace($"Download file {item.Name} Offset: {pos} Size: {totallen}", Log.BigFile);
 
+            var buff = new byte[BlockSize];
+
+            var wait = await readStreamSync.WaitAsync(30000);
             if (!wait)
             {
                 throw new TimeoutException();
             }
 
-            return result;
+            if (stream == null)
+            {
+                stream = await cloud.Files.Download(item.Id);
+            }
+
+            try
+            {
+                var firstread = true;
+                stream.Position = pos;
+                while (left > 0)
+                {
+                    var blockLeft = (int)((left < BlockSize) ? left : BlockSize);
+                    var membuf = new MemoryStream(BlockSize);
+                    while (blockLeft > 0)
+                    {
+                        var red = await stream.ReadAsync(buff, 0, blockLeft);
+                        if (firstread)
+                        {
+                            Log.Trace($"First read {item.Name} in {start.Elapsed.TotalSeconds}", Log.BigFile);
+                            firstread = false;
+                        }
+
+                        if (red == 0)
+                        {
+                            Log.Error("Download 0", Log.BigFile);
+                            throw new InvalidOperationException("Download 0");
+                        }
+
+                        blockLeft -= red;
+                        membuf.Write(buff, 0, red);
+                        left -= red;
+                    }
+
+                    var arr = membuf.ToArray();
+                    result.Add(new Block(item.Id,block, arr));
+                    block++;
+                    lastBlock = block;
+                }
+
+                Log.Trace($"Dowload finished {item.Name} in {start.Elapsed.TotalSeconds}", Log.BigFile);
+                Log.Trace($"Download file finished {item.Name} Offset: {pos} Size: {totallen}", Log.BigFile);
+                return result;
+            }
+            finally
+            {
+                readStreamSync.Release();
+            }
         }
 
-        private List<byte[]> GetBlocks(long v1, long v2)
+        private async Task<List<byte[]>> GetBlocks(long v1, long v2)
         {
             var resultStart = new List<byte[]>();
             var resultEnd = new List<byte[]>();
@@ -151,7 +205,7 @@
             for (intervalStart = v1; intervalStart <= v2; intervalStart++)
             {
                 Block cachedBlock;
-                if (!blocks.TryGetValue(intervalStart, out cachedBlock))
+                if (!blocks.TryGetValue(Block.GetKey(item.Id, intervalStart), out cachedBlock))
                 {
                     break;
                 }
@@ -169,7 +223,7 @@
             for (intervalEnd = v2; intervalEnd > intervalStart; intervalEnd--)
             {
                 Block cachedBlock;
-                if (!blocks.TryGetValue(intervalEnd, out cachedBlock))
+                if (!blocks.TryGetValue(Block.GetKey(item.Id, intervalEnd), out cachedBlock))
                 {
                     break;
                 }
@@ -188,11 +242,11 @@
             var result = new List<byte[]>((int)(v2 - v1 + 1));
             result.AddRange(resultStart);
 
-            var resultMiddle = DownloadBlocks(intervalStart, intervalEnd - intervalStart + 1);
+            var resultMiddle = await DownloadBlocks(intervalStart, intervalEnd - intervalStart + 1).ConfigureAwait(false);
             foreach (var block in resultMiddle)
             {
                 result.Add(block.Data);
-                blocks.AddOrUpdate(block.N, block, (k, b) => b);
+                blocks.AddOrUpdate(block.Key, block, (k, b) => b);
             }
 
             result.AddRange(resultEnd);
@@ -200,16 +254,6 @@
             CheckCacheSize();
 
             return result;
-        }
-
-        private void CheckCacheSize()
-        {
-            while (blocks.Count > KeepLastBlocks)
-            {
-                var del = blocks.Values.Aggregate((curMin, x) => (curMin == null || (x.Access < curMin.Access)) ? x : curMin);
-                Block remove;
-                blocks.TryRemove(del.N, out remove);
-            }
         }
     }
 }

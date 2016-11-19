@@ -364,6 +364,7 @@
                     return SmallFilesCache.OpenReadWithDownload(item);
                 }
 
+                //return null;
                 onStatisticsUpdated(cloud, StatisticUpdateReason.DownloadAdded, new DownloadStatisticInfo(item));
                 var buffered = new BufferedHttpCloudBlockReader(item, cloud);
                 buffered.OnClose = () =>

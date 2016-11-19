@@ -8,8 +8,10 @@
 
     public static class Log
     {
+        public const int BigFile = 300;
         public const int Dokan = 100;
-
+        public const int Performance = 10000;
+        public const int VirtualDrive = 200;
         private const string Source = "ACDDokan.Net";
         private static readonly string Query = $"*[System[Provider[@Name = '{Source}']]]";
 
@@ -48,7 +50,15 @@
             Error(ex.ToString(), eventId, category, memberName, sourceFilePath, sourceLineNumber);
         }
 
-        public static void Warn(
+        public static void Export(string path)
+        {
+            using (var log = new EventLogSession())
+            {
+                log.ExportLogAndMessages("Application", PathType.LogName, Query, path);
+            }
+        }
+
+        public static void Info(
             string message,
             int eventId = 0,
             short category = 0,
@@ -56,7 +66,7 @@
             [CallerFilePath] string sourceFilePath = "",
             [CallerLineNumber] int sourceLineNumber = 0)
         {
-            WriteEntry(message, EventLogEntryType.Warning, eventId, category, memberName, sourceFilePath, sourceLineNumber);
+            WriteEntry(message, EventLogEntryType.Information, eventId, category, memberName, sourceFilePath, sourceLineNumber);
         }
 
         [Conditional("TRACE")]
@@ -71,15 +81,15 @@
             Info(message, eventId, category, memberName, sourceFilePath, sourceLineNumber);
         }
 
-        public static void Info(
-            string message,
+        public static void Warn(
+                                    string message,
             int eventId = 0,
             short category = 0,
             [CallerMemberName] string memberName = "",
             [CallerFilePath] string sourceFilePath = "",
             [CallerLineNumber] int sourceLineNumber = 0)
         {
-            WriteEntry(message, EventLogEntryType.Information, eventId, category, memberName, sourceFilePath, sourceLineNumber);
+            WriteEntry(message, EventLogEntryType.Warning, eventId, category, memberName, sourceFilePath, sourceLineNumber);
         }
 
         public static void WriteEntry(
@@ -98,14 +108,6 @@
             catch (SecurityException)
             {
                 // Just ignore
-            }
-        }
-
-        public static void Export(string path)
-        {
-            using (var log = new EventLogSession())
-            {
-                log.ExportLogAndMessages("Application", PathType.LogName, Query, path);
             }
         }
     }

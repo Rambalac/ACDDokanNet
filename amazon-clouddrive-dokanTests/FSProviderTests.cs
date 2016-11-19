@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Azi.Cloud.DokanNet.Tests
@@ -52,7 +53,7 @@ namespace Azi.Cloud.DokanNet.Tests
         }
 
         [Fact]
-        public void OpenFileReadWriteTest()
+        public async Task OpenFileReadWriteTest()
         {
             var path = Testdir + "TestFile.txt";
             using (var file = Provider.OpenFile(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, FileOptions.None))
@@ -100,13 +101,14 @@ namespace Azi.Cloud.DokanNet.Tests
             Assert.True(Directory.GetFiles("TempCache\\Upload").Length == 0);
 
             var buf2 = new byte[17];
-            int red = Amazon.Files.Download(info.Id, buf2, 0, 0, 17, null).Result;
+            var stream = await Amazon.Files.Download(info.Id);
+            var red = await stream.ReadAsync(buf2, 0, 17);
 
             Assert.Equal(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2, 1 }, buf2);
         }
 
         [Fact]
-        public void OpenNewFileAndReadTest()
+        public async Task OpenNewFileAndReadTest()
         {
             var path = Testdir + "TestFile.txt";
             using (var file = Provider.OpenFile(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, FileOptions.None))
@@ -133,7 +135,8 @@ namespace Azi.Cloud.DokanNet.Tests
             Assert.Equal(10, info.Length);
 
             var buf2 = new byte[17];
-            int red = Amazon.Files.Download(info.Id, buf2, 0, 0, 17, null).Result;
+            var stream = await Amazon.Files.Download(info.Id);
+            int red = await stream.ReadAsync(buf2, 0, 17);
 
             Assert.Equal(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2, 1 }, buf2);
         }
@@ -143,7 +146,7 @@ namespace Azi.Cloud.DokanNet.Tests
         [InlineData("test%file.txt")]
         [InlineData("t&.txt")]
         [InlineData("t%.txt")]
-        public void OpenNewFileWithNameAndReadTest(string name)
+        public async Task OpenNewFileWithNameAndReadTest(string name)
         {
             var path = Testdir + name;
             using (var file = Provider.OpenFile(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, FileOptions.None))
@@ -162,7 +165,8 @@ namespace Azi.Cloud.DokanNet.Tests
             Assert.Equal(10, info.Length);
 
             var buf2 = new byte[10];
-            int red = Amazon.Files.Download(info.Id, buf2, 0, 0, 10, null).Result;
+            var stream = await Amazon.Files.Download(info.Id);
+            int red = await stream.ReadAsync(buf2, 0, 10);
 
             Assert.Equal(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, buf2);
         }

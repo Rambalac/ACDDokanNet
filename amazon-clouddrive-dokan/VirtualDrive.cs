@@ -471,6 +471,7 @@
                 var reader = info.Context as IBlockStream;
 
                 bytesRead = reader.Read(offset, buffer, 0, buffer.Length, ReadTimeout);
+                Log.Trace($"Read time {DateTime.UtcNow.Subtract(start).TotalSeconds}", Log.VirtualDrive + Log.Performance);
                 return DokanResult.Success;
             }
             catch (ObjectDisposedException)
@@ -592,6 +593,7 @@
                 return DokanResult.AccessDenied;
             }
 
+            var start = DateTime.UtcNow;
             try
             {
                 if (info.Context != null)
@@ -601,6 +603,7 @@
                     {
                         writer.Write(offset, buffer, 0, buffer.Length);
                         bytesWritten = buffer.Length;
+                        Log.Trace($"Write time {DateTime.UtcNow.Subtract(start).TotalSeconds}", Log.VirtualDrive + Log.Performance);
                         return DokanResult.Success;
                     }
                 }

@@ -54,6 +54,7 @@
     <Reference Include="System.Runtime.Caching" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AsyncHelpers.cs" />
     <Compile Include="BackgroundWorker.cs" />
     <Compile Include="BackgroundWorker{P}.cs" />
     <Compile Include="HttpWebRequestExtensions.cs" />

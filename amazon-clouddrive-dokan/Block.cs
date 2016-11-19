@@ -4,16 +4,21 @@
 
     internal class Block
     {
-        public Block(long n, byte[] d)
+        public Block(string itemid, long n, byte[] d)
         {
-            N = n;
+            Key = GetKey(itemid, n);
             Data = d;
         }
 
-        public long N { get; private set; }
+        public string Key { get; private set; }
 
         public DateTime Access { get; set; } = DateTime.UtcNow;
 
         public byte[] Data { get; private set; }
+
+        internal static string GetKey(string id, long intervalStart)
+        {
+            return id + '\0' + intervalStart;
+        }
     }
 }

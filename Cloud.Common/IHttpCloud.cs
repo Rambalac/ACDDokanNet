@@ -39,9 +39,7 @@
 
     public interface IHttpCloudFiles
     {
-        Task<int> Download(string id, byte[] result, int offset, long pos, int left, Progress progress);
-
-        Task Download(string id, Func<Stream, Task> streammer, long? fileOffset = null, long? length = null);
+        Task<Stream> Download(string id);
 
         Task<FSItem.Builder> Overwrite(string id, Func<FileStream> p, Progress progress);
 

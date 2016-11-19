@@ -303,27 +303,23 @@
                     OnDownloadStarted?.Invoke(item);
                     while (writer.Length < item.Length)
                     {
-                        await cloud.Files.Download(
-                            item.Id,
-                            fileOffset: writer.Length,
-                            streammer: async (stream) =>
+                        var stream = await cloud.Files.Download(item.Id);
+                        stream.Position = writer.Length;
+                        int red = 0;
+                        long totalred = 0;
+                        do
+                        {
+                            red = await stream.ReadAsync(buf, 0, buf.Length);
+                            totalred += red;
+                            if (writer.Length == 0)
                             {
-                                int red = 0;
-                                long totalred = 0;
-                                do
-                                {
-                                    red = await stream.ReadAsync(buf, 0, buf.Length);
-                                    totalred += red;
-                                    if (writer.Length == 0)
-                                    {
-                                        Log.Trace("Got first part: " + item.Id + " in " + start.ElapsedMilliseconds);
-                                    }
+                                Log.Trace("Got first part: " + item.Id + " in " + start.ElapsedMilliseconds);
+                            }
 
-                                    writer.Write(buf, 0, red);
-                                    downloader.Downloaded = writer.Length;
-                                }
-                                while (red > 0);
-                            });
+                            writer.Write(buf, 0, red);
+                            downloader.Downloaded = writer.Length;
+                        }
+                        while (red > 0);
                         if (writer.Length < item.Length)
                         {
                             await Task.Delay(500);

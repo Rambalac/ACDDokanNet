@@ -119,11 +119,11 @@
             }
         }
 
-        async Task<int> IHttpCloudFiles.Download(string id, byte[] result, int offset, long pos, int left, Progress progress)
+        async Task<Stream> IHttpCloudFiles.Download(string id)
         {
             try
             {
-                return await amazon.Files.Download(id, result, offset, pos, left);
+                return await amazon.Files.Download(id);
             }
             catch (Exception ex)
             {
@@ -233,36 +233,6 @@
                 }
 
                 return (node.status == AmazonNodeStatus.AVAILABLE) ? FromNode(node) : null;
-            }
-            catch (Exception ex)
-            {
-                throw ProcessException(ex);
-            }
-        }
-
-        async Task IHttpCloudFiles.Download(string id, Func<Stream, Task> streammer, long? fileOffset, long? length)
-        {
-            try
-            {
-                long expectedOffset = fileOffset ?? 0;
-                await amazon.Files.Download(id, fileOffset: fileOffset, length: length, streammer: async (response) =>
-                {
-                    var partial = response.StatusCode == HttpStatusCode.PartialContent;
-                    ContentRangeHeaderValue contentRange = null;
-                    if (partial)
-                    {
-                        contentRange = response.Headers.GetContentRange();
-                        if (contentRange.From != expectedOffset)
-                        {
-                            throw new InvalidOperationException("Content range does not match request");
-                        }
-                    }
-
-                    using (var stream = response.GetResponseStream())
-                    {
-                        await streammer(stream);
-                    }
-                });
             }
             catch (Exception ex)
             {

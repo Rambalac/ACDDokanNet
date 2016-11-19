@@ -49,7 +49,7 @@
         public async Task<bool> AuthenticateNew(CancellationToken cs)
         {
             msaAuthenticationProvider = new MsaAuthenticationProvider(MicrosoftSecret.ClientId, MicrosoftSecret.ClientSecret, "http://localhost:45674/authredirect", Scopes, null, new CredentialsVault(this, null));
-            await msaAuthenticationProvider.AuthenticateUserAsync().ConfigureAwait(true);
+            await msaAuthenticationProvider.AuthenticateUserAsync().ConfigureAwait(false);
 
             oneDriveClient = new OneDriveClient("https://api.onedrive.com/v1.0", msaAuthenticationProvider);
 
@@ -59,7 +59,7 @@
         public async Task<bool> AuthenticateSaved(CancellationToken cs, string save)
         {
             msaAuthenticationProvider = new MsaAuthenticationProvider(MicrosoftSecret.ClientId, MicrosoftSecret.ClientSecret, "http://localhost:45674/authredirect", Scopes, null, new CredentialsVault(this, save));
-            await msaAuthenticationProvider.RestoreMostRecentFromCacheOrAuthenticateUserAsync().ConfigureAwait(true);
+            await msaAuthenticationProvider.RestoreMostRecentFromCacheOrAuthenticateUserAsync().ConfigureAwait(false);
 
             oneDriveClient = new OneDriveClient("https://api.onedrive.com/v1.0", msaAuthenticationProvider);
 
@@ -70,7 +70,7 @@
         {
             if (oneDriveClient != null)
             {
-                await msaAuthenticationProvider.SignOutAsync().ConfigureAwait(true);
+                await msaAuthenticationProvider.SignOutAsync().ConfigureAwait(false);
                 msaAuthenticationProvider = null;
                 oneDriveClient = null;
             }
@@ -78,35 +78,19 @@
 
         public async Task<FSItem.Builder> CreateFolder(string parentid, string name)
         {
-            var item = await GetItem(parentid).Children.Request().AddAsync(new Item { Name = name, Folder = new Folder() }).ConfigureAwait(true);
+            var item = await GetItem(parentid).Children.Request().AddAsync(new Item { Name = name, Folder = new Folder() }).ConfigureAwait(false);
             return FromNode(item);
         }
 
-        public async Task Download(string id, Func<Stream, Task> streammer, long? fileOffset = default(long?), long? length = default(int?))
+        public async Task<Stream> Download(string id)
         {
-            using (var stream = await GetItem(id).Content.Request().GetAsync().ConfigureAwait(true))
-            {
-                if (fileOffset != null)
-                {
-                    stream.Position = fileOffset.Value;
-                    await streammer(stream);
-                }
-            }
+            return await GetItem(id).Content.Request().GetAsync().ConfigureAwait(false);
         }
 
         public async Task<FSItem.Builder> GetNode(string id)
         {
-            var item = await GetItem(id).Request().GetAsync().ConfigureAwait(true);
+            var item = await GetItem(id).Request().GetAsync().ConfigureAwait(false);
             return FromNode(item);
-        }
-
-        public async Task<int> Download(string id, byte[] result, int offset, long pos, int left, Progress progress)
-        {
-            using (var stream = await GetItem(id).Content.Request().GetAsync().ConfigureAwait(true))
-            {
-                stream.Position = pos;
-                return await stream.ReadAsync(result, offset, left);
-            }
         }
 
         public async Task<FSItem.Builder> GetChild(string id, string name)
@@ -129,7 +113,7 @@
 
         public async Task<INodeExtendedInfo> GetNodeExtended(string id)
         {
-            var item = await GetItem(id).Request().GetAsync().ConfigureAwait(true);
+            var item = await GetItem(id).Request().GetAsync().ConfigureAwait(false);
             var info = new CloudDokanNetItemInfo
             {
                 WebLink = item.WebUrl,
@@ -227,7 +211,7 @@
                              .Drive
                              .Root
                              .Request()
-                             .GetAsync().ConfigureAwait(true);
+                             .GetAsync().ConfigureAwait(false);
             }
 
             return rootItem;
@@ -240,7 +224,7 @@
 
             do
             {
-                var nodes = await request.GetAsync().ConfigureAwait(true);
+                var nodes = await request.GetAsync().ConfigureAwait(false);
                 result.AddRange(nodes.CurrentPage);
                 request = nodes.NextPageRequest;
             }
@@ -251,7 +235,7 @@
 
         private Drive GetDrive()
         {
-            return oneDriveClient.Drive.Request().GetAsync().ConfigureAwait(true).GetAwaiter().GetResult();
+            return oneDriveClient.Drive.Request().GetAsync().ConfigureAwait(false).GetAwaiter().GetResult();
         }
 
         private IItemRequestBuilder GetItem(string id)
