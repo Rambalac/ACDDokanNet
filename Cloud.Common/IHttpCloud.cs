@@ -10,29 +10,29 @@
 
     public interface IHttpCloud
     {
-        string Id { get; set; }
-
-        long AvailableFreeSpace { get; }
-
         string CloudServiceIcon { get; }
 
         string CloudServiceName { get; }
 
         IHttpCloudFiles Files { get; }
 
+        string Id { get; set; }
+
         IHttpCloudNodes Nodes { get; }
 
         IAuthUpdateListener OnAuthUpdated { get; set; }
 
-        long TotalFreeSpace { get; }
-
-        long TotalSize { get; }
-
-        long TotalUsedSpace { get; }
-
         Task<bool> AuthenticateNew(CancellationToken cs);
 
         Task<bool> AuthenticateSaved(CancellationToken cs, string save);
+
+        Task<long> GetAvailableFreeSpace();
+
+        Task<long> GetTotalFreeSpace();
+
+        Task<long> GetTotalSize();
+
+        Task<long> GetTotalUsedSpace();
 
         Task SignOut(string save);
     }
@@ -54,6 +54,8 @@
 
         Task<IList<FSItem.Builder>> GetChildren(string id);
 
+        Task<FSItem.Builder> GetNode(string id);
+
         Task<INodeExtendedInfo> GetNodeExtended(string id);
 
         Task<FSItem.Builder> GetRoot();
@@ -64,10 +66,8 @@
 
         Task<FSItem.Builder> Rename(string id, string newName);
 
-        Task Trash(string id);
-
-        Task<FSItem.Builder> GetNode(string id);
-
         Task<string> ShareNode(string id, NodeShareType type);
+
+        Task Trash(string id);
     }
 }

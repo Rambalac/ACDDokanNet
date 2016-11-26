@@ -22,11 +22,6 @@ namespace Azi.Cloud.DokanNet.Tests
 
         private string tempPath = Path.Combine(Path.GetTempPath(), Path.GetTempFileName());
 
-        public NewFileBlockWriterTests()
-        {
-            writer = new NewFileBlockWriter(item, tempPath);
-        }
-
         [Fact]
         public void MultipleParallelWriteTest()
         {
@@ -46,9 +41,9 @@ namespace Azi.Cloud.DokanNet.Tests
             for (var i = 0; i < parts; i++)
             {
                 var ii = i;
-                tasks[i] = Task.Factory.StartNew(() =>
+                tasks[i] = Task.Factory.StartNew(async () =>
                   {
-                      writer.Write(ii * array.Length, array, 0, array.Length);
+                     await writer.Write(ii * array.Length, array, 0, array.Length);
                   }, TaskCreationOptions.LongRunning);
             }
             Task.WaitAll(tasks);
@@ -56,8 +51,6 @@ namespace Azi.Cloud.DokanNet.Tests
 
             var info = new FileInfo(tempPath);
             Assert.Equal(array.Length * parts, info.Length);
-
-            Assert.Equal(array.Length * parts, item.Length);
 
             using (var reader = new BinaryReader(File.OpenRead(tempPath)))
             {

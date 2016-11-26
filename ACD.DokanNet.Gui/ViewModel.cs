@@ -43,6 +43,8 @@
 
         public ObservableCollection<FileItemInfo> DownloadFiles { get; } = new ObservableCollection<FileItemInfo>();
 
+        public string DownloadFilesTooltip => string.Join("\r\n", DownloadFiles.Select(f => f.FileName));
+
         public int DownloadFilesCount => DownloadFiles.Count;
 
         public bool HasFreeLetters
@@ -382,6 +384,7 @@
         {
             OnPropertyChanged(nameof(DownloadFiles));
             OnPropertyChanged(nameof(DownloadFilesCount));
+            OnPropertyChanged(nameof(DownloadFilesTooltip));
         }
 
         private void LoadClouds()

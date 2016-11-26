@@ -7,6 +7,7 @@
     using System.Linq;
     using System.Security.AccessControl;
     using System.Security.Principal;
+    using System.Threading.Tasks;
     using Common;
     using global::DokanNet;
     using Tools;
@@ -26,11 +27,11 @@
                                                    FileAccess.GenericWrite;
 
         private const int ReadTimeout = 30000;
+
+        private string creator = WindowsIdentity.GetCurrent().Name;
 #if TRACE
         private string lastFilePath;
 #endif
-
-        private string creator = WindowsIdentity.GetCurrent().Name;
         private FSProvider provider;
 
         public VirtualDrive(FSProvider provider)
@@ -50,23 +51,22 @@
         {
             try
             {
-                // if (info.Context != null)
-                // {
-                //    var str = info.Context as IBlockStream;
-                //    if (str != null)
-                //    {
-                //        str.Close();
-                //    }
-                // }
                 if (info.DeleteOnClose)
                 {
-                    if (info.IsDirectory)
+                    try
                     {
-                        provider.DeleteDir(fileName);
+                        if (info.IsDirectory)
+                        {
+                            Wait(provider.DeleteDir(fileName));
+                        }
+                        else
+                        {
+                            Wait(provider.DeleteFile(fileName));
+                        }
                     }
-                    else
+                    catch (AggregateException ex) when (ex.InnerException is FileNotFoundException)
                     {
-                        provider.DeleteFile(fileName);
+                        Log.Trace("File Not Found on Cleanup DeleteOnClose");
                     }
                 }
             }
@@ -86,6 +86,7 @@
                     if (str != null)
                     {
                         str.Close();
+                        str.Dispose();
                         info.Context = null;
                     }
                 }
@@ -100,12 +101,12 @@
         {
             try
             {
-                var res = MainCreateFile(fileName, access, share, mode, options, attributes, info);
+                var res = Wait(MainCreateFile(fileName, access, share, mode, options, attributes, info));
 #if TRACE
                 bool readWriteAttributes = (access & DataAccess) == 0;
                 if (!(readWriteAttributes || info.IsDirectory) || (res != DokanResult.Success && !(lastFilePath == fileName && res == DokanResult.FileNotFound)))
                 {
-                    if (!(info.Context is NewFileBlockWriter || info.Context is FileBlockReader || info.Context is SmallFileBlockReaderWriter || info.Context is BufferedHttpCloudBlockReader))
+                    if (!(info.Context is IBlockStream))
                     {
                         Log.Trace($"{fileName}\r\n  Access:[{access}]\r\n  Share:[{share}]\r\n  Mode:[{mode}]\r\n  Options:[{options}]\r\n  Attr:[{attributes}]\r\nStatus:{res}");
                     }
@@ -129,15 +130,14 @@
                 return DokanResult.AccessDenied;
             }
 
-            if (!provider.Exists(fileName))
-            {
-                return DokanResult.PathNotFound;
-            }
-
             try
             {
-                provider.DeleteDir(fileName);
+                Wait(provider.DeleteDir(fileName));
                 return DokanResult.Success;
+            }
+            catch (AggregateException ex) when (ex.InnerException is FileNotFoundException)
+            {
+                return DokanResult.PathNotFound;
             }
             catch (Exception ex)
             {
@@ -153,16 +153,11 @@
                 return DokanResult.AccessDenied;
             }
 
-            if (!provider.Exists(fileName))
-            {
-                return DokanResult.PathNotFound;
-            }
-
             try
             {
                 Log.Trace("Delete file:" + fileName);
 
-                provider.DeleteFile(fileName);
+                Wait(provider.DeleteFile(fileName));
                 var newfile = info.Context as NewFileBlockWriter;
                 if (newfile != null)
                 {
@@ -170,6 +165,10 @@
                 }
 
                 return DokanResult.Success;
+            }
+            catch (AggregateException ex) when (ex.InnerException is FileNotFoundException)
+            {
+                return DokanResult.PathNotFound;
             }
             catch (Exception ex)
             {
@@ -188,14 +187,7 @@
 
             try
             {
-                var itemsTask = provider.GetDirItems(fileName);
-                if (!itemsTask.Wait(15000))
-                {
-                    files = null;
-                    return NtStatus.Timeout;
-                }
-
-                var items = itemsTask.Result;
+                var items = Wait(provider.GetDirItems(fileName), 10000);
 
                 files = items.Select(i => new FileInformation
                 {
@@ -230,7 +222,7 @@
 
             try
             {
-                var items = provider.GetDirItems(fileName).Result;
+                var items = Wait(provider.GetDirItems(fileName));
 
                 var regex = new Regex(Regex.Escape(searchPattern).Replace("\\?", ".").Replace("\\*", ".*"));
 
@@ -260,7 +252,7 @@
             streams = new List<FileInformation>();
             try
             {
-                var item = provider.GetItem(fileName);
+                var item = GetItem(fileName);
                 if (item == null)
                 {
                     return DokanResult.FileNotFound;
@@ -283,6 +275,11 @@
                 }
 
                 return DokanResult.Success;
+            }
+            catch (AggregateException ex) when (ex.InnerException is TimeoutException)
+            {
+                Log.Error(ex);
+                return NtStatus.Timeout;
             }
             catch (Exception e)
             {
@@ -315,7 +312,7 @@
             {
                 const long fakeSize = 100L << 40;
 
-                freeBytesAvailable = fakeSize - provider.TotalUsedSpace;
+                freeBytesAvailable = fakeSize - Wait(provider.GetTotalUsedSpace());
                 totalNumberOfBytes = fakeSize;
                 totalNumberOfFreeBytes = freeBytesAvailable;
 
@@ -351,7 +348,7 @@
                     streamName = names[1];
                 }
 
-                var item = provider.GetItem(fileName);
+                var item = GetItem(fileName);
 
                 if (item != null)
                 {
@@ -366,6 +363,12 @@
 
                 fileInfo = default(FileInformation);
                 return DokanResult.PathNotFound;
+            }
+            catch (TimeoutException e)
+            {
+                Log.Error(e);
+                fileInfo = default(FileInformation);
+                return NtStatus.Timeout;
             }
             catch (Exception e)
             {
@@ -451,10 +454,15 @@
 
             try
             {
-                provider.MoveFile(oldName, newName, replace);
+                Wait(provider.MoveFile(oldName, newName, replace));
                 Log.Trace("Move file:" + oldName + " - " + newName);
 
                 return DokanResult.Success;
+            }
+            catch (AggregateException ex) when (ex.InnerException is TimeoutException)
+            {
+                Log.Error(ex);
+                return NtStatus.Timeout;
             }
             catch (Exception e)
             {
@@ -470,24 +478,24 @@
             {
                 var reader = info.Context as IBlockStream;
 
-                bytesRead = reader.Read(offset, buffer, 0, buffer.Length, ReadTimeout);
+                bytesRead = Wait(reader.Read(offset, buffer, 0, buffer.Length, ReadTimeout - 1000));
                 Log.Trace($"Read time {DateTime.UtcNow.Subtract(start).TotalSeconds}", Log.VirtualDrive + Log.Performance);
                 return DokanResult.Success;
             }
-            catch (ObjectDisposedException)
+            catch (AggregateException ex) when (ex.InnerException is ObjectDisposedException)
             {
                 bytesRead = 0;
                 return NtStatus.FileClosed;
             }
-            catch (NotSupportedException)
+            catch (AggregateException ex) when (ex.InnerException is NotSupportedException)
             {
                 Log.Warn("ReadWrite not supported: " + fileName);
                 bytesRead = 0;
                 return DokanResult.AccessDenied;
             }
-            catch (TimeoutException)
+            catch (AggregateException ex) when (ex.InnerException is TimeoutException)
             {
-                Log.Warn($"Timeout {(DateTime.UtcNow - start).TotalMilliseconds} File: {fileName}");
+                Log.Warn($"Timeout {(DateTime.UtcNow - start).TotalMilliseconds} File: {fileName}\r\n{ex.InnerException}");
                 bytesRead = 0;
                 return NtStatus.Timeout;
             }
@@ -601,7 +609,7 @@
                     var writer = info.Context as IBlockStream;
                     if (writer != null)
                     {
-                        writer.Write(offset, buffer, 0, buffer.Length);
+                        Wait(writer.Write(offset, buffer, 0, buffer.Length));
                         bytesWritten = buffer.Length;
                         Log.Trace($"Write time {DateTime.UtcNow.Subtract(start).TotalSeconds}", Log.VirtualDrive + Log.Performance);
                         return DokanResult.Success;
@@ -611,11 +619,17 @@
                 bytesWritten = 0;
                 return DokanResult.AccessDenied;
             }
-            catch (NotSupportedException)
+            catch (AggregateException ex) when (ex.InnerException is NotSupportedException)
             {
                 Log.Warn("ReadWrite not supported: " + fileName);
                 bytesWritten = 0;
                 return DokanResult.AccessDenied;
+            }
+            catch (AggregateException ex) when (ex.InnerException is TimeoutException)
+            {
+                Log.Warn($"Timeout {(DateTime.UtcNow - start).TotalMilliseconds} File: {fileName}");
+                bytesWritten = 0;
+                return NtStatus.Timeout;
             }
             catch (Exception e)
             {
@@ -623,6 +637,17 @@
                 bytesWritten = 0;
                 return DokanResult.AccessDenied;
             }
+        }
+
+        private async Task<NtStatus> CheckCreateDir(string fileName)
+        {
+            if (await provider.Exists(fileName))
+            {
+                return DokanResult.AlreadyExists;
+            }
+
+            await provider.CreateDir(fileName);
+            return DokanResult.Success;
         }
 
         private NtStatus CheckStreams(string fileName, FileMode mode, DokanFileInfo info, string streamName, FSItem item)
@@ -647,6 +672,11 @@
             return DokanResult.AccessDenied;
         }
 
+        private FSItem GetItem(string path)
+        {
+            return Wait(provider.FetchNode(path));
+        }
+
         private bool HasAccess(DokanFileInfo info)
         {
             var watch = Stopwatch.StartNew();
@@ -669,16 +699,10 @@
                 return DokanResult.AccessDenied;
             }
 
-            if (provider.Exists(fileName))
-            {
-                return DokanResult.AlreadyExists;
-            }
-
-            provider.CreateDir(fileName);
-            return DokanResult.Success;
+            return Wait(CheckCreateDir(fileName));
         }
 
-        private NtStatus MainCreateFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
+        private async Task<NtStatus> MainCreateFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
         {
             if (!HasAccess(info))
             {
@@ -692,7 +716,7 @@
                     return MainCreateDirectory(fileName, info);
                 }
 
-                if (mode == FileMode.Open && !provider.Exists(fileName))
+                if (mode == FileMode.Open && !await provider.Exists(fileName))
                 {
                     return DokanResult.PathNotFound;
                 }
@@ -716,7 +740,7 @@
                 streamName = names[1];
             }
 
-            var item = provider.GetItem(fileName);
+            var item = await provider.FetchNode(fileName);
 
             if (streamName != null && item != null)
             {
@@ -767,11 +791,11 @@
                 return DokanResult.Success;
             }
 
-            return MainOpenFile(fileName, access, share, mode, options, attributes, info);
+            return await MainOpenFile(fileName, access, share, mode, options, attributes, info);
         }
 
 #pragma warning disable RECS0154 // Parameter is never used
-        private NtStatus MainOpenFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
+        private async Task<NtStatus> MainOpenFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
 #pragma warning restore RECS0154 // Parameter is never used
         {
             bool readAccess = (access & DataReadAccess) != 0;
@@ -793,7 +817,7 @@
                 ioaccess = System.IO.FileAccess.ReadWrite;
             }
 
-            var result = provider.OpenFile(fileName, mode, ioaccess, share, options);
+            var result = await provider.OpenFile(fileName, mode, ioaccess, share, options);
 
             if (result == null)
             {
@@ -842,7 +866,7 @@
                 return OpenAsByteArray(item.Info, info);
             }
 
-            var result = provider.GetExtendedInfo(streamNameGroups, item);
+            var result = Wait(provider.GetExtendedInfo(streamNameGroups, item));
             return OpenAsByteArray(result, info);
         }
 
@@ -857,7 +881,7 @@
             {
                 if (item.Info == null)
                 {
-                    provider.BuildItemInfo(item).Wait();
+                    Wait(provider.BuildItemInfo(item));
                 }
 
                 return ProcessItemInfo(streamNameGroups, item, info);
@@ -870,6 +894,24 @@
         {
             info.Context = provider.OpenUploadHere(item);
             return DokanResult.Success;
+        }
+
+        private T Wait<T>(Task<T> task, int timeout = ReadTimeout)
+        {
+            if (!task.Wait(timeout))
+            {
+                throw new AggregateException(new TimeoutException());
+            }
+
+            return task.Result;
+        }
+
+        private void Wait(Task task, int timeout = ReadTimeout)
+        {
+            if (!task.Wait(timeout))
+            {
+                throw new AggregateException(new TimeoutException());
+            }
         }
     }
 }

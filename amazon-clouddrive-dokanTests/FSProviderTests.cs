@@ -1,9 +1,11 @@
-﻿using System.Diagnostics;
+﻿using Azi.Cloud.Common;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
+using Xunit.Sdk;
 
 namespace Azi.Cloud.DokanNet.Tests
 {
@@ -22,16 +24,16 @@ namespace Azi.Cloud.DokanNet.Tests
         }
 
         [Fact]
-        public void CreateDeleteExistsDirTest()
+        public async Task CreateDeleteExistsDirTest()
         {
             var dir = Testdir + "DeleteTest";
-            Provider.CreateDir(dir);
+            await Provider.CreateDir(dir);
 
-            Assert.True(Provider.Exists(dir));
+            Assert.True(await Provider.Exists(dir));
 
-            Provider.DeleteDir(dir);
+            await Provider.DeleteDir(dir);
 
-            Assert.False(Provider.Exists(dir));
+            Assert.False(await Provider.Exists(dir));
         }
 
         [Fact]
@@ -56,44 +58,44 @@ namespace Azi.Cloud.DokanNet.Tests
         public async Task OpenFileReadWriteTest()
         {
             var path = Testdir + "TestFile.txt";
-            using (var file = Provider.OpenFile(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, FileOptions.None))
+            using (var file = await Provider.OpenFile(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, FileOptions.None))
             {
-                file.Write(0, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, 0, 10);
+                await file.Write(0, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, 0, 10);
             }
 
-            while (Provider.GetItem(path).IsUploading)
+            while ((await Provider.FetchNode(path)).IsUploading)
             {
-                Thread.Sleep(500);
+                await Task.Delay(500);
             }
 
-            var info = Provider.GetItem(path);
+            var info = await Provider.FetchNode(path);
             Assert.Equal(10, info.Length);
 
             var buf = new byte[10];
-            using (var file = Provider.OpenFile(path, FileMode.Open, FileAccess.Read, FileShare.None, FileOptions.None))
+            using (var file = await Provider.OpenFile(path, FileMode.Open, FileAccess.Read, FileShare.None, FileOptions.None))
             {
-                file.Read(0, buf, 0, 10);
+                await file.Read(0, buf, 0, 10, 30000);
             }
 
             Assert.Equal(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, buf);
 
-            using (var file = Provider.OpenFile(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None, FileOptions.None))
+            using (var file = await Provider.OpenFile(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None, FileOptions.None))
             {
-                file.Write(9, new byte[] { 8, 7, 6, 5, 4, 3, 2, 1 }, 0, 8);
+                await file.Write(9, new byte[] { 8, 7, 6, 5, 4, 3, 2, 1 }, 0, 8, 30000);
             }
 
-            while (Provider.GetItem(path).IsUploading)
+            while ((await Provider.FetchNode(path)).IsUploading)
             {
-                Thread.Sleep(500);
+                await Task.Delay(500);
             }
 
-            info = Provider.GetItem(path);
+            info = await Provider.FetchNode(path);
             Assert.Equal(17, info.Length);
 
             buf = new byte[17];
-            using (var file = Provider.OpenFile(path, FileMode.Open, FileAccess.Read, FileShare.None, FileOptions.None))
+            using (var file = await Provider.OpenFile(path, FileMode.Open, FileAccess.Read, FileShare.None, FileOptions.None))
             {
-                file.Read(0, buf, 0, 17);
+                await file.Read(0, buf, 0, 17, 30000);
             }
 
             Assert.Equal(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2, 1 }, buf);
@@ -111,34 +113,35 @@ namespace Azi.Cloud.DokanNet.Tests
         public async Task OpenNewFileAndReadTest()
         {
             var path = Testdir + "TestFile.txt";
-            using (var file = Provider.OpenFile(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, FileOptions.None))
+            using (var file = await Provider.OpenFile(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, FileOptions.None))
             {
-                file.Write(0, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, 0, 10);
+                await file.Write(0, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, 0, 10);
+                file.Flush();
 
                 var buf = new byte[5];
-                using (var reader = Provider.OpenFile(path, FileMode.Open, FileAccess.Read, FileShare.None, FileOptions.None))
+                using (var reader = await Provider.OpenFile(path, FileMode.Open, FileAccess.Read, FileShare.None, FileOptions.None))
                 {
-                    reader.Read(2, buf, 0, 5);
+                    await reader.Read(2, buf, 0, 5);
                 }
 
                 Assert.Equal(new byte[] { 3, 4, 5, 6, 7 }, buf);
             }
 
-            while (Provider.GetItem(path).IsUploading)
+            while ((await Provider.FetchNode(path)).IsUploading)
             {
-                Thread.Sleep(500);
+                await Task.Delay(500);
             }
 
             Assert.True(Directory.GetFiles("TempCache\\Upload").Length == 0);
 
-            var info = Provider.GetItem(path);
+            var info = await Provider.FetchNode(path);
             Assert.Equal(10, info.Length);
 
-            var buf2 = new byte[17];
+            var buf2 = new byte[10];
             var stream = await Amazon.Files.Download(info.Id);
-            int red = await stream.ReadAsync(buf2, 0, 17);
+            int red = await stream.ReadAsync(buf2, 0, 10);
 
-            Assert.Equal(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2, 1 }, buf2);
+            Assert.Equal(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, buf2);
         }
 
         [Theory]
@@ -149,19 +152,19 @@ namespace Azi.Cloud.DokanNet.Tests
         public async Task OpenNewFileWithNameAndReadTest(string name)
         {
             var path = Testdir + name;
-            using (var file = Provider.OpenFile(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, FileOptions.None))
+            using (var file = await Provider.OpenFile(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, FileOptions.None))
             {
-                file.Write(0, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, 0, 10);
+                await file.Write(0, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, 0, 10);
             }
 
-            while (Provider.GetItem(path).IsUploading)
+            while ((await Provider.FetchNode(path)).IsUploading)
             {
-                Thread.Sleep(500);
+                await Task.Delay(500);
             }
 
             Assert.True(Directory.GetFiles("TempCache\\Upload").Length == 0);
 
-            var info = Provider.GetItem(path);
+            var info = await Provider.FetchNode(path);
             Assert.Equal(10, info.Length);
 
             var buf2 = new byte[10];
@@ -172,34 +175,34 @@ namespace Azi.Cloud.DokanNet.Tests
         }
 
         [Fact]
-        public void OpenNewBigFileAndReadTest()
+        public async Task OpenNewBigFileAndReadTest()
         {
             var path = Testdir + "TestFile.txt";
             const int size = 1500000;
             var buffer = Enumerable.Range(1, size).Select(b => (byte)(b & 255)).ToArray();
-            using (var file = Provider.OpenFile(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, FileOptions.None))
+            using (var file = await Provider.OpenFile(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, FileOptions.None))
             {
-                file.Write(0, buffer, 0, buffer.Length);
+                await file.Write(0, buffer, 0, buffer.Length);
                 Debug.WriteLine("Uploaded");
             }
 
-            while (Provider.GetItem(path).IsUploading)
+            while ((await Provider.FetchNode(path)).IsUploading)
             {
-                Thread.Sleep(500);
+                await Task.Delay(500);
             }
 
-            var info = Provider.GetItem(path);
+            var info = await Provider.FetchNode(path);
             Assert.Equal(buffer.Length, info.Length);
 
             var newbuf = new byte[buffer.Length];
             var redtotal = 0;
-            using (var file = Provider.OpenFile(path, FileMode.Open, FileAccess.Read, FileShare.None, FileOptions.None))
+            using (var file = await Provider.OpenFile(path, FileMode.Open, FileAccess.Read, FileShare.None, FileOptions.None))
             {
                 int red;
                 var nextred = 1000000;
                 do
                 {
-                    red = file.Read(redtotal, newbuf, redtotal, 4096);
+                    red = await file.Read(redtotal, newbuf, redtotal, 4096);
                     redtotal += red;
                     if (redtotal > nextred)
                     {
@@ -215,23 +218,23 @@ namespace Azi.Cloud.DokanNet.Tests
         }
 
         [Fact]
-        public void ReadWrongStreamTest()
+        public async Task ReadWrongStreamTest()
         {
             var path = Testdir + "TestFile.txt";
-            using (var file = Provider.OpenFile(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, FileOptions.None))
+            using (var file = await Provider.OpenFile(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, FileOptions.None))
             {
-                file.Write(0, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, 0, 10);
+                await file.Write(0, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, 0, 10);
             }
 
-            while (Provider.GetItem(path).IsUploading)
+            while ((await Provider.FetchNode(path)).IsUploading)
             {
-                Thread.Sleep(500);
+                await Task.Delay(500);
             }
 
-            var info = Provider.GetItem(path);
+            var info = await Provider.FetchNode(path);
             Assert.Equal(10, info.Length);
 
-            var file2 = Provider.OpenFile(path + "\\:ACDDokanNetInfo:$DATA", FileMode.Open, FileAccess.Read, FileShare.None, FileOptions.None);
+            var file2 = await Provider.OpenFile(path + "\\:ACDDokanNetInfo:$DATA", FileMode.Open, FileAccess.Read, FileShare.None, FileOptions.None);
             Assert.Null(file2);
         }
 

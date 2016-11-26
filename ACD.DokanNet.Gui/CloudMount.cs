@@ -356,11 +356,11 @@
             OnPropertyChanged(nameof(IsUnmounted));
         }
 
-        private void ProviderStatisticsUpdated(IHttpCloud cloud, StatisticUpdateReason reason, AStatisticFileInfo info)
+        private async Task ProviderStatisticsUpdated(IHttpCloud cloud, StatisticUpdateReason reason, AStatisticFileInfo info)
         {
             try
             {
-                App.Dispatcher.Invoke(() =>
+                await App.Dispatcher.InvokeAsync(() =>
                 {
                     model.OnProviderStatisticsUpdated(this, reason, info);
                 });

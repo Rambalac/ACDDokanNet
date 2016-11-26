@@ -1,6 +1,7 @@
 ﻿namespace Azi.Cloud.DokanNet
 {
     using System;
+    using System.Threading.Tasks;
 
     internal class ByteArrayBlockReader : AbstractBlockStream
     {
@@ -16,7 +17,7 @@
             // Nothing
         }
 
-        public override int Read(long position, byte[] buffer, int offset, int count, int timeout = 1000)
+        public override Task<int> Read(long position, byte[] buffer, int offset, int count, int timeout = 1000)
         {
             var realCount = (int)(data.Length - position);
             if (realCount > count)
@@ -25,7 +26,7 @@
             }
 
             Array.Copy(data, position, buffer, offset, realCount);
-            return realCount;
+            return Task.FromResult(realCount);
         }
 
         public override void SetLength(long len)
@@ -33,7 +34,7 @@
             throw new NotSupportedException();
         }
 
-        public override void Write(long position, byte[] buffer, int offset, int count, int timeout = 1000)
+        public override Task Write(long position, byte[] buffer, int offset, int count, int timeout = 1000)
         {
             throw new NotSupportedException();
         }

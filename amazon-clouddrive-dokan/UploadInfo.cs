@@ -46,7 +46,7 @@
 
         internal FSItem ToFSItem()
         {
-            return new FSItem.Builder()
+            var result = new FSItem.Builder()
             {
                 Id = Id,
                 Name = System.IO.Path.GetFileName(Path),
@@ -54,6 +54,8 @@
                 ParentIds = new ConcurrentBag<string>(new string[] { ParentId }),
                 ParentPath = System.IO.Path.GetDirectoryName(Path)
             }.Build();
+            result.MakeUploading();
+            return result;
         }
 
         protected virtual void Dispose(bool disposing)

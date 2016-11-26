@@ -76,7 +76,7 @@
 
         public string FileName { get; set; }
 
-        public object FullPath { get; internal set; }
+        public string FullPath { get; internal set; }
 
         public Visibility HasError => (ErrorMessage == null) ? Visibility.Collapsed : Visibility.Visible;
 

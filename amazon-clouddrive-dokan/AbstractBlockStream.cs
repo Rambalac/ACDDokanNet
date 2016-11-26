@@ -1,17 +1,18 @@
 ﻿namespace Azi.Cloud.DokanNet
 {
     using System;
+    using System.Threading.Tasks;
     using Tools;
 
     public abstract class AbstractBlockStream : IBlockStream
     {
-        public Action OnClose { get; set; }
+        public Func<Task> OnClose { get; set; }
 
         public abstract void Flush();
 
-        public abstract int Read(long position, byte[] buffer, int offset, int count, int timeout = 1000);
+        public abstract Task<int> Read(long position, byte[] buffer, int offset, int count, int timeout = 1000);
 
-        public abstract void Write(long position, byte[] buffer, int offset, int count, int timeout = 1000);
+        public abstract Task Write(long position, byte[] buffer, int offset, int count, int timeout = 1000);
 
         public void Dispose()
         {
@@ -24,6 +25,7 @@
             try
             {
                 OnClose?.Invoke();
+                Dispose();
             }
             catch (Exception ex)
             {

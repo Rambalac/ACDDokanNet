@@ -1,14 +1,15 @@
 ﻿namespace Azi.Cloud.DokanNet
 {
     using System;
+    using System.Threading.Tasks;
 
     public interface IBlockStream : IDisposable
     {
-        Action OnClose { get; set; }
+        Func<Task> OnClose { get; set; }
 
-        int Read(long position, byte[] buffer, int offset, int count, int timeout = 1000);
+        Task<int> Read(long position, byte[] buffer, int offset, int count, int timeout = 1000);
 
-        void Write(long position, byte[] buffer, int offset, int count, int timeout = 1000);
+        Task Write(long position, byte[] buffer, int offset, int count, int timeout = 1000);
 
         void Close();
 

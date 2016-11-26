@@ -21,6 +21,8 @@
 
         private AmazonDrive amazon;
 
+        private Quota lastQuota;
+        private DateTime lastQuotaTime;
         private TokenUpdateListener tokenUpdateListener;
 
         public AmazonCloud()
@@ -30,88 +32,89 @@
             amazon.OnTokenUpdate = tokenUpdateListener;
         }
 
+        public static string CloudServiceIcon => "/Clouds.AmazonCloudDrive;Component/images/cd_icon.png";
+
         public static string CloudServiceName => "Amazon Cloud Drive";
 
-        public static string CloudServiceIcon => "/Clouds.AmazonCloudDrive;Component/images/cd_icon.png";
+        public IHttpCloudFiles Files => this;
+
+        public string Id { get; set; }
 
         string IHttpCloud.CloudServiceIcon => CloudServiceIcon;
 
         string IHttpCloud.CloudServiceName => CloudServiceName;
 
-        public string Id { get; set; }
-
-        public IHttpCloudFiles Files => this;
-
         public IHttpCloudNodes Nodes => this;
-
-        public long AvailableFreeSpace
-        {
-            get
-            {
-                try
-                {
-                    return amazon.Account.GetQuota().Result.available;
-                }
-                catch (Exception ex)
-                {
-                    throw ProcessException(ex);
-                }
-            }
-        }
-
-        public long TotalFreeSpace
-        {
-            get
-            {
-                try
-                {
-                    return amazon.Account.GetQuota().Result.available;
-                }
-                catch (Exception ex)
-                {
-                    throw ProcessException(ex);
-                }
-            }
-        }
-
-        public long TotalSize
-        {
-            get
-            {
-                try
-                {
-                    return amazon.Account.GetQuota().Result.quota;
-                }
-                catch (Exception ex)
-                {
-                    throw ProcessException(ex);
-                }
-            }
-        }
-
-        public long TotalUsedSpace
-        {
-            get
-            {
-                try
-                {
-                    return amazon.Account.GetUsage().Result.total.total.bytes;
-                }
-                catch (Exception ex)
-                {
-                    throw ProcessException(ex);
-                }
-            }
-        }
 
         public IAuthUpdateListener OnAuthUpdated { get; set; }
 
-        async Task<FSItem.Builder> IHttpCloudNodes.CreateFolder(string parentid, string name)
+        public async Task<bool> AuthenticateNew(CancellationToken cs)
+        {
+            var dlg = new MountWaitBox();
+            using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cs))
+            {
+                dlg.Cancellation = cts;
+                dlg.Show();
+
+                var result = await amazon.AuthenticationByExternalBrowser(CloudDriveScopes.ReadAll | CloudDriveScopes.Write, TimeSpan.FromMinutes(10), cts.Token);
+
+                dlg.Close();
+                cs.ThrowIfCancellationRequested();
+                return result;
+            }
+        }
+
+        public async Task<bool> AuthenticateSaved(CancellationToken cs, string save)
+        {
+            var authinfo = JsonConvert.DeserializeObject<AuthInfo>(save);
+
+            return await amazon.AuthenticationByTokens(
+            authinfo.AuthToken,
+            authinfo.AuthRenewToken,
+            authinfo.AuthTokenExpiration);
+        }
+
+        public async Task<long> GetAvailableFreeSpace()
         {
             try
             {
-                var node = await amazon.Nodes.CreateFolder(parentid, name);
-                return FromNode(node);
+                return (await GetQuota()).available;
+            }
+            catch (Exception ex)
+            {
+                throw ProcessException(ex);
+            }
+        }
+
+        public async Task<long> GetTotalFreeSpace()
+        {
+            try
+            {
+                return (await GetQuota()).available;
+            }
+            catch (Exception ex)
+            {
+                throw ProcessException(ex);
+            }
+        }
+
+        public async Task<long> GetTotalSize()
+        {
+            try
+            {
+                return (await GetQuota()).quota;
+            }
+            catch (Exception ex)
+            {
+                throw ProcessException(ex);
+            }
+        }
+
+        public async Task<long> GetTotalUsedSpace()
+        {
+            try
+            {
+                return (await amazon.Account.GetUsage()).total.total.bytes;
             }
             catch (Exception ex)
             {
@@ -131,108 +134,15 @@
             }
         }
 
-        async Task<IList<FSItem.Builder>> IHttpCloudNodes.GetChildren(string id)
+        async Task<FSItem.Builder> IHttpCloudFiles.Overwrite(string id, Func<FileStream> p, Progress progress)
         {
             try
             {
-                var nodes = await amazon.Nodes.GetChildren(id);
-                return nodes.Where(n => FsItemKinds.Contains(n.kind) && n.status == AmazonNodeStatus.AVAILABLE).Select(n => FromNode(n)).ToList();
-            }
-            catch (Exception ex)
-            {
-                throw ProcessException(ex);
-            }
-        }
-
-        async Task<FSItem.Builder> IHttpCloudNodes.Move(string itemId, string oldParentId, string newParentId)
-        {
-            try
-            {
-                return FromNode(await amazon.Nodes.Move(itemId, oldParentId, newParentId));
-            }
-            catch (Exception ex)
-            {
-                throw ProcessException(ex);
-            }
-        }
-
-        async Task<FSItem.Builder> IHttpCloudNodes.Rename(string id, string newName)
-        {
-            try
-            {
-                return FromNode(await amazon.Nodes.Rename(id, newName));
-            }
-            catch (Exception ex)
-            {
-                throw ProcessException(ex);
-            }
-        }
-
-        async Task<FSItem.Builder> IHttpCloudNodes.GetRoot()
-        {
-            try
-            {
-                return FromNode(await amazon.Nodes.GetRoot());
-            }
-            catch (Exception ex)
-            {
-                throw ProcessException(ex);
-            }
-        }
-
-        async Task IHttpCloudNodes.Trash(string id)
-        {
-            try
-            {
-                await amazon.Nodes.Trash(id);
-            }
-            catch (Exception ex)
-            {
-                throw ProcessException(ex);
-            }
-        }
-
-        async Task IHttpCloudNodes.Remove(string parentId, string itemId)
-        {
-            try
-            {
-                await amazon.Nodes.Remove(parentId, itemId);
-            }
-            catch (Exception ex)
-            {
-                throw ProcessException(ex);
-            }
-        }
-
-        async Task<FSItem.Builder> IHttpCloudNodes.GetNode(string id)
-        {
-            try
-            {
-                var node = await amazon.Nodes.GetNode(id);
-                if (node == null)
+                return FromNode(await amazon.Files.Overwrite(id, p, null, (uploaded) =>
                 {
-                    return null;
-                }
-
-                return (node.status == AmazonNodeStatus.AVAILABLE) ? FromNode(node) : null;
-            }
-            catch (Exception ex)
-            {
-                throw ProcessException(ex);
-            }
-        }
-
-        async Task<FSItem.Builder> IHttpCloudNodes.GetChild(string id, string name)
-        {
-            try
-            {
-                var node = await amazon.Nodes.GetChild(id, name);
-                if (node == null)
-                {
-                    return null;
-                }
-
-                return (node.status == AmazonNodeStatus.AVAILABLE) ? FromNode(node) : null;
+                    progress?.Invoke(uploaded);
+                    return uploaded + (1 << 10);
+                }));
             }
             catch (Exception ex)
             {
@@ -265,15 +175,61 @@
             }
         }
 
-        async Task<FSItem.Builder> IHttpCloudFiles.Overwrite(string id, Func<FileStream> p, Progress progress)
+        async Task<FSItem.Builder> IHttpCloudNodes.CreateFolder(string parentid, string name)
         {
             try
             {
-                return FromNode(await amazon.Files.Overwrite(id, p, null, (uploaded) =>
+                var node = await amazon.Nodes.CreateFolder(parentid, name);
+                return FromNode(node);
+            }
+            catch (Exception ex)
+            {
+                throw ProcessException(ex);
+            }
+        }
+
+        async Task<FSItem.Builder> IHttpCloudNodes.GetChild(string id, string name)
+        {
+            try
+            {
+                var node = await amazon.Nodes.GetChild(id, name);
+                if (node == null)
                 {
-                    progress?.Invoke(uploaded);
-                    return uploaded + (1 << 10);
-                }));
+                    return null;
+                }
+
+                return (node.status == AmazonNodeStatus.AVAILABLE) ? FromNode(node) : null;
+            }
+            catch (Exception ex)
+            {
+                throw ProcessException(ex);
+            }
+        }
+
+        async Task<IList<FSItem.Builder>> IHttpCloudNodes.GetChildren(string id)
+        {
+            try
+            {
+                var nodes = await amazon.Nodes.GetChildren(id);
+                return nodes.Where(n => FsItemKinds.Contains(n.kind) && n.status == AmazonNodeStatus.AVAILABLE).Select(n => FromNode(n)).ToList();
+            }
+            catch (Exception ex)
+            {
+                throw ProcessException(ex);
+            }
+        }
+
+        async Task<FSItem.Builder> IHttpCloudNodes.GetNode(string id)
+        {
+            try
+            {
+                var node = await amazon.Nodes.GetNode(id);
+                if (node == null)
+                {
+                    return null;
+                }
+
+                return (node.status == AmazonNodeStatus.AVAILABLE) ? FromNode(node) : null;
             }
             catch (Exception ex)
             {
@@ -315,33 +271,69 @@
             }
         }
 
-        public async Task<bool> AuthenticateNew(CancellationToken cs)
+        async Task<FSItem.Builder> IHttpCloudNodes.GetRoot()
         {
-            var dlg = new MountWaitBox();
-            var cts = new CancellationTokenSource();
-            dlg.Cancellation = cts;
-            dlg.Show();
-
-            var result = await amazon.AuthenticationByExternalBrowser(CloudDriveScopes.ReadAll | CloudDriveScopes.Write, TimeSpan.FromMinutes(10), cts.Token);
-
-            dlg.Close();
-            cs.ThrowIfCancellationRequested();
-            return result;
+            try
+            {
+                return FromNode(await amazon.Nodes.GetRoot());
+            }
+            catch (Exception ex)
+            {
+                throw ProcessException(ex);
+            }
         }
 
-        public async Task<bool> AuthenticateSaved(CancellationToken cs, string save)
+        async Task<FSItem.Builder> IHttpCloudNodes.Move(string itemId, string oldParentId, string newParentId)
         {
-            var authinfo = JsonConvert.DeserializeObject<AuthInfo>(save);
+            try
+            {
+                return FromNode(await amazon.Nodes.Move(itemId, oldParentId, newParentId));
+            }
+            catch (Exception ex)
+            {
+                throw ProcessException(ex);
+            }
+        }
 
-            return await amazon.AuthenticationByTokens(
-            authinfo.AuthToken,
-            authinfo.AuthRenewToken,
-            authinfo.AuthTokenExpiration);
+        async Task IHttpCloudNodes.Remove(string parentId, string itemId)
+        {
+            try
+            {
+                await amazon.Nodes.Remove(parentId, itemId);
+            }
+            catch (Exception ex)
+            {
+                throw ProcessException(ex);
+            }
+        }
+
+        async Task<FSItem.Builder> IHttpCloudNodes.Rename(string id, string newName)
+        {
+            try
+            {
+                return FromNode(await amazon.Nodes.Rename(id, newName));
+            }
+            catch (Exception ex)
+            {
+                throw ProcessException(ex);
+            }
         }
 
         Task<string> IHttpCloudNodes.ShareNode(string id, NodeShareType type)
         {
             throw new NotSupportedException();
+        }
+
+        async Task IHttpCloudNodes.Trash(string id)
+        {
+            try
+            {
+                await amazon.Nodes.Trash(id);
+            }
+            catch (Exception ex)
+            {
+                throw ProcessException(ex);
+            }
         }
 
         public async Task SignOut(string save)
@@ -367,6 +359,17 @@
                 ParentIds = new ConcurrentBag<string>(node.parents),
                 Name = node.name
             };
+        }
+
+        private async Task<Quota> GetQuota()
+        {
+            if (lastQuota == null || DateTime.UtcNow - lastQuotaTime > TimeSpan.FromMinutes(1))
+            {
+                lastQuota = await amazon.Account.GetQuota();
+                lastQuotaTime = DateTime.UtcNow;
+            }
+
+            return lastQuota;
         }
 
         private Exception ProcessException(Exception ex)

@@ -13,9 +13,9 @@ namespace Azi.Cloud.DokanNet.Tests
 
         private bool disposedValue; // To detect redundant calls
 
-        protected FSProviderTestsBase()
+        protected async Task Init()
         {
-            Amazon = Authenticate().Result;
+            Amazon = await Authenticate();
             if (Amazon == null)
             {
                 throw new InvalidOperationException("Authentication failed");
@@ -23,13 +23,47 @@ namespace Azi.Cloud.DokanNet.Tests
 
             DeleteDir("TempCache");
 
-            Provider = new FSProvider(Amazon, (a, b, c) => { });
+            Provider = new FSProvider(Amazon, (a, b, c) => { return Task.FromResult(0); });
             Provider.CachePath = "TempCache";
             Provider.SmallFilesCacheSize = 20 * (1 << 20);
             Provider.SmallFileSizeLimit = 1 * (1 << 20);
 
-            Provider.DeleteDir("\\ACDDokanNetTest");
-            Provider.CreateDir("\\ACDDokanNetTest");
+            try
+            {
+                await Provider.DeleteDir("\\ACDDokanNetTest");
+            }
+            catch (FileNotFoundException)
+            {
+                //Ignore
+            }
+            await Provider.CreateDir("\\ACDDokanNetTest");
+        }
+
+        protected FSProviderTestsBase()
+        {
+            StartSTATask(Init).Wait();
+        }
+
+        public static Task StartSTATask(Func<Task> action)
+        {
+            var tcs = new TaskCompletionSource<object>();
+            var thread = new Thread(async () =>
+            {
+                try
+                {
+                    await action();
+                    tcs.SetResult(new object());
+                }
+                catch (Exception e)
+                {
+                    tcs.SetException(e);
+                }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+
+            return tcs.Task;
         }
 
         protected FSProvider Provider { get; set; }
@@ -51,22 +85,26 @@ namespace Azi.Cloud.DokanNet.Tests
             var settings = Properties.Settings.Default;
             var amazon = new AmazonCloud();
             amazon.OnAuthUpdated = this;
-            var cs = new CancellationTokenSource();
+            amazon.Id = "UnitTest" + Guid.NewGuid().ToString();
 
-            if (!string.IsNullOrWhiteSpace(settings.AuthToken))
+            using (var cs = new CancellationTokenSource())
             {
-                if (await amazon.AuthenticateSaved(cs.Token, settings.AuthToken))
+
+                if (!string.IsNullOrWhiteSpace(settings.AuthToken))
+                {
+                    if (await amazon.AuthenticateSaved(cs.Token, settings.AuthToken))
+                    {
+                        return amazon;
+                    }
+                }
+
+                if (await amazon.AuthenticateNew(cs.Token))
                 {
                     return amazon;
                 }
-            }
 
-            if (await amazon.AuthenticateNew(cs.Token))
-            {
-                return amazon;
+                return null;
             }
-
-            return null;
         }
 
         protected virtual void Dispose(bool disposing)
@@ -75,15 +113,18 @@ namespace Azi.Cloud.DokanNet.Tests
             {
                 if (disposing)
                 {
-                    Provider.DeleteDir("\\ACDDokanNetTest");
-                    Provider.Dispose();
-                    try
+                    if (Provider != null)
                     {
-                        DeleteDir(Provider.CachePath);
-                    }
-                    catch (UnauthorizedAccessException)
-                    {
-                        // Ignore
+                        Provider.DeleteDir("\\ACDDokanNetTest").Wait();
+                        Provider.Dispose();
+                        try
+                        {
+                            DeleteDir(Provider.CachePath);
+                        }
+                        catch (UnauthorizedAccessException)
+                        {
+                            // Ignore
+                        }
                     }
                 }
 

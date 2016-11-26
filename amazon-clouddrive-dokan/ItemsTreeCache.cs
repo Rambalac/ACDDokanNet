@@ -247,6 +247,7 @@
                 if (disposing)
                 {
                     lok.Dispose();
+                    cancellation.Dispose();
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.

@@ -264,7 +264,7 @@
 
         private void SettingsMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            OpenSettings();
+            OpenSettings(); 
         }
 
         private void SetupNotifyIcon()

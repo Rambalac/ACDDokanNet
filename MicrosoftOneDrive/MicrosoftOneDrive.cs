@@ -16,35 +16,27 @@
     {
         private static readonly string[] Scopes = { "onedrive.readwrite", "wl.offline_access", "wl.signin" };
 
-        private Item rootItem;
-
-        private IOneDriveClient oneDriveClient;
-
+        private Quota lastQuota;
+        private DateTime lastQuotaTime;
         private MsaAuthenticationProvider msaAuthenticationProvider;
-
-        public static string CloudServiceName => "Microsoft OneDrive";
+        private IOneDriveClient oneDriveClient;
+        private Item rootItem;
 
         public static string CloudServiceIcon => "/Clouds.MicrosoftOneDrive;Component/images/cd_icon.png";
 
-        public string Id { get; set; }
+        public static string CloudServiceName => "Microsoft OneDrive";
 
-        public long AvailableFreeSpace => 0;
+        public IHttpCloudFiles Files => this;
+
+        public string Id { get; set; }
 
         string IHttpCloud.CloudServiceIcon => CloudServiceIcon;
 
         string IHttpCloud.CloudServiceName => CloudServiceName;
 
-        public IHttpCloudFiles Files => this;
-
         public IHttpCloudNodes Nodes => this;
 
         public IAuthUpdateListener OnAuthUpdated { get; set; }
-
-        public long TotalFreeSpace => GetDrive().Quota.Remaining ?? 0;
-
-        public long TotalSize => GetDrive().Quota.Total ?? 0;
-
-        public long TotalUsedSpace => GetDrive().Quota.Used ?? 0;
 
         public async Task<bool> AuthenticateNew(CancellationToken cs)
         {
@@ -66,16 +58,6 @@
             return msaAuthenticationProvider.IsAuthenticated;
         }
 
-        public async Task SignOut(string save)
-        {
-            if (oneDriveClient != null)
-            {
-                await msaAuthenticationProvider.SignOutAsync().ConfigureAwait(false);
-                msaAuthenticationProvider = null;
-                oneDriveClient = null;
-            }
-        }
-
         public async Task<FSItem.Builder> CreateFolder(string parentid, string name)
         {
             var item = await GetItem(parentid).Children.Request().AddAsync(new Item { Name = name, Folder = new Folder() }).ConfigureAwait(false);
@@ -87,10 +69,16 @@
             return await GetItem(id).Content.Request().GetAsync().ConfigureAwait(false);
         }
 
-        public async Task<FSItem.Builder> GetNode(string id)
+        public async Task<long> GetAvailableFreeSpace()
         {
-            var item = await GetItem(id).Request().GetAsync().ConfigureAwait(false);
-            return FromNode(item);
+            try
+            {
+                return (await GetQuota()).Remaining ?? 0;
+            }
+            catch (Exception ex)
+            {
+                throw ProcessException(ex);
+            }
         }
 
         public async Task<FSItem.Builder> GetChild(string id, string name)
@@ -109,6 +97,12 @@
         {
             var nodes = await GetAllChildren(id);
             return nodes.Select(n => FromNode(n)).ToList();
+        }
+
+        public async Task<FSItem.Builder> GetNode(string id)
+        {
+            var item = await GetItem(id).Request().GetAsync().ConfigureAwait(false);
+            return FromNode(item);
         }
 
         public async Task<INodeExtendedInfo> GetNodeExtended(string id)
@@ -130,6 +124,42 @@
             return FromNode(await GetRootItem());
         }
 
+        public async Task<long> GetTotalFreeSpace()
+        {
+            try
+            {
+                return (await GetQuota()).Remaining ?? 0;
+            }
+            catch (Exception ex)
+            {
+                throw ProcessException(ex);
+            }
+        }
+
+        public async Task<long> GetTotalSize()
+        {
+            try
+            {
+                return (await GetQuota()).Total ?? 0;
+            }
+            catch (Exception ex)
+            {
+                throw ProcessException(ex);
+            }
+        }
+
+        public async Task<long> GetTotalUsedSpace()
+        {
+            try
+            {
+                return (await GetQuota()).Used ?? 0;
+            }
+            catch (Exception ex)
+            {
+                throw ProcessException(ex);
+            }
+        }
+
         public async Task<FSItem.Builder> Move(string itemId, string oldParentId, string newParentId)
         {
             var newitem = await GetItem(itemId).Request().UpdateAsync(new Item { ParentReference = new ItemReference { Id = newParentId } });
@@ -145,15 +175,6 @@
             }
         }
 
-        public async Task<FSItem.Builder> UploadNew(string parentId, string fileName, Func<FileStream> streammer, Progress progress)
-        {
-            using (var stream = streammer())
-            {
-                var newitem = await GetItem(parentId).ItemWithPath(fileName).Content.Request().PutAsync<Item>(stream);
-                return FromNode(newitem);
-            }
-        }
-
         public Task Remove(string itemId, string parentId)
         {
             throw new NotSupportedException();
@@ -163,11 +184,6 @@
         {
             var newitem = await GetItem(id).Request().UpdateAsync(new Item { Name = newName });
             return FromNode(newitem);
-        }
-
-        public async Task Trash(string id)
-        {
-            await GetItem(id).Request().DeleteAsync();
         }
 
         public async Task<string> ShareNode(string id, NodeShareType type)
@@ -188,6 +204,30 @@
             return perm.Link.WebUrl;
         }
 
+        public async Task SignOut(string save)
+        {
+            if (oneDriveClient != null)
+            {
+                await msaAuthenticationProvider.SignOutAsync().ConfigureAwait(false);
+                msaAuthenticationProvider = null;
+                oneDriveClient = null;
+            }
+        }
+
+        public async Task Trash(string id)
+        {
+            await GetItem(id).Request().DeleteAsync();
+        }
+
+        public async Task<FSItem.Builder> UploadNew(string parentId, string fileName, Func<FileStream> streammer, Progress progress)
+        {
+            using (var stream = streammer())
+            {
+                var newitem = await GetItem(parentId).ItemWithPath(fileName).Content.Request().PutAsync<Item>(stream);
+                return FromNode(newitem);
+            }
+        }
+
         private static FSItem.Builder FromNode(Item node)
         {
             return new FSItem.Builder
@@ -201,20 +241,6 @@
                 LastWriteTime = node.LastModifiedDateTime?.LocalDateTime ?? DateTime.UtcNow,
                 Name = node.Name
             };
-        }
-
-        private async Task<Item> GetRootItem()
-        {
-            if (rootItem == null)
-            {
-                rootItem = await oneDriveClient
-                             .Drive
-                             .Root
-                             .Request()
-                             .GetAsync().ConfigureAwait(false);
-            }
-
-            return rootItem;
         }
 
         private async Task<IList<Item>> GetAllChildren(string id)
@@ -233,14 +259,49 @@
             return result;
         }
 
-        private Drive GetDrive()
+        private async Task<Drive> GetDrive()
         {
-            return oneDriveClient.Drive.Request().GetAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+            return await oneDriveClient.Drive.Request().GetAsync();
         }
 
         private IItemRequestBuilder GetItem(string id)
         {
             return oneDriveClient.Drive.Items[id];
+        }
+
+        private async Task<Quota> GetQuota()
+        {
+            if (lastQuota == null || DateTime.UtcNow - lastQuotaTime > TimeSpan.FromMinutes(1))
+            {
+                lastQuota = (await GetDrive()).Quota;
+                lastQuotaTime = DateTime.UtcNow;
+            }
+
+            return lastQuota;
+        }
+
+        private async Task<Item> GetRootItem()
+        {
+            if (rootItem == null)
+            {
+                rootItem = await oneDriveClient
+                             .Drive
+                             .Root
+                             .Request()
+                             .GetAsync().ConfigureAwait(false);
+            }
+
+            return rootItem;
+        }
+
+        private Exception ProcessException(Exception ex)
+        {
+            if (ex is AggregateException)
+            {
+                return ex.InnerException;
+            }
+
+            return ex;
         }
 
         private class CredentialsVault : ICredentialVault

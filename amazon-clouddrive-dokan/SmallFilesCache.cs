@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Concurrent;
+    using System.Collections.Generic;
     using System.Diagnostics;
     using System.IO;
     using System.Linq;
@@ -14,7 +15,8 @@
     {
         private static string cachePath;
 
-        private static ConcurrentDictionary<string, Downloader> downloaders = new ConcurrentDictionary<string, Downloader>(10, 3);
+        private static Dictionary<string, Downloader> downloaders = new Dictionary<string, Downloader>(10);
+        private static object downloadersLock = new object();
         private readonly IHttpCloud cloud;
 
         private ConcurrentDictionary<string, CacheEntry> access = new ConcurrentDictionary<string, CacheEntry>(10, 1000);
@@ -106,6 +108,13 @@
             }
         }
 
+        public void AddAsLink(FSItem item, string path)
+        {
+            Directory.CreateDirectory(cachePath);
+            HardLink.Create(path, Path.Combine(cachePath, item.Id));
+            AddExisting(item);
+        }
+
         public void AddExisting(FSItem item)
         {
             if (access.TryAdd(item.Id, new CacheEntry { Id = item.Id, AccessTime = DateTime.UtcNow }))
@@ -156,7 +165,7 @@
             }
         }
 
-        public FileBlockReader OpenReadCachedOnly(FSItem item)
+        public SmallFileBlockStream OpenReadCachedOnly(FSItem item, Downloader downloader = null)
         {
             CacheEntry entry;
             var path = Path.Combine(cachePath, item.Id);
@@ -180,18 +189,24 @@
             }
 
             Log.Trace("Opened cached: " + item.Id);
-            return FileBlockReader.Open(path, item.Length);
+            return SmallFileBlockStream.OpenReadonly(item, path, downloader);
         }
 
         public IBlockStream OpenReadWithDownload(FSItem item)
         {
             var path = Path.Combine(cachePath, item.Id);
-            StartDownload(item, path);
+            var downloader = StartDownload(item, path);
 
-            return OpenReadCachedOnly(item);
+            CacheEntry entry;
+            if (access.TryGetValue(item.Id, out entry))
+            {
+                entry.AccessTime = DateTime.UtcNow;
+            }
+
+            return OpenReadCachedOnly(item, downloader);
         }
 
-        public SmallFileBlockReaderWriter OpenReadWrite(FSItem item)
+        public SmallFileBlockStream OpenReadWrite(FSItem item)
         {
             var path = Path.Combine(cachePath, item.Id);
             var downloader = StartDownload(item, path);
@@ -203,7 +218,7 @@
             }
 
             Log.Trace("Opened ReadWrite cached: " + item.Id);
-            return new SmallFileBlockReaderWriter(downloader);
+            return SmallFileBlockStream.OpenWriteable(item, path, downloader);
         }
 
         public void TotalSizeDecrease(long val)
@@ -294,11 +309,12 @@
 
         private async Task Download(FSItem item, Stream writer, Downloader downloader)
         {
-            Log.Trace("Started download: " + item.Id);
-            var start = Stopwatch.StartNew();
-            var buf = new byte[4096];
-            using (writer)
-                try
+            try
+            {
+                Log.Trace($"Started download: {item.Name} - {item.Id}");
+                var start = Stopwatch.StartNew();
+                var buf = new byte[512 << 10];
+                using (writer)
                 {
                     OnDownloadStarted?.Invoke(item);
                     while (writer.Length < item.Length)
@@ -306,49 +322,60 @@
                         var stream = await cloud.Files.Download(item.Id);
                         stream.Position = writer.Length;
                         int red = 0;
-                        long totalred = 0;
                         do
                         {
                             red = await stream.ReadAsync(buf, 0, buf.Length);
-                            totalred += red;
                             if (writer.Length == 0)
                             {
-                                Log.Trace("Got first part: " + item.Id + " in " + start.ElapsedMilliseconds);
+                                Log.Trace($"Got first part: {item.Name} - {item.Id} in {start.ElapsedMilliseconds}");
                             }
 
-                            writer.Write(buf, 0, red);
+                            await writer.WriteAsync(buf, 0, red);
+                            await writer.FlushAsync();
                             downloader.Downloaded = writer.Length;
                         }
                         while (red > 0);
-                        if (writer.Length < item.Length)
-                        {
-                            await Task.Delay(500);
-                        }
                     }
 
-                    Log.Trace("Finished download: " + item.Id);
-                    OnDownloaded?.Invoke(item);
-
-                    if (access.TryAdd(item.Id, new CacheEntry { Id = item.Id, AccessTime = DateTime.UtcNow, Length = item.Length }))
-                    {
-                        TotalSizeIncrease(item.Length);
-                    }
-
-                    if (TotalSize > CacheSize)
-                    {
-                        var task = cleanSizeWorker.Run(TotalSize - CacheSize);
-                    }
+                    downloader.Downloaded = writer.Length;
                 }
-                catch (Exception ex)
+
+                Log.Trace($"Finished download: {item.Name} - {item.Id}");
+                OnDownloaded?.Invoke(item);
+
+                if (access.TryAdd(item.Id, new CacheEntry { Id = item.Id, AccessTime = DateTime.UtcNow, Length = item.Length }))
                 {
-                    OnDownloadFailed?.Invoke(item);
-                    Log.Error($"Download failed: {item.Id}\r\n{ex}");
+                    TotalSizeIncrease(item.Length);
                 }
-                finally
+
+                if (TotalSize > CacheSize)
                 {
-                    Downloader remove;
-                    downloaders.TryRemove(item.Path, out remove);
+                    var task = cleanSizeWorker.Run(TotalSize - CacheSize);
                 }
+
+                if (start.ElapsedMilliseconds > 29000)
+                {
+                    Log.Warn($"Downloading {item.Path} took: {start.ElapsedMilliseconds}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Download failed: {item.Name} - {item.Id}\r\n{ex}");
+                await downloader.Failed();
+                OnDownloadFailed?.Invoke(item);
+            }
+            finally
+            {
+                if (downloader.Downloaded == 0)
+                {
+                    Log.Error("Downloader finished but zero length");
+                }
+
+                lock (downloadersLock)
+                {
+                    downloaders.Remove(item.Path);
+                }
+            }
         }
 
         private void RecalculateTotalSize()
@@ -393,38 +420,46 @@
 
         private Downloader StartDownload(FSItem item, string path)
         {
-            try
+            if (item.Length == 0)
             {
-                var downloader = new Downloader(item, path);
-                if (!downloaders.TryAdd(item.Path, downloader))
+                Log.Error($"Downloader expected length Zero: {item.Name} - {item.Id}");
+            }
+
+            var downloader = new Downloader(item, path);
+            Stream writer;
+
+            lock (downloadersLock)
+            {
+                Downloader result;
+                if (downloaders.TryGetValue(item.Path, out result))
                 {
-                    return downloaders[item.Path];
+                    if (result.Task == null)
+                    {
+                        throw new Exception("Downloader Task is Null");
+                    }
+
+                    return result;
                 }
 
-                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                Directory.CreateDirectory(cachePath);
+                writer = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite, 4096, FileOptions.Asynchronous | FileOptions.SequentialScan);
 
-                var writer = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite, 4096, FileOptions.Asynchronous | FileOptions.SequentialScan);
                 if (writer.Length == item.Length)
                 {
                     writer.Close();
-                    Downloader removed;
-                    downloaders.TryRemove(item.Path, out removed);
                     return Downloader.CreateCompleted(item, path, item.Length);
                 }
 
                 if (writer.Length > 0)
                 {
                     Log.Warn($"File was not totally downloaded before. Should be {item.Length} but was {writer.Length}: {path}");
+                    downloader.Downloaded = writer.Length;
                 }
 
-                downloader.Downloaded = writer.Length;
                 downloader.Task = Task.Factory.StartNew(async () => await Download(item, writer, downloader), TaskCreationOptions.LongRunning);
+                downloaders.Add(item.Path, downloader);
+
                 return downloader;
-            }
-            catch (IOException e)
-            {
-                Log.Trace("File is already downloading: " + item.Id + "\r\n" + e);
-                return downloaders[item.Path];
             }
         }
 
