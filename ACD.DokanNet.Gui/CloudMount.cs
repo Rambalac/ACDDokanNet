@@ -112,13 +112,19 @@
 
         public async Task Delete()
         {
-            await UnmountAsync();
-            if (Instance != null)
+            try
             {
-                await Instance.SignOut(CloudInfo.AuthSave);
+                model.DeleteCloud(this);
+                await UnmountAsync();
+                if (Instance != null)
+                {
+                    await Instance.SignOut(CloudInfo.AuthSave);
+                }
             }
-
-            model.DeleteCloud(this);
+            catch (Exception ex)
+            {
+                Log.Error(ex);
+            }
         }
 
         // This code added to correctly implement the disposable pattern.

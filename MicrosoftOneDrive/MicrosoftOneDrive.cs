@@ -208,7 +208,7 @@
         {
             if (oneDriveClient != null)
             {
-                await msaAuthenticationProvider.SignOutAsync().ConfigureAwait(false);
+                await msaAuthenticationProvider.SignOutAsync();
                 msaAuthenticationProvider = null;
                 oneDriveClient = null;
             }
