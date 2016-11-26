@@ -22,14 +22,22 @@
 
         public ViewModel()
         {
-            refreshTimer = new Timer(RefreshLetters, null, 1000, 1000);
+            try
+            {
+                refreshTimer = new Timer(RefreshLetters, null, 1000, 1000);
 
-            BuildAvailableClouds();
-            LoadClouds();
+                BuildAvailableClouds();
+                LoadClouds();
 
-            Clouds.CollectionChanged += Clouds_CollectionChanged;
-            UploadFiles.CollectionChanged += UploadFiles_CollectionChanged;
-            DownloadFiles.CollectionChanged += DownloadFiles_CollectionChanged;
+                Clouds.CollectionChanged += Clouds_CollectionChanged;
+                UploadFiles.CollectionChanged += UploadFiles_CollectionChanged;
+                DownloadFiles.CollectionChanged += DownloadFiles_CollectionChanged;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex);
+                throw;
+            }
         }
 
         // To detect redundant calls
@@ -351,27 +359,34 @@
         private void BuildAvailableClouds()
         {
             AvailableClouds = new List<AvailableCloud>();
-            foreach (var file in Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory, "Clouds.*.dll"))
+            try
             {
-                try
+                foreach (var file in Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory, "Clouds.*.dll"))
                 {
-                    var assembly = Assembly.LoadFrom(file);
+                    try
+                    {
+                        var assembly = Assembly.LoadFrom(file);
 
-                    var types = assembly.GetExportedTypes().Where(t => typeof(IHttpCloud).IsAssignableFrom(t));
+                        var types = assembly.GetExportedTypes().Where(t => typeof(IHttpCloud).IsAssignableFrom(t));
 
-                    AvailableClouds.AddRange(types.Where(t => t.IsClass)
-                            .Select(t => new AvailableCloud
-                            {
-                                AssemblyFileName = Path.GetFileName(file),
-                                ClassName = t.FullName,
-                                Name = (string)t.GetProperty("CloudServiceName").GetValue(null),
-                                Icon = (string)t.GetProperty("CloudServiceIcon").GetValue(null)
-                            }));
+                        AvailableClouds.AddRange(types.Where(t => t.IsClass)
+                                .Select(t => new AvailableCloud
+                                {
+                                    AssemblyFileName = Path.GetFileName(file),
+                                    ClassName = t.FullName,
+                                    Name = (string)t.GetProperty("CloudServiceName").GetValue(null),
+                                    Icon = (string)t.GetProperty("CloudServiceIcon").GetValue(null)
+                                }));
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(ex);
+                    }
                 }
-                catch (Exception ex)
-                {
-                    Log.Error(ex);
-                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex);
             }
         }
 
@@ -393,7 +408,7 @@
             if (settings.Clouds == null)
             {
                 Log.Error("No clouds!");
-                settings.Clouds = new Common.CloudInfoCollection();
+                settings.Clouds = new CloudInfoCollection();
                 settings.Save();
             }
 

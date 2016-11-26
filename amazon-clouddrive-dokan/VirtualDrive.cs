@@ -686,7 +686,7 @@
                 return true;
             }
 
-            Log.Warn($"User {identity} has no access to drive {MountPath}\r\nCreator User is {creator} - Identity User is {identity}");
+            Log.Trace($"User {identity} has no access to drive {MountPath}\r\nCreator User is {creator} - Identity User is {identity}");
             return false;
         }
 

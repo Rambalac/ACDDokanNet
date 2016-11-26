@@ -138,9 +138,9 @@
 
         private async void Application_Startup(object sender, StartupEventArgs e)
         {
-            Log.Info("Starting Version " + Assembly.GetEntryAssembly().GetName().Version);
             try
             {
+                Log.Info("Starting Version " + Assembly.GetEntryAssembly().GetName().Version);
                 try
                 {
                     var test = Gui.Properties.Settings.Default.NeedUpgrade;
@@ -264,7 +264,7 @@
 
         private void SettingsMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            OpenSettings(); 
+            OpenSettings();
         }
 
         private void SetupNotifyIcon()
