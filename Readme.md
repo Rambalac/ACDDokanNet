@@ -113,6 +113,12 @@ If you did not get your cloud mounted or have other reason, sad to hear it. Here
 
 News
 ----
+### 2016-11-27
+* Release 1.6.2.
+* Better async code, also refactored and cleaned up - less lockups and slowdown.
+* Updated Amazon API to process error 500 and 504. Added support for Stream.
+* Big files download keeps HTTP stream if possible between reads. Memory cache get shared and bigger with smaller chunks. It should help with playing video. Together with error 500 and 504 processing it should make file copy faster and more reliable.
+
 ### 2016-11-05
 * Release 1.6.2.
 * New feature! "**Upload here**" from cloud folder context menu in Explorer will upload files copied into clipboard **without** buffering that files in temp folder. Upload starts immediately. Folders are supported.
