@@ -56,11 +56,16 @@
                 dlg.Cancellation = cts;
                 dlg.Show();
 
-                var result = await amazon.AuthenticationByExternalBrowser(CloudDriveScopes.ReadAll | CloudDriveScopes.Write, TimeSpan.FromMinutes(10), cts.Token);
-
-                dlg.Close();
-                cs.ThrowIfCancellationRequested();
-                return result;
+                try
+                {
+                    var result = await amazon.AuthenticationByExternalBrowser(CloudDriveScopes.ReadAll | CloudDriveScopes.Write, TimeSpan.FromMinutes(10), cts.Token);
+                    cs.ThrowIfCancellationRequested();
+                    return result;
+                }
+                finally
+                {
+                    dlg.Close();
+                }
             }
         }
 

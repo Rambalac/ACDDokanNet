@@ -422,9 +422,12 @@
                 return;
             }
 
-            foreach (var cloud in Clouds)
+            if (Clouds != null)
             {
-                cloud.OnPropertyChanged(nameof(cloud.DriveLetters));
+                foreach (var cloud in Clouds)
+                {
+                    cloud.OnPropertyChanged(nameof(cloud.DriveLetters));
+                }
             }
 
             OnPropertyChanged(nameof(HasFreeLetters));

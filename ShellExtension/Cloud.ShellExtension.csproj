@@ -73,18 +73,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CloudDokanNetAssetInfo.cs" />
-    <Compile Include="CloudDokanNetAssetInfoImage.cs" />
-    <Compile Include="CloudDokanNetItemInfo.cs" />
-    <Compile Include="CloudDokanNetUploadHereInfo.cs" />
     <Compile Include="Common.cs" />
     <Compile Include="ContextMenu.cs" />
     <Compile Include="GlobalSuppressions.cs" />
-    <Compile Include="INodeExtendedInfo.cs" />
-    <Compile Include="INodeExtendedInfoTempLink.cs" />
-    <Compile Include="INodeExtendedInfoWebLink.cs" />
     <Compile Include="NativeMethods.cs" />
-    <Compile Include="NodeExtendedInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -95,6 +87,12 @@
     <Analyzer Include="..\packages\StyleCop.Analyzers.1.0.0\analyzers\dotnet\cs\Newtonsoft.Json.dll" />
     <Analyzer Include="..\packages\StyleCop.Analyzers.1.0.0\analyzers\dotnet\cs\StyleCop.Analyzers.CodeFixes.dll" />
     <Analyzer Include="..\packages\StyleCop.Analyzers.1.0.0\analyzers\dotnet\cs\StyleCop.Analyzers.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Cloud.Common\Cloud.Common.csproj">
+      <Project>{93841375-56d7-4b34-aa7c-ba69f29f8b66}</Project>
+      <Name>Cloud.Common</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\StrongNamer.0.0.2\build\StrongNamer.targets" Condition="Exists('..\packages\StrongNamer.0.0.2\build\StrongNamer.targets')" />

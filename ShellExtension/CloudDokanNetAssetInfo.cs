@@ -1,1 +1,0 @@
-../Cloud.Common/CloudDokanNetAssetInfo.cs

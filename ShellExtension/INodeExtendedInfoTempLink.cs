@@ -1,1 +1,0 @@
-../Cloud.Common/INodeExtendedInfoTempLink.cs
