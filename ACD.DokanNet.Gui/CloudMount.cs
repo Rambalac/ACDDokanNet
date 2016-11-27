@@ -227,22 +227,30 @@
 
         private async Task<bool> Authenticate(IHttpCloud cloud, CancellationToken cs, bool interactiveAuth)
         {
-            var authinfo = CloudInfo.AuthSave;
-            if (!string.IsNullOrWhiteSpace(authinfo))
+            try
             {
-                if (await cloud.AuthenticateSaved(cs, authinfo))
+                var authinfo = CloudInfo.AuthSave;
+                if (!string.IsNullOrWhiteSpace(authinfo))
                 {
-                    return true;
+                    if (await cloud.AuthenticateSaved(cs, authinfo))
+                    {
+                        return true;
+                    }
                 }
-            }
 
-            Debug.WriteLine("No auth info: " + CloudInfo.Name);
-            if (!interactiveAuth)
+                Debug.WriteLine("No auth info: " + CloudInfo.Name);
+                if (!interactiveAuth)
+                {
+                    return false;
+                }
+
+                return await cloud.AuthenticateNew(cs);
+            }
+            catch (Exception ex)
             {
+                Log.Error(ex);
                 return false;
             }
-
-            return await cloud.AuthenticateNew(cs);
         }
 
         private void CloudInfoChanged(object sender, PropertyChangedEventArgs e)
