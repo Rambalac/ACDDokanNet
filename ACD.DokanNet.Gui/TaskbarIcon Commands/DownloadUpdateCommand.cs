@@ -4,17 +4,20 @@
     using System.ComponentModel;
     using System.Diagnostics;
     using System.Linq;
+    using System.Text.RegularExpressions;
     using System.Windows;
     using System.Windows.Input;
     using Tools;
 
     public class DownloadUpdateCommand : ModelBasedCommand
     {
+        private static readonly Regex Msifile = new Regex("ACDDokanNet.*\\.msi");
+
         public override void Execute(object parameter)
         {
             try
             {
-                Process.Start(Model.UpdateAvailable.Assets.First(a => a.Name == "ACDDokanNetInstaller.msi").BrowserUrl);
+                Process.Start(Model.UpdateAvailable.Assets.First(a => Msifile.IsMatch(a.Name)).BrowserUrl);
             }
             catch (Exception ex)
             {
