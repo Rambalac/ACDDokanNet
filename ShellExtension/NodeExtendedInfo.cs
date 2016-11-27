@@ -1,0 +1,1 @@
+../Cloud.Common/NodeExtendedInfo.cs

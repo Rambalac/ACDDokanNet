@@ -7,7 +7,7 @@
              Startup="Application_Startup" Exit="Application_Exit">
     <Application.Resources>
         <local:ViewModel x:Key="Model"/>
-        <local:DownloadUpdateCommand x:Key="DownloadUpdateCommand"/>
+        <local:DownloadUpdateCommand x:Key="DownloadUpdateCommand" Model="{StaticResource Model}"/>
         <local:OpenAppSettingsCommand x:Key="OpenAppSettingsCommand"/>
         <tb:TaskbarIcon x:Key="MyNotifyIcon"
            IconSource="/images/app_all.ico"
@@ -19,7 +19,7 @@
             <tb:TaskbarIcon.ContextMenu>
                 <ContextMenu>
                     <MenuItem Header="Settings" Command="{StaticResource OpenAppSettingsCommand}" />
-                    <MenuItem Header="Download update" Command="{StaticResource DownloadUpdateCommand}" Visibility="{Binding HasUpdate}"/>
+                    <MenuItem Header="Download update" Command="{StaticResource DownloadUpdateCommand}"/>
                     <Separator/>
                     <MenuItem Header="Exit" Click="ExitMenuItem_Click" />
                 </ContextMenu>

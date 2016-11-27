@@ -1,20 +1,16 @@
 ﻿namespace Azi.Cloud.DokanNet.Gui
 {
     using System;
+    using System.ComponentModel;
     using System.Diagnostics;
     using System.Linq;
+    using System.Windows;
     using System.Windows.Input;
     using Tools;
 
-    public class DownloadUpdateCommand : ICommand
+    public class DownloadUpdateCommand : ModelBasedCommand
     {
-        public event EventHandler CanExecuteChanged;
-
-        public ViewModel Model { get; set; }
-
-        public bool CanExecute(object parameter) => true;
-
-        public void Execute(object parameter)
+        public override void Execute(object parameter)
         {
             try
             {
@@ -25,5 +21,7 @@
                 Log.Error(ex);
             }
         }
+
+        public override bool CanExecute(object parameter) => Model.UpdateAvailable != null;
     }
 }

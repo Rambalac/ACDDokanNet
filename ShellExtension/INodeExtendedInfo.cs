@@ -1,0 +1,1 @@
+../Cloud.Common/INodeExtendedInfo.cs
