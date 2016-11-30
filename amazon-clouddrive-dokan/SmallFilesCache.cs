@@ -243,7 +243,7 @@
             int failed = 0;
             try
             {
-                foreach (var file in Directory.GetFiles(oldcachePath).ToList())
+                foreach (var file in Directory.GetFiles(oldcachePath, "*", SearchOption.AllDirectories).ToList())
                 {
                     try
                     {
@@ -255,6 +255,10 @@
                     }
                 }
             }
+            catch (FileNotFoundException)
+            {
+                Log.Warn("Old cache folder was empty");
+            }
             catch (UnauthorizedAccessException)
             {
                 Log.Error("Cannot access folder: " + oldcachePath);
@@ -265,7 +269,7 @@
 
             if (failed > 0)
             {
-                throw new InvalidOperationException("Can not delete all cached files. Some files are still in use.");
+                Log.Warn("Can not delete all cached files. Some files are still in use.");
             }
         }
 

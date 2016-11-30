@@ -1,6 +1,7 @@
 ﻿namespace Azi.Tools
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
 
     public class BackgroundWorker : IBackgroundWorker
@@ -14,7 +15,7 @@
 
         public virtual Task Run()
         {
-            return Task.Run(Action);
+            return Task.Factory.StartNew(Action, TaskCreationOptions.LongRunning);
         }
     }
 }
