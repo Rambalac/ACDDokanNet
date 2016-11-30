@@ -100,54 +100,54 @@
                 return 0;
             }
 
+            if (position >= item.Length)
+            {
+                Log.Trace($"Expected length: {item.Length} Position to read: {position}");
+                return 0;
+            }
+
             var timeouttime = DateTime.UtcNow.AddMilliseconds(timeout);
             int red;
 
             using (var timeoutcancel = new CancellationTokenSource(timeout))
             {
-                if (downloader != null)
-                {
-                    try
-                    {
-                        if (position >= item.Length)
-                        {
-                            Log.Error($"Expected length: {item.Length} Position to read: {position}");
-                            return 0;
-                        }
-
-                        await downloader.WaitToPosition(position, timeoutcancel.Token);
-                    }
-                    catch (TaskCanceledException)
-                    {
-                        throw new TimeoutException($"File is too big to be downloaded in time for Read: {item.Name} Downloaded: {downloader.Downloaded} Pos: {position} Downloader completed: {downloader.Task.IsCompleted}");
-                    }
-                }
-
-                await readStreamSync.WaitAsync();
-
                 try
                 {
-                    stream.Position = position;
-                    if (downloader == null)
+                    if (downloader != null)
                     {
-                        red = await stream.ReadAsync(buffer, offset, (int)Math.Min(count, item.Length - position));
+                        await downloader.WaitToPosition(position, timeoutcancel.Token);
                     }
-                    else
+
+                    await readStreamSync.WaitAsync();
+
+                    try
                     {
-                        red = await stream.ReadAsync(buffer, offset, (int)Math.Min(count, downloader.Downloaded - position));
+                        stream.Position = position;
+                        if (downloader == null)
+                        {
+                            red = await stream.ReadAsync(buffer, offset, (int)Math.Min(count, item.Length - position), timeoutcancel.Token);
+                        }
+                        else
+                        {
+                            red = await stream.ReadAsync(buffer, offset, (int)Math.Min(count, downloader.Downloaded - position), timeoutcancel.Token);
+                        }
                     }
-                }
-                finally
-                {
-                    readStreamSync.Release();
-                }
+                    finally
+                    {
+                        readStreamSync.Release();
+                    }
 
-                if (red == 0)
-                {
-                    throw new Exception($"Red 0 File: {filePath} Len: {item.Length} Pos: {position}");
-                }
+                    if (red == 0)
+                    {
+                        throw new Exception($"Red 0 File: {filePath} Len: {item.Length} Pos: {position}");
+                    }
 
-                return red;
+                    return red;
+                }
+                catch (TaskCanceledException ex)
+                {
+                    throw new TimeoutException($"File is too big to be downloaded in time for Read: {item.Name} Downloaded: {downloader.Downloaded} Pos: {position} Downloader completed: {downloader.Task.IsCompleted}\r\n{ex}");
+                }
             }
         }
 

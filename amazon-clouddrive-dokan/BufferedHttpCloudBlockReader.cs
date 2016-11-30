@@ -47,35 +47,46 @@
                 count = (int)(item.Length - position);
             }
 
-            Log.Trace($"Big read {item.Name} Offset: {position} Size: {count}");
-            var bs = position / BlockSize;
-            var be = (position + count - 1) / BlockSize;
-            var blocksRead = await GetBlocks(bs, be);
-
-            var bspos = bs * BlockSize;
-            var bepos = ((be + 1) * BlockSize) - 1;
-            if (bs == be)
+            using (var timeoutcancel = new CancellationTokenSource(timeout))
             {
-                Array.Copy(blocksRead[0], position - bspos, buffer, offset, count);
-                return count;
+                try
+                {
+
+                    Log.Trace($"Big read {item.Name} Offset: {position} Size: {count}");
+                    var bs = position / BlockSize;
+                    var be = (position + count - 1) / BlockSize;
+                    var blocksRead = await GetBlocks(bs, be, timeoutcancel.Token);
+
+                    var bspos = bs * BlockSize;
+                    var bepos = ((be + 1) * BlockSize) - 1;
+                    if (bs == be)
+                    {
+                        Array.Copy(blocksRead[0], position - bspos, buffer, offset, count);
+                        return count;
+                    }
+
+                    var inblock = (int)(position - bspos);
+                    var inblockcount = blocksRead[0].Length - inblock;
+                    Array.Copy(blocksRead[0], inblock, buffer, offset, inblockcount);
+                    offset += inblockcount;
+                    var left = count - inblockcount;
+
+                    for (int i = 1; i < blocksRead.Count - 1; i++)
+                    {
+                        Array.Copy(blocksRead[i], 0, buffer, offset, blocksRead[i].Length);
+                        offset += blocksRead[i].Length;
+                        left -= blocksRead[i].Length;
+                    }
+
+                    Array.Copy(blocksRead[blocksRead.Count - 1], 0, buffer, offset, left);
+
+                    return count;
+                }
+                catch (TaskCanceledException ex)
+                {
+                    throw new TimeoutException($"Server did not respond in time: {item.Name} Pos: {position}\r\n{ex}");
+                }
             }
-
-            var inblock = (int)(position - bspos);
-            var inblockcount = blocksRead[0].Length - inblock;
-            Array.Copy(blocksRead[0], inblock, buffer, offset, inblockcount);
-            offset += inblockcount;
-            var left = count - inblockcount;
-
-            for (int i = 1; i < blocksRead.Count - 1; i++)
-            {
-                Array.Copy(blocksRead[i], 0, buffer, offset, blocksRead[i].Length);
-                offset += blocksRead[i].Length;
-                left -= blocksRead[i].Length;
-            }
-
-            Array.Copy(blocksRead[blocksRead.Count - 1], 0, buffer, offset, left);
-
-            return count;
         }
 
         public override void SetLength(long len)
@@ -118,7 +129,7 @@
             }
         }
 
-        private async Task<List<Block>> DownloadBlocks(long block, long blockCount)
+        private async Task<List<Block>> DownloadBlocks(long block, long blockCount, CancellationToken timeouttoken)
         {
             var start = Stopwatch.StartNew();
             if (lastBlock != block)
@@ -150,11 +161,12 @@
             stream.Position = pos;
             while (left > 0)
             {
+                timeouttoken.ThrowIfCancellationRequested();
                 var blockLeft = (int)((left < BlockSize) ? left : BlockSize);
                 var membuf = new MemoryStream(BlockSize);
                 while (blockLeft > 0)
                 {
-                    var red = await stream.ReadAsync(buff, 0, blockLeft);
+                    var red = await stream.ReadAsync(buff, 0, blockLeft, timeouttoken);
                     if (firstread)
                     {
                         Log.Trace($"First read {item.Name} in {start.Elapsed.TotalSeconds}", Log.BigFile);
@@ -183,17 +195,13 @@
             return result;
         }
 
-        private async Task<List<byte[]>> GetBlocks(long v1, long v2)
+        private async Task<List<byte[]>> GetBlocks(long v1, long v2, CancellationToken timeouttoken)
         {
             var resultStart = new List<byte[]>();
             var resultEnd = new List<byte[]>();
             var tasks = new List<Task>();
             long intervalStart;
-            var wait = await readStreamSync.WaitAsync(30000);
-            if (!wait)
-            {
-                throw new TimeoutException();
-            }
+            await readStreamSync.WaitAsync(timeouttoken);
 
             try
             {
@@ -237,7 +245,7 @@
                 var result = new List<byte[]>((int)(v2 - v1 + 1));
                 result.AddRange(resultStart);
 
-                var resultMiddle = await DownloadBlocks(intervalStart, intervalEnd - intervalStart + 1).ConfigureAwait(false);
+                var resultMiddle = await DownloadBlocks(intervalStart, intervalEnd - intervalStart + 1, timeouttoken);
                 foreach (var block in resultMiddle)
                 {
                     result.Add(block.Data);
