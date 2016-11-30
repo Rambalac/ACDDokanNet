@@ -104,5 +104,10 @@
             Hide();
             Properties.Settings.Default.Save();
         }
+
+        private void TextBox_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            Process.Start(Model.SmallFileCacheFolder);
+        }
     }
 }

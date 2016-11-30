@@ -112,6 +112,7 @@
                         if (position >= item.Length)
                         {
                             Log.Error($"Expected length: {item.Length} Position to read: {position}");
+                            return 0;
                         }
 
                         await downloader.WaitToPosition(position, timeoutcancel.Token);

@@ -87,6 +87,7 @@
                 Overwrite = true
             };
 
+            Directory.CreateDirectory(cachePath);
             var path = Path.Combine(cachePath, item.Id);
             await WriteInfo(path + ".info", info);
             leftUploads.Add(info);
