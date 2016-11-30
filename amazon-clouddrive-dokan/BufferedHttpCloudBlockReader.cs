@@ -51,7 +51,6 @@
             {
                 try
                 {
-
                     Log.Trace($"Big read {item.Name} Offset: {position} Size: {count}");
                     var bs = position / BlockSize;
                     var be = (position + count - 1) / BlockSize;
