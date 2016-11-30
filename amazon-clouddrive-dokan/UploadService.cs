@@ -106,6 +106,7 @@
                 ParentId = parent.Id
             };
 
+            Directory.CreateDirectory(cachePath);
             var path = Path.Combine(cachePath, info.Id);
             SymbolicLink.CreateFile(file, path);
 
@@ -139,6 +140,7 @@
 
         public NewFileBlockWriter OpenNew(FSItem item)
         {
+            Directory.CreateDirectory(cachePath);
             var path = Path.Combine(cachePath, item.Id);
             var result = new NewFileBlockWriter(item, path);
             result.OnClose = async () =>
@@ -154,6 +156,7 @@
 
         public NewFileBlockWriter OpenTruncate(FSItem item)
         {
+            Directory.CreateDirectory(cachePath);
             var path = Path.Combine(cachePath, item.Id);
             var result = new NewFileBlockWriter(item, path);
             result.SetLength(0);
