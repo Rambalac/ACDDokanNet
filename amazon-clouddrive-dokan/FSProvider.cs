@@ -449,6 +449,11 @@
                 var name = Path.GetFileName(filePath);
                 var dirItem = await FetchNode(dir);
 
+                if (dirItem == null)
+                {
+                    throw new FileNotFoundException($"Parent folder not found: {dir}");
+                }
+
                 item = FSItem.MakeUploading(filePath, Guid.NewGuid().ToString(), dirItem.Id, 0);
 
                 var file = UploadService.OpenNew(item);

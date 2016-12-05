@@ -45,6 +45,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MicrosoftOneDrive", "Micros
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Cloud.DokanNet.IntegrationTests", "Cloud.DokanNet.IntegrationTests\Cloud.DokanNet.IntegrationTests.vcxproj", "{F7B40FF9-FF0B-4668-B72F-897556F5901A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cloud.DokanNet.Console", "Cloud.DokanNet.Console\Cloud.DokanNet.Console.csproj", "{E95A8EFE-853D-4A21-AEE3-596133C08343}"
+EndProject
 Global
 	GlobalSection(Performance) = preSolution
 		HasPerformanceSessions = true
@@ -186,6 +188,18 @@ Global
 		{F7B40FF9-FF0B-4668-B72F-897556F5901A}.Release|x64.Build.0 = Release|x64
 		{F7B40FF9-FF0B-4668-B72F-897556F5901A}.Release|x86.ActiveCfg = Release|Win32
 		{F7B40FF9-FF0B-4668-B72F-897556F5901A}.Release|x86.Build.0 = Release|Win32
+		{E95A8EFE-853D-4A21-AEE3-596133C08343}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E95A8EFE-853D-4A21-AEE3-596133C08343}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E95A8EFE-853D-4A21-AEE3-596133C08343}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E95A8EFE-853D-4A21-AEE3-596133C08343}.Debug|x64.Build.0 = Debug|Any CPU
+		{E95A8EFE-853D-4A21-AEE3-596133C08343}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E95A8EFE-853D-4A21-AEE3-596133C08343}.Debug|x86.Build.0 = Debug|Any CPU
+		{E95A8EFE-853D-4A21-AEE3-596133C08343}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E95A8EFE-853D-4A21-AEE3-596133C08343}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E95A8EFE-853D-4A21-AEE3-596133C08343}.Release|x64.ActiveCfg = Release|Any CPU
+		{E95A8EFE-853D-4A21-AEE3-596133C08343}.Release|x64.Build.0 = Release|Any CPU
+		{E95A8EFE-853D-4A21-AEE3-596133C08343}.Release|x86.ActiveCfg = Release|Any CPU
+		{E95A8EFE-853D-4A21-AEE3-596133C08343}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

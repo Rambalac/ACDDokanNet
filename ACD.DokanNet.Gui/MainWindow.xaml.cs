@@ -100,9 +100,12 @@
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            e.Cancel = true;
-            Hide();
             Properties.Settings.Default.Save();
+            if (!App.IsShuttingDown)
+            {
+                e.Cancel = true;
+                Hide();
+            }
         }
 
         private void TextBox_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)

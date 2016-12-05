@@ -26,6 +26,22 @@
             };
         }
 
+        public static bool IsDokanInstalled
+        {
+            get
+            {
+                try
+                {
+                    return Dokan.DriverVersion >= 400;
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex);
+                    return false;
+                }
+            }
+        }
+
         public Action<char> Mounted { get; set; }
 
         public Action<char> Unmounted { get; set; }
@@ -54,14 +70,10 @@
                 virtualDrive.Mount(virtualDrive.MountPath, DokanOptions.AltStream | DokanOptions.FixedDrive, 0, 1000, TimeSpan.FromSeconds(30), new DokanLogger());
 #endif
             }
-            catch (DokanException e)
-            {
-                Log.Error(e);
-                throw new InvalidOperationException(e.Message, e);
-            }
             catch (Exception e)
             {
                 Log.Error(e);
+                throw new InvalidOperationException(e.Message, e);
             }
         }
     }

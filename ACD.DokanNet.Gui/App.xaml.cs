@@ -1,16 +1,14 @@
 ﻿namespace Azi.Cloud.DokanNet.Gui
 {
     using System;
-    using System.Collections.ObjectModel;
-    using System.ComponentModel;
     using System.Diagnostics;
     using System.IO;
+    using System.IO.Pipes;
     using System.Linq;
     using System.Reflection;
     using System.Threading;
     using System.Threading.Tasks;
     using System.Windows;
-    using System.Windows.Controls;
     using System.Windows.Threading;
     using System.Xml;
     using Common;
@@ -19,6 +17,8 @@
     using Newtonsoft.Json;
     using Tools;
     using Application = System.Windows.Application;
+    using System.Text;
+    using System.Text.RegularExpressions;
 
     /// <summary>
     /// Interaction logic for App.xaml
@@ -28,8 +28,11 @@
         private const string AppName = "ACDDokanNet";
         private const string RegistryAutorunPath = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
         private bool disposedValue;
-        private bool shuttingdown;
+
+        public static bool IsShuttingDown { get; private set; }
+
         private Mutex startedMutex;
+
         private UpdateChecker updateCheck = new UpdateChecker(47739891);
         private DispatcherTimer updateCheckTimer;
 
@@ -136,11 +139,24 @@
             }
         }
 
+        private async Task ShowMessage(string message)
+        {
+            var task = Dispatcher.BeginInvoke(new Action<App>((s) => { MessageBox.Show(message); }), new object[] { this });
+            await task;
+        }
+
         private async void Application_Startup(object sender, StartupEventArgs e)
         {
             try
             {
                 Log.Info("Starting Version " + Assembly.GetEntryAssembly().GetName().Version);
+
+                if (!VirtualDriveWrapper.IsDokanInstalled)
+                {
+                    await ShowMessage("Please install Dokan 1.0.1 to use this application");
+                    Shutdown();
+                }
+
                 try
                 {
                     var test = Gui.Properties.Settings.Default.NeedUpgrade;
@@ -150,7 +166,7 @@
                     Log.Error($"Settings file got currupted. Resetting\r\n{ex}");
                     Gui.Properties.Settings.Default.Reset();
                     Gui.Properties.Settings.Default.Save();
-                    var task = Dispatcher.BeginInvoke(new Action<App>((s) => { MessageBox.Show("Settings file got currupted and was reset"); }), new object[] { this });
+                    await ShowMessage("Settings file got currupted and was reset");
                 }
 
                 if (Gui.Properties.Settings.Default.NeedUpgrade)
@@ -178,6 +194,8 @@
                     return;
                 }
 
+                CreateServerPipe();
+
                 MainWindow = new MainWindow();
                 SetupNotifyIcon();
 
@@ -191,7 +209,7 @@
 
                 MainWindow.Closing += (s2, e2) =>
                 {
-                    if (!shuttingdown)
+                    if (!IsShuttingDown)
                     {
                         ShowSettingsBalloon();
                     }
@@ -214,6 +232,183 @@
             {
                 Log.Error(ex);
             }
+        }
+
+        private void CreateServerPipe()
+        {
+            var task = Task.Factory.StartNew(
+                async () =>
+                {
+                    var splitRegex = new Regex(@"""(?<match>[^""]*)""|'(?<match>[^']*)'|(?<match>[^\s]+)");
+                    do
+                    {
+                        try
+                        {
+                            using (var pipe = new NamedPipeServerStream("pipe" + AppName, PipeDirection.InOut, 2, PipeTransmissionMode.Byte, PipeOptions.Asynchronous))
+                            {
+                                try
+                                {
+                                    pipe.WaitForConnection();
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.Error(ex);
+                                }
+                                using (var writer = new StreamWriter(pipe, Encoding.UTF8, 1024, true))
+                                using (var reader = new StreamReader(pipe, Encoding.UTF8, false, 1024, true))
+                                {
+                                    string line = null;
+                                    try
+                                    {
+                                        line = await reader.ReadLineAsync();
+                                        var parts = splitRegex.Matches(line).Cast<Match>().Select(m => m.Groups["match"].Value.ToLowerInvariant()).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+                                        if (parts.Count > 0)
+                                        {
+                                            switch (parts[0])
+                                            {
+                                                case "shutdown":
+                                                    await writer.WriteLineAsync("Shutting down...");
+                                                    await writer.WriteLineAsync("Done");
+                                                    Dispatcher.Invoke(() => { Shutdown(); });
+                                                    break;
+                                                case "mount":
+                                                    await CommandMount(writer, parts[1]);
+                                                    break;
+                                                case "umount":
+                                                    await CommandUnmount(writer, parts[1]);
+                                                    break;
+                                                case "list":
+                                                    await CommandList(writer);
+                                                    break;
+                                                case "version":
+                                                    await writer.WriteLineAsync(Model.Version);
+                                                    await writer.WriteLineAsync("Done");
+                                                    break;
+                                                default:
+                                                    await ShowCommands(writer);
+                                                    break;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            await ShowCommands(writer);
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Log.Error(ex);
+                                        try
+                                        {
+                                            await writer.WriteLineAsync(ex.Message);
+                                        }
+                                        catch (Exception ex2)
+                                        {
+                                            Log.Error(ex2);
+                                        }
+                                    }
+                                    finally
+                                    {
+                                        await writer.FlushAsync();
+                                        pipe.WaitForPipeDrain();
+                                    }
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Error(ex);
+                        }
+                    }
+                    while (true);
+                },
+                TaskCreationOptions.LongRunning);
+        }
+
+        private async Task CommandList(StreamWriter writer)
+        {
+            foreach (var cloud in Model.Clouds)
+            {
+                var mounted = cloud.IsMounted ? "mounted" : "unmounted";
+                await writer.WriteLineAsync($"{cloud.CloudInfo.DriveLetter},\"{cloud.CloudInfo.Name}\",{mounted}");
+            }
+        }
+
+        private async Task ShowCommands(StreamWriter writer)
+        {
+            await writer.WriteLineAsync("Empty or unknown command");
+            await writer.WriteLineAsync("Available commands:");
+            await writer.WriteLineAsync("    shutdown");
+            await writer.WriteLineAsync("    mount <drive letter or cloud name in quotas>");
+            await writer.WriteLineAsync("    unmount <drive letter or cloud name in quotas>");
+            await writer.WriteLineAsync("    version");
+        }
+
+        private async Task CommandMount(TextWriter writer, string v)
+        {
+            var cloud = Model.Clouds.SingleOrDefault(c => c.CloudInfo.Name != null && v == c.CloudInfo.Name.ToLowerInvariant());
+            if (cloud == null)
+            {
+                cloud = Model.Clouds.SingleOrDefault(c => v == c.CloudInfo.DriveLetter.ToString().ToLowerInvariant());
+            }
+
+            if (cloud == null)
+            {
+                await writer.WriteLineAsync($"Registred clound with such name or predefined drive letter is not found: {v}");
+                await writer.WriteLineAsync("Failed");
+                return;
+            }
+
+            if (cloud.IsMounted)
+            {
+                await writer.WriteLineAsync($"Cloud is already mounted: {v}");
+                await writer.WriteLineAsync("Failed");
+                return;
+            }
+
+            if (!cloud.CanMount)
+            {
+                await writer.WriteLineAsync($"Cloud cannot be mounted now, try later: {v}");
+                await writer.WriteLineAsync("Failed");
+                return;
+            }
+
+            await cloud.MountAsync(false);
+
+            await writer.WriteLineAsync("Done");
+        }
+
+        private async Task CommandUnmount(TextWriter writer, string v)
+        {
+            var cloud = Model.Clouds.SingleOrDefault(c => c.CloudInfo.Name != null && v == c.CloudInfo.Name.ToLowerInvariant());
+            if (cloud == null)
+            {
+                cloud = Model.Clouds.SingleOrDefault(c => c.MountLetter != null && v == c.MountLetter.ToString().ToLowerInvariant());
+            }
+
+            if (cloud == null)
+            {
+                await writer.WriteLineAsync($"Registred clound with such name or mount drive letter is not found: {v}");
+                await writer.WriteLineAsync("Failed");
+                return;
+            }
+
+            if (!cloud.IsMounted)
+            {
+                await writer.WriteLineAsync($"Cloud is not mounted: {v}");
+                await writer.WriteLineAsync("Failed");
+                return;
+            }
+
+            if (!cloud.CanUnmount)
+            {
+                await writer.WriteLineAsync($"Cloud cannot be mounted now, try later: {v}");
+                await writer.WriteLineAsync("Failed");
+                return;
+            }
+
+            await cloud.UnmountAsync();
+
+            await writer.WriteLineAsync("Done");
         }
 
         private void DownloadUpdate()
@@ -243,7 +438,7 @@
                 }
             }
 
-            shuttingdown = true;
+            IsShuttingDown = true;
             Shutdown();
         }
 

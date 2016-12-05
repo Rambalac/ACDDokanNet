@@ -311,14 +311,18 @@
             }
         }
 
-        private async Task Download(FSItem item, Stream writer, Downloader downloader)
+        private async Task Download(FSItem item, Stream result, Downloader downloader)
         {
             try
             {
                 Log.Trace($"Started download: {item.Name} - {item.Id}");
                 var start = Stopwatch.StartNew();
-                var buf = new byte[512 << 10];
-                using (writer)
+                var buf = new byte[64 << 10];
+                int uncommitedSize = 0;
+                const int commitSize = 512 << 10;
+
+                using (result)
+                using (var writer = new BufferedStream(result))
                 {
                     OnDownloadStarted?.Invoke(item);
                     while (writer.Length < item.Length)
@@ -335,12 +339,18 @@
                             }
 
                             await writer.WriteAsync(buf, 0, red);
-                            await writer.FlushAsync();
-                            downloader.Downloaded = writer.Length;
+                            uncommitedSize += red;
+                            if (uncommitedSize > commitSize)
+                            {
+                                uncommitedSize = 0;
+                                await writer.FlushAsync();
+                                downloader.Downloaded = writer.Length;
+                            }
                         }
                         while (red > 0);
                     }
 
+                    await writer.FlushAsync();
                     downloader.Downloaded = writer.Length;
                 }
 

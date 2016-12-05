@@ -116,9 +116,19 @@
 #endif
                 return res;
             }
+            catch (Exception e) when (e.InnerException is FileNotFoundException)
+            {
+                Log.Error($"File not found: {fileName}\r\n  Access:[{access}]\r\n  Share:[{share}]\r\n  Mode:[{mode}]\r\n  Options:[{options}]\r\n  Attr:[{attributes}]\r\n\r\n{e}");
+                return DokanResult.FileNotFound;
+            }
+            catch (Exception e) when (e.InnerException is TimeoutException)
+            {
+                Log.Error($"Timeout: {fileName}\r\n  Access:[{access}]\r\n  Share:[{share}]\r\n  Mode:[{mode}]\r\n  Options:[{options}]\r\n  Attr:[{attributes}]\r\n\r\n{e}");
+                return NtStatus.Timeout;
+            }
             catch (Exception e)
             {
-                Log.Error($"{fileName}\r\n  Access:[{access}]\r\n  Share:[{share}]\r\n  Mode:[{mode}]\r\n  Options:[{options}]\r\n  Attr:[{attributes}]\r\n\r\n{e}");
+                Log.Error($"Unexpected exception: {fileName}\r\n  Access:[{access}]\r\n  Share:[{share}]\r\n  Mode:[{mode}]\r\n  Options:[{options}]\r\n  Attr:[{attributes}]\r\n\r\n{e}");
                 return DokanResult.Error;
             }
         }
@@ -409,8 +419,8 @@
                 FileSystemFeatures.SupportsRemoteStorage |
                 FileSystemFeatures.CasePreservedNames |
                 FileSystemFeatures.CaseSensitiveSearch |
-                FileSystemFeatures.SupportsRemoteStorage |
                 FileSystemFeatures.UnicodeOnDisk |
+                FileSystemFeatures.SupportsEncryption |
                 FileSystemFeatures.SequentialWriteOnce;
             if (ReadOnly)
             {
