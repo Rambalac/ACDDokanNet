@@ -71,7 +71,8 @@
             try
             {
                 CanExecuteChanged?.Invoke(this, null);
-            }catch(Exception)
+            }
+            catch (Exception)
             {
                 //Ignore
             }

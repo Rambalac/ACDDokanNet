@@ -17,8 +17,6 @@
     using Newtonsoft.Json;
     using Tools;
     using Application = System.Windows.Application;
-    using System.Text;
-    using System.Text.RegularExpressions;
 
     /// <summary>
     /// Interaction logic for App.xaml
@@ -29,12 +27,11 @@
         private const string RegistryAutorunPath = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
         private bool disposedValue;
 
-        public static bool IsShuttingDown { get; private set; }
-
         private Mutex startedMutex;
-
         private UpdateChecker updateCheck = new UpdateChecker(47739891);
         private DispatcherTimer updateCheckTimer;
+
+        public static bool IsShuttingDown { get; private set; }
 
         public static new App Current => Application.Current as App;
 
@@ -137,12 +134,6 @@
             {
                 cloud.UnmountAsync().Wait(500);
             }
-        }
-
-        private async Task ShowMessage(string message)
-        {
-            var task = Dispatcher.BeginInvoke(new Action<App>((s) => { MessageBox.Show(message); }), new object[] { this });
-            await task;
         }
 
         private async void Application_Startup(object sender, StartupEventArgs e)
@@ -325,6 +316,12 @@
         private void SetupNotifyIcon()
         {
             NotifyIcon = (TaskbarIcon)FindResource("MyNotifyIcon");
+        }
+
+        private async Task ShowMessage(string message)
+        {
+            var task = Dispatcher.BeginInvoke(new Action<App>((s) => { MessageBox.Show(message); }), new object[] { this });
+            await task;
         }
 
         private void ShowSettingsBalloon()

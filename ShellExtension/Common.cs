@@ -37,7 +37,7 @@
             var str = JsonConvert.SerializeObject(obj);
 
             var streamName = string.Join(",", new[] { CloudDokanNetItemInfo.StreamName }.Concat(commands ?? Enumerable.Empty<string>()));
-            using (var info = FileSystem.GetAlternateDataStream(path, streamName).OpenWrite())
+            var info = FileSystem.GetAlternateDataStream(path, streamName).OpenWrite();
             using (var writer = new StreamWriter(info))
             {
                 writer.Write(str);
