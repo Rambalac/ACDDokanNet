@@ -97,6 +97,7 @@
             await writer.WriteLineAsync("Empty or unknown command");
             await writer.WriteLineAsync("Available commands:");
             await writer.WriteLineAsync("    shutdown");
+            await writer.WriteLineAsync("    list");
             await writer.WriteLineAsync("    mount <drive letter or cloud name in quotas>");
             await writer.WriteLineAsync("    unmount <drive letter or cloud name in quotas>");
             await writer.WriteLineAsync("    version");
