@@ -173,6 +173,7 @@
       <DependentUpon>CloudItemControl.xaml</DependentUpon>
     </Compile>
     <Compile Include="CloudMount.cs" />
+    <Compile Include="CommandLineProcessor.cs" />
     <Compile Include="FileItem.xaml.cs">
       <DependentUpon>FileItem.xaml</DependentUpon>
     </Compile>

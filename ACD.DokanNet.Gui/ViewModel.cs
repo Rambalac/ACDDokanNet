@@ -63,6 +63,11 @@
             }
         }
 
+        internal void Shutdown()
+        {
+            App.Dispatcher.Invoke(() => { Shutdown(); });
+        }
+
         public Visibility HasUpdate => UpdateAvailable != null ? Visibility.Visible : Visibility.Collapsed;
 
         public bool IsAutorun
