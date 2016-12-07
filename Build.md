@@ -17,3 +17,8 @@ namespace Azi.Cloud.DokanNet.Gui
 ```
 
 This file is already ignored on commit, just in case.
+
+Strong Names
+------------
+
+All projects are signed. It's required for Windows Explorer Extension. You still can run the main Gui app if you remove signing from Project Properties and remove Strong Namer Nuget addon.
