@@ -337,7 +337,7 @@
 
                 if (Model.UpdateAvailable != null)
                 {
-                    NotifyIcon.ShowBalloonTip(AppName, $"Update to {Model.UpdateAvailable.Version} is available", BalloonIcon.None);
+                    NotifyIcon.ShowBalloonTip(AppName, $"Update to {Model.UpdateAvailable.Version} is available.\r\n{Model.UpdateAvailable.Description}", BalloonIcon.None);
                 }
             }
             catch (Exception ex)

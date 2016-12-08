@@ -51,9 +51,9 @@
 
         public ObservableCollection<FileItemInfo> DownloadFiles { get; } = new ObservableCollection<FileItemInfo>();
 
-        public string DownloadFilesTooltip => string.Join("\r\n", DownloadFiles.Select(f => f.FileName));
-
         public int DownloadFilesCount => DownloadFiles.Count;
+
+        public string DownloadFilesTooltip => string.Join("\r\n", DownloadFiles.Select(f => f.FileName));
 
         public bool HasFreeLetters
         {
@@ -61,11 +61,6 @@
             {
                 return VirtualDriveWrapper.GetFreeDriveLettes().Count > 0;
             }
-        }
-
-        internal void Shutdown()
-        {
-            App.Dispatcher.Invoke(() => { Shutdown(); });
         }
 
         public Visibility HasUpdate => UpdateAvailable != null ? Visibility.Visible : Visibility.Collapsed;
@@ -343,9 +338,9 @@
             settings.Save();
         }
 
-        internal void OnPropertyChanged(string name)
+        public void Shutdown()
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+            App.Dispatcher.Invoke(() => { Shutdown(); });
         }
 
         protected virtual void Dispose(bool disposing)
@@ -418,6 +413,11 @@
             }
 
             Clouds = new ObservableCollection<CloudMount>(settings.Clouds.Select(s => new CloudMount(s, this)));
+        }
+
+        private void OnPropertyChanged(string name)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
 
         private void RefreshLetters(object state)
