@@ -113,6 +113,11 @@ If you did not get your cloud mounted or have other reason, sad to hear it. Here
 
 News
 ----
+### 2016-12-08
+* Release 1.6.4.
+* Fixed few minor bugs with small files downloading.
+* Added console processor for basic control. Use ACD.DokanNet.Console.exe, the main GUI app has to be running.
+
 ### 2016-11-28
 * Release 1.6.3.
 * Better async code, also refactored and cleaned up - less lockups and slowdown.
