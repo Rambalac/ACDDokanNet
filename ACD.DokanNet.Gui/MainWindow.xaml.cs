@@ -9,7 +9,7 @@
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow
     {
         public MainWindow()
         {
@@ -20,7 +20,7 @@
 
         private void AvailableCloudsList_Clicked(object sender, EventArgs e)
         {
-            cloudAdd_DropDownButton.IsOpen = false;
+            CloudAddDropDownButton.IsOpen = false;
         }
 
         private void ChangeCacheDir(object sender, RoutedEventArgs e)

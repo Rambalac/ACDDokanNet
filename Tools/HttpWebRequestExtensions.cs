@@ -4,6 +4,7 @@
 
 namespace Azi.Tools
 {
+    using System.Diagnostics.Contracts;
     using System.IO;
     using System.Linq;
     using System.Net;
@@ -54,7 +55,9 @@ namespace Azi.Tools
         /// <returns>String of response.</returns>
         public static async Task<string> ReadAsStringAsync(this HttpWebResponse response)
         {
-            using (var reader = new StreamReader(response.GetResponseStream()))
+            var stream = response.GetResponseStream();
+            Contract.Assert(stream != null, "stream != null");
+            using (var reader = new StreamReader(stream))
             {
                 return await reader.ReadToEndAsync().ConfigureAwait(false);
             }

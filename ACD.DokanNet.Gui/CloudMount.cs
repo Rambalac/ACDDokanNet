@@ -17,13 +17,13 @@
     public class CloudMount : INotifyPropertyChanged, IDisposable, IAuthUpdateListener
     {
         private readonly CloudInfo cloudInfo;
+        private readonly ViewModel model;
 
-        private bool disposedValue = false;
+        private bool disposedValue;
         private IHttpCloud instance;
-        private bool mounting = false;
-        private bool unmounting = false;
+        private bool mounting;
+        private bool unmounting;
         private ManualResetEventSlim unmountingEvent;
-        private ViewModel model;
 
         public CloudMount(CloudInfo info, ViewModel model)
         {
@@ -34,17 +34,11 @@
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        public bool CanMount => (Instance != null) && (!mounting) && !(MountLetter != null);
+        public bool CanMount => (Instance != null) && (!mounting) && MountLetter == null;
 
         public bool CanUnmount => (!unmounting) && (MountLetter != null);
 
-        public CloudInfo CloudInfo
-        {
-            get
-            {
-                return cloudInfo;
-            }
-        }
+        public CloudInfo CloudInfo => cloudInfo;
 
         public string CloudServiceIcon => Instance?.CloudServiceIcon ?? "images/lib_load_error.png";
 
@@ -96,7 +90,7 @@
 
         public bool IsMounted => !mounting && !unmounting && (MountLetter != null);
 
-        public bool IsUnmounted => !unmounting && !unmounting && !(MountLetter != null);
+        public bool IsUnmounted => !unmounting && !unmounting && MountLetter == null;
 
         public CancellationTokenSource MountCancellation { get; } = new CancellationTokenSource();
 
@@ -288,17 +282,19 @@
                     throw new InvalidOperationException("Authentication failed");
                 }
 
-                Provider = new FSProvider(instance, ProviderStatisticsUpdated);
-                Provider.VolumeName = CloudInfo.Name;
-                Provider.CachePath = Environment.ExpandEnvironmentVariables(Properties.Settings.Default.CacheFolder);
-                Provider.SmallFilesCacheSize = Properties.Settings.Default.SmallFilesCacheLimit * (1 << 20);
-                Provider.SmallFileSizeLimit = Properties.Settings.Default.SmallFileSizeLimit * (1 << 20);
+                Provider = new FSProvider(instance, ProviderStatisticsUpdated)
+                {
+                    VolumeName = CloudInfo.Name,
+                    CachePath = Environment.ExpandEnvironmentVariables(Properties.Settings.Default.CacheFolder),
+                    SmallFilesCacheSize = Properties.Settings.Default.SmallFilesCacheLimit * (1 << 20),
+                    SmallFileSizeLimit = Properties.Settings.Default.SmallFileSizeLimit * (1 << 20)
+                };
 
                 var cloudDrive = new VirtualDriveWrapper(Provider);
 
                 var mountedEvent = new TaskCompletionSource<char>();
 
-                cloudDrive.Mounted = (letter) =>
+                cloudDrive.Mounted = letter =>
                 {
                     mountedEvent.SetResult(letter);
                 };
@@ -317,8 +313,8 @@
                         {
                             Log.Warn($"Drive letter {CloudInfo.DriveLetter} is already used");
                             Exception lastException = null;
-                            bool wasMounted = false;
-                            foreach (char letter in VirtualDriveWrapper.GetFreeDriveLettes())
+                            var wasMounted = false;
+                            foreach (var letter in VirtualDriveWrapper.GetFreeDriveLettes())
                             {
                                 try
                                 {
@@ -338,7 +334,7 @@
                             if (!wasMounted)
                             {
                                 var message = "Could not find free letter";
-                                if (lastException != null && lastException.InnerException != null)
+                                if (lastException?.InnerException != null)
                                 {
                                     message = lastException.InnerException.Message;
                                 }

@@ -2,9 +2,9 @@
 {
     using System.Threading.Tasks;
 
-    public interface IBackgroundWorker<P>
+    public interface IBackgroundWorker<in TParam>
     {
-        Task Run(P param);
+        Task Run(TParam param);
     }
 
     public interface IBackgroundWorker

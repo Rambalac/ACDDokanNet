@@ -5,12 +5,10 @@
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
-    using System.Net;
-    using System.Net.Http.Headers;
     using System.Threading;
     using System.Threading.Tasks;
-    using Azi.Amazon.CloudDrive;
-    using Azi.Amazon.CloudDrive.JsonObjects;
+    using Amazon.CloudDrive;
+    using Amazon.CloudDrive.JsonObjects;
     using Common;
     using Newtonsoft.Json;
     using Tools;
@@ -19,16 +17,15 @@
     {
         private static readonly AmazonNodeKind[] FsItemKinds = { AmazonNodeKind.FILE, AmazonNodeKind.FOLDER };
 
-        private AmazonDrive amazon;
+        private readonly AmazonDrive amazon;
 
         private Quota lastQuota;
         private DateTime lastQuotaTime;
-        private TokenUpdateListener tokenUpdateListener;
 
         public AmazonCloud()
         {
             amazon = new AmazonDrive(AmazonSecret.ClientId, AmazonSecret.ClientSecret);
-            tokenUpdateListener = new TokenUpdateListener(this);
+            var tokenUpdateListener = new TokenUpdateListener(this);
             amazon.OnTokenUpdate = tokenUpdateListener;
         }
 
@@ -143,7 +140,7 @@
         {
             try
             {
-                return FromNode(await amazon.Files.Overwrite(id, p, null, (uploaded) =>
+                return FromNode(await amazon.Files.Overwrite(id, p, null, uploaded =>
                 {
                     progress?.Invoke(uploaded);
                     return uploaded + (1 << 10);
@@ -164,7 +161,7 @@
                     StreamOpener = p,
                     FileName = fileName,
                     ParentId = parentId,
-                    Progress = (uploaded) =>
+                    Progress = uploaded =>
                     {
                         progress?.Invoke(uploaded);
                         return uploaded + (1 << 10);
@@ -198,12 +195,8 @@
             try
             {
                 var node = await amazon.Nodes.GetChild(id, name);
-                if (node == null)
-                {
-                    return null;
-                }
 
-                return (node.status == AmazonNodeStatus.AVAILABLE) ? FromNode(node) : null;
+                return node?.status == AmazonNodeStatus.AVAILABLE ? FromNode(node) : null;
             }
             catch (Exception ex)
             {
@@ -216,7 +209,7 @@
             try
             {
                 var nodes = await amazon.Nodes.GetChildren(id);
-                return nodes.Where(n => FsItemKinds.Contains(n.kind) && n.status == AmazonNodeStatus.AVAILABLE).Select(n => FromNode(n)).ToList();
+                return nodes.Where(n => FsItemKinds.Contains(n.kind) && n.status == AmazonNodeStatus.AVAILABLE).Select(FromNode).ToList();
             }
             catch (Exception ex)
             {
@@ -229,12 +222,8 @@
             try
             {
                 var node = await amazon.Nodes.GetNode(id);
-                if (node == null)
-                {
-                    return null;
-                }
 
-                return (node.status == AmazonNodeStatus.AVAILABLE) ? FromNode(node) : null;
+                return node?.status == AmazonNodeStatus.AVAILABLE ? FromNode(node) : null;
             }
             catch (Exception ex)
             {
@@ -402,13 +391,13 @@
                 this.ac = ac;
             }
 
-            public void OnTokenUpdated(string access_token, string refresh_token, DateTime expires_in)
+            public void OnTokenUpdated(string accessToken, string refreshToken, DateTime expiresIn)
             {
                 var authinfo = new AuthInfo
                 {
-                    AuthToken = access_token,
-                    AuthRenewToken = refresh_token,
-                    AuthTokenExpiration = expires_in
+                    AuthToken = accessToken,
+                    AuthRenewToken = refreshToken,
+                    AuthTokenExpiration = expiresIn
                 };
                 var str = JsonConvert.SerializeObject(authinfo);
                 ac.OnAuthUpdated?.OnAuthUpdated(ac, str);

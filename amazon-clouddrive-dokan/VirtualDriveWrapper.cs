@@ -15,14 +15,10 @@
 
         public VirtualDriveWrapper(FSProvider provider)
         {
-            virtualDrive = new VirtualDrive(provider);
-            virtualDrive.OnMount = () =>
+            virtualDrive = new VirtualDrive(provider)
             {
-                Mounted?.Invoke(mountLetter);
-            };
-            virtualDrive.OnUnmount = () =>
-            {
-                Unmounted?.Invoke(mountLetter);
+                OnMount = () => { Mounted?.Invoke(mountLetter); },
+                OnUnmount = () => { Unmounted?.Invoke(mountLetter); }
             };
         }
 

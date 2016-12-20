@@ -1,4 +1,6 @@
-﻿namespace Azi.ShellExtension
+﻿// ReSharper disable InconsistentNaming
+// ReSharper disable UnusedMember.Local
+namespace Azi.ShellExtension
 {
     using System;
     using System.Runtime.InteropServices;

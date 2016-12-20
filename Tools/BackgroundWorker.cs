@@ -1,7 +1,6 @@
 ﻿namespace Azi.Tools
 {
     using System;
-    using System.Threading;
     using System.Threading.Tasks;
 
     public class BackgroundWorker : IBackgroundWorker

@@ -5,7 +5,7 @@
 
     internal class ByteArrayBlockReader : AbstractBlockStream
     {
-        private byte[] data;
+        private readonly byte[] data;
 
         public ByteArrayBlockReader(byte[] data)
         {

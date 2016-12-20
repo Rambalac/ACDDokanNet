@@ -1,17 +1,5 @@
 ﻿namespace Azi.Cloud.DokanNet
 {
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Linq;
-    using System.Net;
-    using System.Text;
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Common;
-    using Newtonsoft.Json;
-    using Tools;
-
     public abstract class AStatisticFileInfo
     {
         public abstract long Total { get; }

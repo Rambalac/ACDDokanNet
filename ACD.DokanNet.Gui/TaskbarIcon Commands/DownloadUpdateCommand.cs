@@ -1,12 +1,9 @@
 ﻿namespace Azi.Cloud.DokanNet.Gui
 {
     using System;
-    using System.ComponentModel;
     using System.Diagnostics;
     using System.Linq;
     using System.Text.RegularExpressions;
-    using System.Windows;
-    using System.Windows.Input;
     using Tools;
 
     public class DownloadUpdateCommand : ModelBasedCommand

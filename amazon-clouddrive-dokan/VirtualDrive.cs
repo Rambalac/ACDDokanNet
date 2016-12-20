@@ -2,7 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.Diagnostics;
+    using System.Diagnostics.Contracts;
     using System.IO;
     using System.Linq;
     using System.Security.AccessControl;
@@ -28,11 +28,12 @@
 
         private const int ReadTimeout = 30000;
 
-        private string creator = WindowsIdentity.GetCurrent().Name;
+        private readonly string creator = WindowsIdentity.GetCurrent().Name;
+        private readonly FSProvider provider;
+
 #if TRACE
         private string lastFilePath;
 #endif
-        private FSProvider provider;
 
         public VirtualDrive(FSProvider provider)
         {
@@ -55,14 +56,7 @@
                 {
                     try
                     {
-                        if (info.IsDirectory)
-                        {
-                            Wait(provider.DeleteDir(fileName));
-                        }
-                        else
-                        {
-                            Wait(provider.DeleteFile(fileName));
-                        }
+                        Wait(info.IsDirectory ? provider.DeleteDir(fileName) : provider.DeleteFile(fileName));
                     }
                     catch (AggregateException ex) when (ex.InnerException is FileNotFoundException)
                     {
@@ -80,15 +74,12 @@
         {
             try
             {
-                if (info.Context != null)
+                var str = info.Context as IBlockStream;
+                if (str != null)
                 {
-                    var str = info.Context as IBlockStream;
-                    if (str != null)
-                    {
-                        str.Close();
-                        str.Dispose();
-                        info.Context = null;
-                    }
+                    str.Close();
+                    str.Dispose();
+                    info.Context = null;
                 }
             }
             catch (Exception e)
@@ -101,9 +92,9 @@
         {
             try
             {
-                var res = Wait(MainCreateFile(fileName, access, share, mode, options, attributes, info));
+                var res = Wait(MainCreateFile(fileName, access, share, mode, options, info));
 #if TRACE
-                bool readWriteAttributes = (access & DataAccess) == 0;
+                var readWriteAttributes = (access & DataAccess) == 0;
                 if (!(readWriteAttributes || info.IsDirectory) || (res != DokanResult.Success && !(lastFilePath == fileName && res == DokanResult.FileNotFound)))
                 {
                     if (!(info.Context is IBlockStream))
@@ -169,10 +160,7 @@
 
                 Wait(provider.DeleteFile(fileName));
                 var newfile = info.Context as NewFileBlockWriter;
-                if (newfile != null)
-                {
-                    newfile.CancelUpload();
-                }
+                newfile?.CancelUpload();
 
                 return DokanResult.Success;
             }
@@ -302,10 +290,7 @@
         {
             try
             {
-                if (info.Context != null)
-                {
-                    (info.Context as IBlockStream)?.Flush();
-                }
+                (info.Context as IBlockStream)?.Flush();
 
                 return DokanResult.Success;
             }
@@ -393,9 +378,10 @@
             Log.Trace(fileName);
 
             var identity = WindowsIdentity.GetCurrent().Owner;
-            FileSystemSecurity result = info.IsDirectory
-                ? (FileSystemSecurity)new DirectorySecurity()
-                : (FileSystemSecurity)new FileSecurity();
+            Contract.Assert(identity != null, "identity != null");
+            var result = !info.IsDirectory
+                ? (FileSystemSecurity)new FileSecurity()
+                : new DirectorySecurity();
             if (sections.HasFlag(AccessControlSections.Access))
             {
                 result.SetAccessRule(new FileSystemAccessRule(identity, FileSystemRights.FullControl, AccessControlType.Allow));
@@ -487,7 +473,7 @@
             try
             {
                 var reader = info.Context as IBlockStream;
-
+                Contract.Assert(reader != null, "reader != null");
                 bytesRead = Wait(reader.Read(offset, buffer, 0, buffer.Length, ReadTimeout - 1000));
                 Log.Trace($"Read time {DateTime.UtcNow.Subtract(start).TotalSeconds}", Log.VirtualDrive + Log.Performance);
                 return DokanResult.Success;
@@ -539,6 +525,7 @@
 
                 // Log.Trace(fileName);
                 var file = info.Context as IBlockStream;
+                Contract.Assert(file != null, "file != null");
                 file.SetLength(length);
                 Log.Trace($"{fileName} to {length}");
 
@@ -614,16 +601,13 @@
             var start = DateTime.UtcNow;
             try
             {
-                if (info.Context != null)
+                var writer = info.Context as IBlockStream;
+                if (writer != null)
                 {
-                    var writer = info.Context as IBlockStream;
-                    if (writer != null)
-                    {
-                        Wait(writer.Write(offset, buffer, 0, buffer.Length));
-                        bytesWritten = buffer.Length;
-                        Log.Trace($"Write time {DateTime.UtcNow.Subtract(start).TotalSeconds}", Log.VirtualDrive + Log.Performance);
-                        return DokanResult.Success;
-                    }
+                    Wait(writer.Write(offset, buffer, 0, buffer.Length));
+                    bytesWritten = buffer.Length;
+                    Log.Trace($"Write time {DateTime.UtcNow.Subtract(start).TotalSeconds}", Log.VirtualDrive + Log.Performance);
+                    return DokanResult.Success;
                 }
 
                 bytesWritten = 0;
@@ -689,7 +673,6 @@
 
         private bool HasAccess(DokanFileInfo info)
         {
-            var watch = Stopwatch.StartNew();
             var identity = Processes.GetProcessOwner(info.ProcessId);
             if (identity == "NT AUTHORITY\\SYSTEM" || identity == creator)
             {
@@ -700,9 +683,7 @@
             return false;
         }
 
-#pragma warning disable RECS0154 // Parameter is never used
-        private NtStatus MainCreateDirectory(string fileName, DokanFileInfo info)
-#pragma warning restore RECS0154 // Parameter is never used
+        private NtStatus MainCreateDirectory(string fileName)
         {
             if (ReadOnly)
             {
@@ -712,7 +693,7 @@
             return Wait(CheckCreateDir(fileName));
         }
 
-        private async Task<NtStatus> MainCreateFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
+        private async Task<NtStatus> MainCreateFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, DokanFileInfo info)
         {
             if (!HasAccess(info))
             {
@@ -723,7 +704,7 @@
             {
                 if (mode == FileMode.CreateNew)
                 {
-                    return MainCreateDirectory(fileName, info);
+                    return MainCreateDirectory(fileName);
                 }
 
                 if (mode == FileMode.Open && !await provider.Exists(fileName))
@@ -757,7 +738,7 @@
                 return CheckStreams(fileName, mode, info, streamName, item);
             }
 
-            bool readWriteAttributes = (access & DataAccess) == 0;
+            var readWriteAttributes = (access & DataAccess) == 0;
             switch (mode)
             {
                 case FileMode.Open:
@@ -801,15 +782,13 @@
                 return DokanResult.Success;
             }
 
-            return await MainOpenFile(fileName, access, share, mode, options, attributes, info);
+            return await MainOpenFile(fileName, access, share, mode, options, info);
         }
 
-#pragma warning disable RECS0154 // Parameter is never used
-        private async Task<NtStatus> MainOpenFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, FileAttributes attributes, DokanFileInfo info)
-#pragma warning restore RECS0154 // Parameter is never used
+        private async Task<NtStatus> MainOpenFile(string fileName, FileAccess access, FileShare share, FileMode mode, FileOptions options, DokanFileInfo info)
         {
-            bool readAccess = (access & DataReadAccess) != 0;
-            bool writeAccess = (access & DataWriteAccess) != 0;
+            var readAccess = (access & DataReadAccess) != 0;
+            var writeAccess = (access & DataWriteAccess) != 0;
 
             if (writeAccess && ReadOnly)
             {

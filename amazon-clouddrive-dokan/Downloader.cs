@@ -2,7 +2,6 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
     using Common;
@@ -11,10 +10,10 @@
 
     public class Downloader
     {
+        private readonly AsyncLock lck = new AsyncLock();
+        private readonly List<AsyncAutoResetEvent> monitor = new List<AsyncAutoResetEvent>();
         private long downloaded;
         private bool failed;
-        private AsyncLock lck = new AsyncLock();
-        private List<AsyncAutoResetEvent> monitor = new List<AsyncAutoResetEvent>();
         private Task task;
 
         public Downloader(FSItem item, string path)
@@ -45,7 +44,7 @@
             }
         }
 
-        public FSItem Item { get; private set; }
+        public FSItem Item { get; }
 
         public string Path { get; private set; }
 

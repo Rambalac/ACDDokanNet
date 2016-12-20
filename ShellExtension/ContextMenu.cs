@@ -8,7 +8,6 @@
     using System.Runtime.InteropServices;
     using System.Windows.Forms;
     using Cloud.Common;
-    using Newtonsoft.Json;
     using SharpShell.Attributes;
     using SharpShell.SharpContextMenu;
     using Trinet.Core.IO.Ntfs;
@@ -22,24 +21,19 @@
     [COMServerAssociation(AssociationType.Drive)]
     public class ContextMenu : SharpContextMenu
     {
-        protected new virtual IEnumerable<string> SelectedItemPaths
-        {
-            get { return (base.SelectedItemPaths.Count() > 0) ? base.SelectedItemPaths : new string[] { FolderPath }; }
-        }
+        protected virtual new IEnumerable<string> SelectedItemPaths => base.SelectedItemPaths.Any() ? base.SelectedItemPaths : new[] { FolderPath };
 
         protected override bool CanShowMenu()
         {
 #if DEBUG
             EventLog.WriteEntry("ACDDokan.Net", $"ContextMenu in {FolderPath} create: {string.Join(";", SelectedItemPaths)}", EventLogEntryType.Warning, 0, 0);
 #endif
-            if (SelectedItemPaths.Count() > 0)
+            if (SelectedItemPaths.Any())
             {
-                return SelectedItemPaths.All((path) => FileSystem.AlternateDataStreamExists(path, CloudDokanNetItemInfo.StreamName));
+                return SelectedItemPaths.All(path => FileSystem.AlternateDataStreamExists(path, CloudDokanNetItemInfo.StreamName));
             }
-            else
-            {
-                return FileSystem.AlternateDataStreamExists(FolderPath, CloudDokanNetItemInfo.StreamName);
-            }
+
+            return FileSystem.AlternateDataStreamExists(FolderPath, CloudDokanNetItemInfo.StreamName);
         }
 
         protected void CopyTempLink(object sender, EventArgs e)
@@ -80,7 +74,8 @@
                     menu.Items.Add(new ToolStripMenuItem(
                         "Share",
                         null,
-                        new ToolStripMenuItem[] { romenu, rwmenu }));
+                        romenu,
+                        rwmenu));
                 }
                 else if (info.CanShareReadOnly)
                 {
@@ -111,12 +106,8 @@
         protected void OpenAsUrl(object sender, EventArgs e)
         {
             var info = Common.ReadInfo(SelectedItemPaths.Single()) as INodeExtendedInfoTempLink;
-            if (info == null)
-            {
-                return;
-            }
 
-            if (info.TempLink == null)
+            if (info?.TempLink == null)
             {
                 return;
             }
@@ -127,10 +118,12 @@
             command = command.Replace("%L", info.TempLink);
 
             var process = new Process();
-            var startInfo = new ProcessStartInfo();
-            startInfo.WindowStyle = ProcessWindowStyle.Hidden;
-            startInfo.FileName = "cmd.exe";
-            startInfo.Arguments = $"/S /C \"{command}\"";
+            var startInfo = new ProcessStartInfo
+            {
+                WindowStyle = ProcessWindowStyle.Hidden,
+                FileName = "cmd.exe",
+                Arguments = $"/S /C \"{command}\""
+            };
             process.StartInfo = startInfo;
             process.Start();
         }
@@ -140,10 +133,10 @@
             var info = Common.ReadInfo(SelectedItemPaths.Single());
             var infoTemp = info as INodeExtendedInfoTempLink;
             var infoWeb = info as INodeExtendedInfoWebLink;
-            string link = infoTemp?.TempLink ?? infoWeb?.WebLink;
+            var link = infoTemp?.TempLink ?? infoWeb?.WebLink;
             if (link != null)
             {
-                Process.Start(infoTemp?.TempLink ?? infoWeb?.WebLink);
+                Process.Start(infoTemp?.TempLink ?? infoWeb.WebLink);
             }
         }
 

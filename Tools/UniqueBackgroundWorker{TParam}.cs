@@ -3,18 +3,18 @@
     using System;
     using System.Threading.Tasks;
 
-    public class UniqueBackgroundWorker<P> : BackgroundWorker<P>
+    public class UniqueBackgroundWorker<TParam> : BackgroundWorker<TParam>
     {
-        private object lockObject = new object();
+        private readonly object lockObject = new object();
 
-        public UniqueBackgroundWorker(Action<P> action)
+        public UniqueBackgroundWorker(Action<TParam> action)
             : base(action)
         {
         }
 
         public Task Task { get; private set; }
 
-        public override Task Run(P param)
+        public override Task Run(TParam param)
         {
             lock (lockObject)
             {

@@ -7,7 +7,7 @@
     /// <summary>
     /// Interaction logic for AvailableCloudsList.xaml
     /// </summary>
-    public partial class AvailableCloudsList : UserControl
+    public partial class AvailableCloudsList
     {
         public AvailableCloudsList()
         {

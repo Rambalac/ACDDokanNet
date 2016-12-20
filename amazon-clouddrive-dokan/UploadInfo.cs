@@ -9,7 +9,7 @@
 
     public class UploadInfo : IDisposable
     {
-        private bool disposedValue = false;
+        private bool disposedValue;
 
         public UploadInfo()
         {
@@ -51,7 +51,7 @@
                 Id = Id,
                 Name = System.IO.Path.GetFileName(Path),
                 Length = Length,
-                ParentIds = new ConcurrentBag<string>(new string[] { ParentId }),
+                ParentIds = new ConcurrentBag<string>(new[] { ParentId }),
                 ParentPath = System.IO.Path.GetDirectoryName(Path)
             }.Build();
             result.MakeUploading();

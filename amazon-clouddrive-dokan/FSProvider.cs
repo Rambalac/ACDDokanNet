@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.Contracts;
     using System.IO;
     using System.Linq;
     using System.Net;
@@ -28,50 +29,59 @@
     public class FSProvider : IDisposable
     {
         private readonly IHttpCloud cloud;
-
         private readonly ItemsTreeCache itemsTreeCache = new ItemsTreeCache();
+        private readonly StatisticUpdateDelegate onStatisticsUpdated;
 
         private string cachePath;
 
         private bool disposedValue; // To detect redundant calls
-
-        private StatisticUpdateDelegate onStatisticsUpdated;
 
         public FSProvider(IHttpCloud cloud, StatisticUpdateDelegate statisticUpdate)
         {
             onStatisticsUpdated = statisticUpdate;
 
             this.cloud = cloud;
-            SmallFilesCache = new SmallFilesCache(cloud);
-            SmallFilesCache.OnDownloadStarted = (info) =>
+            SmallFilesCache = new SmallFilesCache(cloud)
             {
-                onStatisticsUpdated(cloud, StatisticUpdateReason.DownloadAdded, new DownloadStatisticInfo(info));
-            };
-            SmallFilesCache.OnDownloaded = (info) =>
-            {
-                onStatisticsUpdated(cloud, StatisticUpdateReason.DownloadFinished, new DownloadStatisticInfo(info));
-            };
-            SmallFilesCache.OnDownloadFailed = (info) =>
-            {
-                onStatisticsUpdated(cloud, StatisticUpdateReason.DownloadFailed, new DownloadStatisticInfo(info));
-            };
-
-            UploadService = new UploadService(2, cloud);
-
-            UploadService.OnUploadFailed = UploadFailed;
-
-            UploadService.OnUploadFinished = UploadFinished;
-
-            UploadService.OnUploadProgress = async (item, done) =>
-            {
-                await onStatisticsUpdated(cloud, StatisticUpdateReason.Progress, new UploadStatisticInfo(item) { Done = done });
+                OnDownloadStarted =
+                    info =>
+                    {
+                        onStatisticsUpdated(cloud, StatisticUpdateReason.DownloadAdded, new DownloadStatisticInfo(info));
+                    },
+                OnDownloaded =
+                    info =>
+                    {
+                        onStatisticsUpdated(
+                            cloud,
+                            StatisticUpdateReason.DownloadFinished,
+                            new DownloadStatisticInfo(info));
+                    },
+                OnDownloadFailed =
+                    info =>
+                    {
+                        onStatisticsUpdated(cloud, StatisticUpdateReason.DownloadFailed, new DownloadStatisticInfo(info));
+                    }
             };
 
-            UploadService.OnUploadAdded = async (item) =>
+            UploadService = new UploadService(2, cloud)
             {
-                itemsTreeCache.Add(item.ToFSItem());
-                await onStatisticsUpdated(cloud, StatisticUpdateReason.UploadAdded, new UploadStatisticInfo(item));
+                OnUploadFailed = UploadFailed,
+                OnUploadFinished = UploadFinished,
+                OnUploadProgress =
+                    async (item, done) =>
+                    {
+                        await onStatisticsUpdated(
+                                cloud,
+                                StatisticUpdateReason.Progress,
+                                new UploadStatisticInfo(item) { Done = done });
+                    },
+                OnUploadAdded = async item =>
+                {
+                    itemsTreeCache.Add(item.ToFSItem());
+                    await onStatisticsUpdated(cloud, StatisticUpdateReason.UploadAdded, new UploadStatisticInfo(item));
+                }
             };
+
             UploadService.Start();
         }
 
@@ -103,7 +113,7 @@
 
         public string FileSystemName => "Cloud Drive";
 
-        public SmallFilesCache SmallFilesCache { get; private set; }
+        public SmallFilesCache SmallFilesCache { get; }
 
         public long SmallFilesCacheSize
         {
@@ -120,7 +130,7 @@
 
         public long SmallFileSizeLimit { get; set; } = 20 * 1024 * 1024;
 
-        public UploadService UploadService { get; private set; }
+        public UploadService UploadService { get; }
 
         public string VolumeName { get; set; }
 
@@ -294,7 +304,7 @@
             if (cached != null)
             {
                 // Log.Warn("Got cached dir:\r\n  " + string.Join("\r\n  ", cached));
-                return (await Task.WhenAll(cached.Select(i => FetchNode(i)))).Where(i => i != null).ToList();
+                return (await Task.WhenAll(cached.Select(FetchNode))).Where(i => i != null).ToList();
             }
 
             var folderNode = await FetchNode(folderPath);
@@ -349,6 +359,9 @@
             var oldName = Path.GetFileName(oldPath);
             var newDir = Path.GetDirectoryName(newPath);
             var newName = Path.GetFileName(newPath);
+
+            Contract.Assert(oldDir != null, "oldDir!=null");
+            Contract.Assert(newName != null, "newName != null");
 
             var item = await FetchNode(oldPath);
             await WaitForReal(item, 25000);
@@ -432,11 +445,18 @@
                 await WaitForReal(item, 25000);
 
                 await onStatisticsUpdated(cloud, StatisticUpdateReason.DownloadAdded, new DownloadStatisticInfo(item));
-                var buffered = new BufferedHttpCloudBlockReader(item, cloud);
-                buffered.OnClose = async () =>
-                  {
-                      await onStatisticsUpdated(cloud, StatisticUpdateReason.DownloadFinished, new DownloadStatisticInfo(item));
-                  };
+                var buffered = new BufferedHttpCloudBlockReader(item, cloud)
+                {
+                    OnClose =
+                        async () =>
+                        {
+                            await
+                                onStatisticsUpdated(
+                                    cloud,
+                                    StatisticUpdateReason.DownloadFinished,
+                                    new DownloadStatisticInfo(item));
+                        }
+                };
 
                 return buffered;
             }
@@ -446,7 +466,6 @@
                 Log.Trace($"Creating {filePath} as New because mode:{mode} and {((item == null) ? "item is null" : "length is 0")}");
 
                 var dir = Path.GetDirectoryName(filePath);
-                var name = Path.GetFileName(filePath);
                 var dirItem = await FetchNode(dir);
 
                 if (dirItem == null)
@@ -462,11 +481,6 @@
                 itemsTreeCache.Add(item);
 
                 return file;
-            }
-
-            if (item == null)
-            {
-                return null;
             }
 
             await WaitForReal(item, 25000);
@@ -521,7 +535,7 @@
 
         public ByteArrayBlockWriter OpenUploadHere(FSItem item)
         {
-            Log.Trace($"Upload from Shell");
+            Log.Trace("Upload from Shell");
             var result = new ByteArrayBlockWriter();
             result.OnClose = async () =>
               {
@@ -607,19 +621,7 @@
             }
         }
 
-        private string GetRelativePath(string filepath, string relativeto)
-        {
-            var pathUri = new Uri(filepath);
-            if (!relativeto.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.InvariantCulture))
-            {
-                relativeto += Path.DirectorySeparatorChar;
-            }
-
-            var relativetoUri = new Uri(relativeto);
-            return Uri.UnescapeDataString(relativetoUri.MakeRelativeUri(pathUri).ToString().Replace('/', Path.DirectorySeparatorChar));
-        }
-
-        private async Task MakeUploads(FSItem dest, List<string> files)
+        private async Task MakeUploads(FSItem dest, IEnumerable<string> files)
         {
             var currentfiles = new Queue<UploadTaskItem>(files.Select(f => new UploadTaskItem { Parent = dest, File = f }));
 

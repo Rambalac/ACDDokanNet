@@ -5,7 +5,7 @@
 
     public class UniqueBackgroundWorker : BackgroundWorker
     {
-        private object lockObject = new object();
+        private readonly object lockObject = new object();
 
         public UniqueBackgroundWorker(Action action)
             : base(action)

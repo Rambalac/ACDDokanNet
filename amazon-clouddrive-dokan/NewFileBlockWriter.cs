@@ -10,21 +10,20 @@
     {
         private readonly FSItem item;
         private readonly FileStream stream;
+        private readonly SemaphoreSlim sem = new SemaphoreSlim(1, 1);
         private bool closed;
         private bool disposedValue;
-        private string filePath;
-        private SemaphoreSlim sem = new SemaphoreSlim(1, 1);
 
         public NewFileBlockWriter(FSItem item, string filePath)
         {
             this.item = item;
-            this.filePath = filePath;
+            UploadCachePath = filePath;
             stream = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite, 4096, true);
         }
 
         public bool Cancelled { get; private set; }
 
-        public string UploadCachePath => filePath;
+        public string UploadCachePath { get; }
 
         public void CancelUpload()
         {

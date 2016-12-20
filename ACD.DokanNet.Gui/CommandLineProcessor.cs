@@ -23,10 +23,9 @@
         {
             var writer = new StreamWriter(pipe, Encoding.UTF8, 1024, true);
             var reader = new StreamReader(pipe, Encoding.UTF8, false, 1024, true);
-            string line = null;
             try
             {
-                line = await reader.ReadLineAsync();
+                var line = await reader.ReadLineAsync();
                 var parts = SplitRegex.Matches(line).Cast<Match>().Select(m => m.Groups["match"].Value.ToLowerInvariant()).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
                 await ProcessLine(parts, writer);
             }
@@ -105,11 +104,8 @@
 
         private async Task CommandMount(TextWriter writer, string v)
         {
-            var cloud = model.Clouds.SingleOrDefault(c => c.CloudInfo.Name != null && v == c.CloudInfo.Name.ToLowerInvariant());
-            if (cloud == null)
-            {
-                cloud = model.Clouds.SingleOrDefault(c => v == c.CloudInfo.DriveLetter.ToString().ToLowerInvariant());
-            }
+            var cloud = model.Clouds.SingleOrDefault(c => c.CloudInfo.Name != null && v == c.CloudInfo.Name.ToLowerInvariant()) ??
+                        model.Clouds.SingleOrDefault(c => v == c.CloudInfo.DriveLetter.ToString().ToLowerInvariant());
 
             if (cloud == null)
             {
@@ -139,11 +135,8 @@
 
         private async Task CommandUnmount(TextWriter writer, string v)
         {
-            var cloud = model.Clouds.SingleOrDefault(c => c.CloudInfo.Name != null && v == c.CloudInfo.Name.ToLowerInvariant());
-            if (cloud == null)
-            {
-                cloud = model.Clouds.SingleOrDefault(c => c.MountLetter != null && v == c.MountLetter.ToString().ToLowerInvariant());
-            }
+            var cloud = model.Clouds.SingleOrDefault(c => c.CloudInfo.Name != null && v == c.CloudInfo.Name.ToLowerInvariant()) ??
+                        model.Clouds.SingleOrDefault(c => c.MountLetter != null && v == c.MountLetter.ToString().ToLowerInvariant());
 
             if (cloud == null)
             {

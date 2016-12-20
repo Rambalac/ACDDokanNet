@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.Contracts;
     using System.IO;
     using System.Linq;
     using System.Threading;
@@ -14,7 +15,7 @@
         private readonly ReaderWriterLockSlim lok = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
         private readonly Dictionary<string, DirItem> pathToDirItem = new Dictionary<string, DirItem>();
         private readonly Dictionary<string, FSItem> pathToNode = new Dictionary<string, FSItem>();
-        private CancellationTokenSource cancellation = new CancellationTokenSource();
+        private readonly CancellationTokenSource cancellation = new CancellationTokenSource();
         private bool disposedValue; // To detect redundant calls
 
         public ItemsTreeCache()
@@ -80,6 +81,7 @@
             try
             {
                 var dirPath = Path.GetDirectoryName(filePath);
+                Contract.Assert(dirPath != null, "dirPath!=null");
                 DirItem dirItem;
                 if (pathToDirItem.TryGetValue(dirPath, out dirItem))
                 {
@@ -108,6 +110,7 @@
             try
             {
                 var dirPath = Path.GetDirectoryName(filePath);
+                Contract.Assert(dirPath != null, "dirPath!=null");
                 DirItem dirItem;
                 if (pathToDirItem.TryGetValue(dirPath, out dirItem))
                 {
@@ -135,10 +138,10 @@
 
         public IEnumerable<string> GetDir(string filePath)
         {
-            DirItem item;
             lok.EnterUpgradeableReadLock();
             try
             {
+                DirItem item;
                 if (!pathToDirItem.TryGetValue(filePath, out item))
                 {
                     return null;
@@ -169,9 +172,9 @@
         public FSItem GetItem(string filePath)
         {
             lok.EnterUpgradeableReadLock();
-            FSItem item;
             try
             {
+                FSItem item;
                 if (!pathToNode.TryGetValue(filePath, out item))
                 {
                     return null;
@@ -266,7 +269,7 @@
                     lok.EnterWriteLock();
                     try
                     {
-                        foreach (var key in pathToNode.Where((p) => p.Value.IsExpired(FSItemsExpirationSeconds)).Select((p) => p.Key).ToList())
+                        foreach (var key in pathToNode.Where(p => p.Value.IsExpired(FSItemsExpirationSeconds)).Select(p => p.Key).ToList())
                         {
                             pathToNode.Remove(key);
                         }
@@ -279,7 +282,7 @@
                     lok.EnterWriteLock();
                     try
                     {
-                        foreach (var key in pathToDirItem.Where((p) => p.Value.IsExpired).Select((p) => p.Key).ToList())
+                        foreach (var key in pathToDirItem.Where(p => p.Value.IsExpired).Select(p => p.Key).ToList())
                         {
                             pathToNode.Remove(key);
                         }
@@ -300,17 +303,17 @@
 
         private class DirItem
         {
-            public DirItem(IList<string> items, int expirationSeconds)
+            public DirItem(IEnumerable<string> items, int expirationSeconds)
             {
                 Items = new HashSet<string>(items);
                 ExpirationTime = DateTime.UtcNow.AddSeconds(expirationSeconds);
             }
 
-            public DateTime ExpirationTime { get; }
-
             public bool IsExpired => DateTime.UtcNow > ExpirationTime;
 
             public HashSet<string> Items { get; }
+
+            private DateTime ExpirationTime { get; }
         }
     }
 }

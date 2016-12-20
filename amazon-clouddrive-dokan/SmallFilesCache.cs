@@ -13,19 +13,18 @@
 
     public class SmallFilesCache
     {
+        private static readonly Dictionary<string, Downloader> Downloaders = new Dictionary<string, Downloader>(10);
+        private static readonly object DownloadersLock = new object();
+
         private static string cachePath;
 
-        private static Dictionary<string, Downloader> downloaders = new Dictionary<string, Downloader>(10);
-        private static object downloadersLock = new object();
         private readonly IHttpCloud cloud;
+        private readonly UniqueBackgroundWorker cleanAllWorker;
+        private readonly UniqueBackgroundWorker<long> cleanSizeWorker;
+        private readonly object totalSizeLock = new object();
 
         private ConcurrentDictionary<string, CacheEntry> access = new ConcurrentDictionary<string, CacheEntry>(10, 1000);
-        private long cacheSize;
-        private UniqueBackgroundWorker cleanAllWorker;
-
-        private UniqueBackgroundWorker<long> cleanSizeWorker;
         private long totalSize;
-        private object totalSizeLock = new object();
 
         public SmallFilesCache(IHttpCloud a)
         {
@@ -48,7 +47,7 @@
                     return;
                 }
 
-                bool wasNull = cachePath == null;
+                var wasNull = cachePath == null;
                 try
                 {
                     if (cachePath != null)
@@ -70,18 +69,7 @@
             }
         }
 
-        public long CacheSize
-        {
-            get
-            {
-                return cacheSize;
-            }
-
-            internal set
-            {
-                cacheSize = value;
-            }
-        }
+        public long CacheSize { get; internal set; }
 
         public Action<FSItem> OnDownloaded { get; set; }
 
@@ -159,9 +147,9 @@
                     File.Delete(olditemPath);
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return;
+                Log.Error(ex);
             }
         }
 
@@ -240,7 +228,7 @@
         private void ClearAll()
         {
             var oldcachePath = cachePath;
-            int failed = 0;
+            var failed = 0;
             try
             {
                 foreach (var file in Directory.GetFiles(oldcachePath, "*", SearchOption.AllDirectories).ToList())
@@ -318,7 +306,7 @@
                 Log.Trace($"Started download: {item.Name} - {item.Id}");
                 var start = Stopwatch.StartNew();
                 var buf = new byte[64 << 10];
-                int uncommitedSize = 0;
+                var uncommitedSize = 0;
                 const int commitSize = 512 << 10;
 
                 using (result)
@@ -329,7 +317,7 @@
                     {
                         var stream = await cloud.Files.Download(item.Id);
                         stream.Position = writer.Length;
-                        int red = 0;
+                        int red;
                         do
                         {
                             red = await stream.ReadAsync(buf, 0, buf.Length);
@@ -340,12 +328,14 @@
 
                             await writer.WriteAsync(buf, 0, red);
                             uncommitedSize += red;
-                            if (uncommitedSize > commitSize)
+                            if (uncommitedSize <= commitSize)
                             {
-                                uncommitedSize = 0;
-                                await writer.FlushAsync();
-                                downloader.Downloaded = writer.Length;
+                                continue;
                             }
+
+                            uncommitedSize = 0;
+                            await writer.FlushAsync();
+                            downloader.Downloaded = writer.Length;
                         }
                         while (red > 0);
                     }
@@ -357,7 +347,9 @@
                 Log.Trace($"Finished download: {item.Name} - {item.Id}");
                 OnDownloaded?.Invoke(item);
 
-                if (access.TryAdd(item.Id, new CacheEntry { Id = item.Id, AccessTime = DateTime.UtcNow, Length = item.Length }))
+                if (access.TryAdd(
+                        item.Id,
+                        new CacheEntry { Id = item.Id, AccessTime = DateTime.UtcNow, Length = item.Length }))
                 {
                     TotalSizeIncrease(item.Length);
                 }
@@ -385,9 +377,9 @@
                     Log.Error("Downloader finished but zero length");
                 }
 
-                lock (downloadersLock)
+                lock (DownloadersLock)
                 {
-                    downloaders.Remove(item.Path);
+                    Downloaders.Remove(item.Path);
                 }
             }
         }
@@ -440,12 +432,11 @@
             }
 
             var downloader = new Downloader(item, path);
-            Stream writer;
 
-            lock (downloadersLock)
+            lock (DownloadersLock)
             {
                 Downloader result;
-                if (downloaders.TryGetValue(item.Path, out result))
+                if (Downloaders.TryGetValue(item.Path, out result))
                 {
                     if (result.Task == null)
                     {
@@ -456,22 +447,29 @@
                 }
 
                 Directory.CreateDirectory(cachePath);
-                writer = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite, 4096, FileOptions.Asynchronous | FileOptions.SequentialScan);
 
-                if (writer.Length == item.Length)
+                var fileinfo = new FileInfo(path);
+
+                if (fileinfo.Exists && fileinfo.Length == item.Length)
                 {
-                    writer.Close();
                     return Downloader.CreateCompleted(item, path, item.Length);
                 }
 
-                if (writer.Length > 0)
+                var writer = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite, 4096, FileOptions.Asynchronous | FileOptions.SequentialScan);
+
+                if (writer.Length > item.Length)
                 {
-                    Log.Warn($"File was not totally downloaded before. Should be {item.Length} but was {writer.Length}: {path}");
+                    writer.SetLength(0);
+                }
+                else if (writer.Length > 0)
+                {
+                    Log.Warn(
+                        $"File was not totally downloaded before. Should be {item.Length} but was {writer.Length}: {item.Path} - {item.Id}");
                     downloader.Downloaded = writer.Length;
                 }
 
                 downloader.Task = Task.Factory.StartNew(async () => await Download(item, writer, downloader), TaskCreationOptions.LongRunning);
-                downloaders.Add(item.Path, downloader);
+                Downloaders.Add(item.Path, downloader);
 
                 return downloader;
             }

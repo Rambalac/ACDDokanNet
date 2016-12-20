@@ -45,8 +45,8 @@
     <AssemblyOriginatorKeyFile>LibraryKeyFile.pfx</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="AmazonCloudDriveApi, Version=1.3.5.0, Culture=neutral, PublicKeyToken=07a2d7277d3db0a6, processorArchitecture=MSIL">
-      <HintPath>..\packages\AmazonCloudDriveApi.1.3.5\lib\net45\AmazonCloudDriveApi.dll</HintPath>
+    <Reference Include="AmazonCloudDriveApi, Version=1.4.1.0, Culture=neutral, PublicKeyToken=28df169a9ba786ec, processorArchitecture=MSIL">
+      <HintPath>..\packages\AmazonCloudDriveApi.1.4.1\lib\net45\AmazonCloudDriveApi.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">

@@ -18,10 +18,10 @@
         private const int KeepLastBlocks = TotalCache / BlockSize;
 
         private static readonly ConcurrentDictionary<string, Block> Blocks = new ConcurrentDictionary<string, Block>(5, KeepLastBlocks * 5);
-        private IHttpCloud cloud;
-        private FSItem item;
+        private readonly SemaphoreSlim readStreamSync = new SemaphoreSlim(1, 1);
+        private readonly IHttpCloud cloud;
+        private readonly FSItem item;
         private long lastBlock;
-        private SemaphoreSlim readStreamSync = new SemaphoreSlim(1, 1);
         private Stream stream;
         private bool closed;
 
@@ -57,7 +57,6 @@
                     var blocksRead = await GetBlocks(bs, be, timeoutcancel.Token);
 
                     var bspos = bs * BlockSize;
-                    var bepos = ((be + 1) * BlockSize) - 1;
                     if (bs == be)
                     {
                         Array.Copy(blocksRead[0], position - bspos, buffer, offset, count);
@@ -70,7 +69,7 @@
                     offset += inblockcount;
                     var left = count - inblockcount;
 
-                    for (int i = 1; i < blocksRead.Count - 1; i++)
+                    for (var i = 1; i < blocksRead.Count - 1; i++)
                     {
                         Array.Copy(blocksRead[i], 0, buffer, offset, blocksRead[i].Length);
                         offset += blocksRead[i].Length;
@@ -198,12 +197,11 @@
         {
             var resultStart = new List<byte[]>();
             var resultEnd = new List<byte[]>();
-            var tasks = new List<Task>();
-            long intervalStart;
             await readStreamSync.WaitAsync(timeouttoken);
 
             try
             {
+                long intervalStart;
                 for (intervalStart = v1; intervalStart <= v2; intervalStart++)
                 {
                     Block cachedBlock;

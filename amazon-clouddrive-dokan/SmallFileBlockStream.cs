@@ -9,18 +9,17 @@
 
     public class SmallFileBlockStream : AbstractBlockStream
     {
-        private const int Maxtimeout = 5;
-        private const int WaitForFile = 50;
         private readonly Downloader downloader;
         private readonly string filePath;
         private readonly FileStream stream;
+        private readonly SemaphoreSlim readStreamSync = new SemaphoreSlim(1, 1);
+        private readonly bool writeable;
+        private readonly FSItem item;
+
         private bool closed;
         private bool disposedValue; // To detect redundant calls
-        private SemaphoreSlim readStreamSync = new SemaphoreSlim(1, 1);
 
-        private bool writeable;
         private bool written;
-        private FSItem item;
 
         private SmallFileBlockStream(FSItem item, string path, Downloader downloader, bool writeable)
         {
@@ -93,7 +92,7 @@
             }
         }
 
-        public override async Task<int> Read(long position, byte[] buffer, int offset, int count, int timeout)
+        public override async Task<int> Read(long position, byte[] buffer, int offset, int count, int timeout = 1000)
         {
             if (count == 0 || item.Length == 0)
             {
@@ -106,9 +105,6 @@
                 return 0;
             }
 
-            var timeouttime = DateTime.UtcNow.AddMilliseconds(timeout);
-            int red;
-
             using (var timeoutcancel = new CancellationTokenSource(timeout))
             {
                 try
@@ -118,8 +114,9 @@
                         await downloader.WaitToPosition(position, timeoutcancel.Token);
                     }
 
-                    await readStreamSync.WaitAsync();
+                    await readStreamSync.WaitAsync(timeoutcancel.Token);
 
+                    int red;
                     try
                     {
                         stream.Position = position;
@@ -146,7 +143,7 @@
                 }
                 catch (TaskCanceledException ex)
                 {
-                    throw new TimeoutException($"File is too big to be downloaded in time for Read: {item.Name} Downloaded: {downloader.Downloaded} Pos: {position} Downloader completed: {downloader.Task.IsCompleted}\r\n{ex}");
+                    throw new TimeoutException($"File is too big to be downloaded in time for Read: {item.Name} Downloaded: {downloader?.Downloaded.ToString() ?? "N/A"} Pos: {position} Downloader completed: {downloader?.Task.IsCompleted.ToString() ?? "N/A"}\r\n{ex}");
                 }
             }
         }
@@ -188,17 +185,17 @@
                 {
                     throw new TimeoutException();
                 }
-            }
 
-            await readStreamSync.WaitAsync();
-            try
-            {
-                stream.Position = position;
-                await stream.WriteAsync(buffer, offset, count);
-            }
-            finally
-            {
-                readStreamSync.Release();
+                await readStreamSync.WaitAsync(cancel.Token);
+                try
+                {
+                    stream.Position = position;
+                    await stream.WriteAsync(buffer, offset, count, cancel.Token);
+                }
+                finally
+                {
+                    readStreamSync.Release();
+                }
             }
 
             written = true;
@@ -207,16 +204,19 @@
 
         protected override void Dispose(bool disposing)
         {
-            if (!disposedValue)
+            if (disposedValue)
             {
-                if (disposing)
-                {
-                    Close();
-                    stream.Dispose();
-                }
-
-                disposedValue = true;
+                return;
             }
+
+            if (disposing)
+            {
+                Close();
+                stream.Dispose();
+                readStreamSync.Dispose();
+            }
+
+            disposedValue = true;
         }
     }
 }

@@ -74,7 +74,7 @@
             }
             catch (Exception)
             {
-                //Ignore
+                // Ignore
             }
         }
     }

@@ -1,7 +1,9 @@
-﻿namespace Azi.Cloud.DokanNet.Gui
+﻿using System.Diagnostics.Contracts;
+using Tools;
+
+namespace Azi.Cloud.DokanNet.Gui
 {
     using System;
-    using System.Diagnostics;
     using System.IO;
     using System.IO.Pipes;
     using System.Linq;
@@ -21,14 +23,14 @@
     /// <summary>
     /// Interaction logic for App.xaml
     /// </summary>
-    public partial class App : Application, IDisposable
+    public partial class App : IDisposable
     {
         private const string AppName = "ACDDokanNet";
         private const string RegistryAutorunPath = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
         private bool disposedValue;
 
         private Mutex startedMutex;
-        private UpdateChecker updateCheck = new UpdateChecker(47739891);
+        private readonly UpdateChecker updateCheck = new UpdateChecker(47739891);
         private DispatcherTimer updateCheckTimer;
 
         public static bool IsShuttingDown { get; private set; }
@@ -53,17 +55,13 @@
         internal void CancelUpload(FileItemInfo item)
         {
             var cloud = Model.Clouds.SingleOrDefault(c => c.CloudInfo.Id == item.CloudId);
-            if (cloud == null)
-            {
-                return;
-            }
 
-            cloud.Provider.CancelUpload(item.Id);
+            cloud?.Provider.CancelUpload(item.Id);
         }
 
         internal async Task ClearCache()
         {
-            bool any = false;
+            var any = false;
             foreach (var mount in Model.Clouds)
             {
                 var provider = mount.Provider;
@@ -84,6 +82,7 @@
         {
             using (var rk = Registry.CurrentUser.OpenSubKey(RegistryAutorunPath, true))
             {
+                Contract.Assert(rk != null, "rk != null");
                 return rk.GetValue(AppName) != null;
             }
         }
@@ -92,6 +91,7 @@
         {
             using (var rk = Registry.CurrentUser.OpenSubKey(RegistryAutorunPath, true))
             {
+                Contract.Assert(rk != null, "rk != null");
                 if (isChecked)
                 {
                     var uri = new Uri(Assembly.GetExecutingAssembly().CodeBase);
@@ -112,10 +112,7 @@
                 if (disposing)
                 {
                     startedMutex.Dispose();
-                    if (NotifyIcon != null)
-                    {
-                        NotifyIcon.Dispose();
-                    }
+                    NotifyIcon?.Dispose();
                 }
 
                 disposedValue = true;
@@ -231,7 +228,7 @@
         {
             var commandLineProcessor = new CommandLineProcessor(Model);
 
-            var task = Task.Factory.StartNew(
+            Task.Factory.StartNew(
                 async () =>
                 {
                     do
@@ -242,7 +239,7 @@
                             {
                                 try
                                 {
-                                    pipe.WaitForConnection();
+                                    await pipe.WaitForConnectionAsync();
                                     await commandLineProcessor.Process(pipe);
                                     pipe.WaitForPipeDrain();
                                 }
@@ -257,14 +254,9 @@
                             Log.Error(ex);
                         }
                     }
-                    while (true);
+                    while (!IsShuttingDown);
                 },
                 TaskCreationOptions.LongRunning);
-        }
-
-        private void DownloadUpdate()
-        {
-            Process.Start(Model.UpdateAvailable.Assets.First(a => a.Name == "ACDDokanNetInstaller.msi").BrowserUrl);
         }
 
         private void ExitMenuItem_Click(object sender, RoutedEventArgs e)
@@ -308,11 +300,6 @@
             }
         }
 
-        private void SettingsMenuItem_Click(object sender, RoutedEventArgs e)
-        {
-            OpenSettings();
-        }
-
         private void SetupNotifyIcon()
         {
             NotifyIcon = (TaskbarIcon)FindResource("MyNotifyIcon");
@@ -320,7 +307,7 @@
 
         private async Task ShowMessage(string message)
         {
-            var task = Dispatcher.BeginInvoke(new Action<App>((s) => { MessageBox.Show(message); }), new object[] { this });
+            var task = Dispatcher.BeginInvoke(new Action<App>(s => { MessageBox.Show(message); }), this);
             await task;
         }
 
@@ -360,7 +347,7 @@
             }
 
             var versionsPath = Environment.ExpandEnvironmentVariables("%LOCALAPPDATA%\\Rambalac\\ACD.DokanNet.Gui.exe_Url_3nx2g2l53nrtm2p32mr11ar350hkhmgy");
-            var topVersion = Directory.GetDirectories(versionsPath).OrderByDescending(s => Path.GetFileName(s)).FirstOrDefault();
+            var topVersion = Directory.GetDirectories(versionsPath).OrderByDescending(Path.GetFileName).FirstOrDefault();
             if (topVersion == null)
             {
                 return;
@@ -368,18 +355,18 @@
 
             var config = Path.Combine(topVersion, "user.config");
 
-            XmlDocument doc = new XmlDocument();
+            var doc = new XmlDocument();
             doc.Load(config);
 
             var authinfo = new AmazonCloudDrive.AuthInfo
             {
-                AuthToken = doc.SelectSingleNode("//setting[@name='AuthToken']/value").InnerText,
-                AuthRenewToken = doc.SelectSingleNode("//setting[@name='AuthRenewToken']/value").InnerText,
-                AuthTokenExpiration = DateTime.Parse(doc.SelectSingleNode("//setting[@name='AuthTokenExpiration']/value").InnerText)
+                AuthToken = doc.SelectSingleNode("//setting[@name='AuthToken']/value")?.InnerText,
+                AuthRenewToken = doc.SelectSingleNode("//setting[@name='AuthRenewToken']/value")?.InnerText,
+                AuthTokenExpiration = DateTime.Parse(doc.SelectSingleNode("//setting[@name='AuthTokenExpiration']/value")?.InnerText)
             };
 
-            var readOnly = bool.Parse(doc.SelectSingleNode("//setting[@name='ReadOnly']/value").InnerText);
-            var letter = doc.SelectSingleNode("//setting[@name='LastDriveLetter']/value").InnerText[0];
+            var readOnly = bool.Parse(doc.SelectSingleNode("//setting[@name='ReadOnly']/value")?.InnerText ?? "false");
+            var letter = doc.SelectSingleNode("//setting[@name='LastDriveLetter']/value")?.InnerText[0] ?? VirtualDriveWrapper.GetFreeDriveLettes().FirstOrDefault();
 
             var cloudinfo = new CloudInfo
             {
@@ -391,7 +378,7 @@
                 ReadOnly = readOnly,
                 AuthSave = JsonConvert.SerializeObject(authinfo)
             };
-            settings.Clouds = new CloudInfoCollection(new CloudInfo[] { cloudinfo });
+            settings.Clouds = new CloudInfoCollection(new[] { cloudinfo });
 
             var cacheFolder = Environment.ExpandEnvironmentVariables(settings.CacheFolder);
             var newPath = Path.Combine(cacheFolder, UploadService.UploadFolder, cloudinfo.Id);
@@ -401,7 +388,9 @@
 
             foreach (var file in files)
             {
-                File.Move(file, Path.Combine(newPath, Path.GetFileName(file)));
+                var fileName = Path.GetFileName(file);
+                Contract.Assert(fileName != null, "fileName != null");
+                File.Move(file, Path.Combine(newPath, fileName));
             }
         }
     }

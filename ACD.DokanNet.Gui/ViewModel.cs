@@ -15,8 +15,8 @@
 
     public class ViewModel : INotifyPropertyChanged, IDisposable
     {
-        private bool disposedValue = false;
-        private Timer refreshTimer;
+        private readonly Timer refreshTimer;
+        private bool disposedValue;
 
         private UpdateChecker.UpdateInfo updateAvailable;
 
@@ -40,7 +40,6 @@
             }
         }
 
-        // To detect redundant calls
         public event PropertyChangedEventHandler PropertyChanged;
 
         public List<AvailableCloud> AvailableClouds { get; private set; }
@@ -55,13 +54,7 @@
 
         public string DownloadFilesTooltip => string.Join("\r\n", DownloadFiles.Select(f => f.FileName));
 
-        public bool HasFreeLetters
-        {
-            get
-            {
-                return VirtualDriveWrapper.GetFreeDriveLettes().Count > 0;
-            }
-        }
+        public bool HasFreeLetters => VirtualDriveWrapper.GetFreeDriveLettes().Any();
 
         public Visibility HasUpdate => UpdateAvailable != null ? Visibility.Visible : Visibility.Collapsed;
 
@@ -167,7 +160,10 @@
 
         public string Version => Assembly.GetEntryAssembly().GetName().Version.ToString();
 
-        private App App => App.Current;
+        private static App App => App.Current;
+
+        // TODO
+        public bool CanClearCache => true;
 
         public void AddCloud(AvailableCloud selectedItem)
         {
@@ -180,7 +176,7 @@
 
             if (Clouds.Any(c => c.CloudInfo.Name == name))
             {
-                int i = 1;
+                var i = 1;
                 while (Clouds.Any(c => c.CloudInfo.Name == name + " " + i))
                 {
                     i++;
@@ -340,7 +336,7 @@
 
         public void Shutdown()
         {
-            App.Dispatcher.Invoke(() => { Shutdown(); });
+            App.Dispatcher.Invoke(Shutdown);
         }
 
         protected virtual void Dispose(bool disposing)

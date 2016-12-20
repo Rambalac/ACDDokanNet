@@ -2,7 +2,7 @@
 {
     public class UploadStatisticInfo : AStatisticFileInfo
     {
-        private UploadInfo info;
+        private readonly UploadInfo info;
 
         public UploadStatisticInfo(UploadInfo info)
         {

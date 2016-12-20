@@ -96,7 +96,7 @@
         public async Task<IList<FSItem.Builder>> GetChildren(string id)
         {
             var nodes = await GetAllChildren(id);
-            return nodes.Select(n => FromNode(n)).ToList();
+            return nodes.Select(FromNode).ToList();
         }
 
         public async Task<FSItem.Builder> GetNode(string id)
@@ -282,16 +282,11 @@
 
         private async Task<Item> GetRootItem()
         {
-            if (rootItem == null)
-            {
-                rootItem = await oneDriveClient
-                             .Drive
-                             .Root
-                             .Request()
-                             .GetAsync().ConfigureAwait(false);
-            }
-
-            return rootItem;
+            return rootItem ?? (rootItem = await oneDriveClient
+                       .Drive
+                       .Root
+                       .Request()
+                       .GetAsync().ConfigureAwait(false));
         }
 
         private Exception ProcessException(Exception ex)

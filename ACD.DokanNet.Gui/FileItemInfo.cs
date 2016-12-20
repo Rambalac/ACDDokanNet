@@ -22,7 +22,7 @@
 
         public string CloudIcon { get; set; }
 
-        public string CloudId { get; internal set; }
+        public string CloudId { get; }
 
         public string CloudName { get; set; }
 
@@ -80,7 +80,7 @@
 
         public Visibility HasError => (ErrorMessage == null) ? Visibility.Collapsed : Visibility.Visible;
 
-        public string Id { get; set; }
+        public string Id { get; }
 
         public int Progress => Total != 0 ? (int)(Done * 100 / Total) : 0;
 

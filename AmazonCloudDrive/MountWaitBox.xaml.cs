@@ -7,7 +7,7 @@
     /// <summary>
     /// Interaction logic for MountWaitBox.xaml
     /// </summary>
-    public partial class MountWaitBox : Window
+    public partial class MountWaitBox
     {
         public MountWaitBox()
         {

@@ -13,7 +13,7 @@
         private static readonly Regex VersionExp = new Regex("^\\D*(\\d.*$)");
         private readonly long repositoryId;
 
-        private string githubApiAccessId;
+        private readonly string githubApiAccessId;
 
         public UpdateChecker(long repositoryId, string githubApiAccessId)
         {
@@ -45,8 +45,8 @@
                 currentVersion = Assembly.GetEntryAssembly().GetName().Version;
             }
 
-            Semver.SemVersion curver = new Semver.SemVersion(currentVersion.Major, currentVersion.Minor, currentVersion.Build, string.Empty, currentVersion.Revision.ToString());
-            var result = releases.FirstOrDefault((r) =>
+            var curver = new Semver.SemVersion(currentVersion.Major, currentVersion.Minor, currentVersion.Build, string.Empty, currentVersion.Revision.ToString());
+            var result = releases.FirstOrDefault(r =>
               {
                   var tagMatch = VersionExp.Match(r.TagName);
                   if (!tagMatch.Success)

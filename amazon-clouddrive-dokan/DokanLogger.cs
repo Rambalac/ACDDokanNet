@@ -1,10 +1,5 @@
 ﻿namespace Azi.Cloud.DokanNet
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Diagnostics.Contracts;
-    using System.Linq;
-    using global::DokanNet;
     using global::DokanNet.Logging;
     using Tools;
 

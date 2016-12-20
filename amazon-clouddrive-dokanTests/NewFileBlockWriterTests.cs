@@ -12,15 +12,15 @@ namespace Azi.Cloud.DokanNet.Tests
     {
         private NewFileBlockWriter writer;
 
-        private FSItem item = new FSItem.Builder()
+        private readonly FSItem item = new FSItem.Builder()
         {
             Id = "id",
             ParentPath = "p",
             Name = "n",
-            ParentIds = new System.Collections.Concurrent.ConcurrentBag<string>(new string[] { "id" })
+            ParentIds = new System.Collections.Concurrent.ConcurrentBag<string>(new[] { "id" })
         }.Build();
 
-        private string tempPath = Path.Combine(Path.GetTempPath(), Path.GetTempFileName());
+        private readonly string tempPath = Path.Combine(Path.GetTempPath(), Path.GetTempFileName());
 
         [Fact]
         public void MultipleParallelWriteTest()
@@ -65,7 +65,7 @@ namespace Azi.Cloud.DokanNet.Tests
             File.Delete(tempPath);
         }
 
-        private bool disposedValue = false; // To detect redundant calls
+        private bool disposedValue; // To detect redundant calls
 
         void Dispose(bool disposing)
         {

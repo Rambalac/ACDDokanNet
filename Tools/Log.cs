@@ -1,4 +1,5 @@
-﻿namespace Azi.Tools
+﻿// ReSharper disable ExplicitCallerInfoArgument
+namespace Azi.Tools
 {
     using System;
     using System.Diagnostics;

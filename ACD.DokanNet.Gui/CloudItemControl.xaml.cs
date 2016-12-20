@@ -1,14 +1,15 @@
-﻿namespace Azi.Cloud.DokanNet.Gui
+﻿using System.Diagnostics.Contracts;
+
+namespace Azi.Cloud.DokanNet.Gui
 {
     using System;
     using System.Windows;
-    using System.Windows.Controls;
     using Tools;
 
     /// <summary>
     /// Interaction logic for CloudItemControl.xaml
     /// </summary>
-    public partial class CloudItemControl : UserControl
+    public partial class CloudItemControl
     {
         public CloudItemControl()
         {
@@ -24,6 +25,8 @@
 
         private async void MountButton_Click(object sender, RoutedEventArgs e)
         {
+            var win = Window.GetWindow(this);
+            Contract.Assert(win != null, "win!=null");
             try
             {
                 await Model.MountAsync();
@@ -31,10 +34,10 @@
             catch (Exception ex)
             {
                 Log.Error(ex);
-                MessageBox.Show(Window.GetWindow(this), ex.Message);
+                MessageBox.Show(win, ex.Message);
             }
 
-            Window.GetWindow(this).Activate();
+            win.Activate();
         }
 
         private async void UnmountButton_Click(object sender, RoutedEventArgs e)

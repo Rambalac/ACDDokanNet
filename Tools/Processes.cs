@@ -1,4 +1,6 @@
-﻿namespace Azi.Tools
+﻿using System.Diagnostics.Contracts;
+
+namespace Azi.Tools
 {
     using System;
     using System.Collections.Concurrent;
@@ -10,7 +12,7 @@
 
         public static string GetProcessOwner(int id)
         {
-            var result = PidOwner.GetOrAdd(id, (processId) => new ProcInfo { UserName = GetOwner(processId) });
+            var result = PidOwner.GetOrAdd(id, processId => new ProcInfo { UserName = GetOwner(processId) });
             if (DateTime.UtcNow > result.Expire)
             {
                 result = new ProcInfo { UserName = GetOwner(id) };
@@ -22,13 +24,15 @@
 
         private static string GetOwner(int processId)
         {
-            string query = "Select * From Win32_Process Where ProcessID = " + processId;
+            var query = "Select * From Win32_Process Where ProcessID = " + processId;
             var searcher = new ManagementObjectSearcher(query);
             var processList = searcher.Get();
 
-            foreach (ManagementObject obj in processList)
+            foreach (var o in processList)
             {
-                string[] argList = { string.Empty, string.Empty };
+                var obj = o as ManagementObject;
+                Contract.Assert(obj != null, "obj != null");
+                object[] argList = { string.Empty, string.Empty };
                 var returnVal = Convert.ToInt32(obj.InvokeMethod("GetOwner", argList));
                 if (returnVal == 0)
                 {

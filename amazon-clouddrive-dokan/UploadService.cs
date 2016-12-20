@@ -1,4 +1,6 @@
-﻿namespace Azi.Cloud.DokanNet
+﻿using System.Diagnostics.Contracts;
+
+namespace Azi.Cloud.DokanNet
 {
     using System;
     using System.Collections.Concurrent;
@@ -92,7 +94,7 @@
             await WriteInfo(path + ".info", info);
             leftUploads.Add(info);
             allUploads.TryAdd(info.Id, info);
-            await OnUploadAdded?.Invoke(info);
+            await (OnUploadAdded?.Invoke(info) ?? Task.FromResult(0));
         }
 
         public async Task AddUpload(FSItem parent, string file)
@@ -178,7 +180,7 @@
                 return;
             }
 
-            serviceTask = Task.Factory.StartNew(() => UploadTask(), cancellation.Token, TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            serviceTask = Task.Factory.StartNew(UploadTask, cancellation.Token, TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
 
         public void Stop()
@@ -208,12 +210,10 @@
                 await Task.Delay(100);
             }
 
-            for (int i = 0; i < uploadLimit; i++)
+            for (var i = 0; i < uploadLimit; i++)
             {
                 await uploadLimitSemaphore.WaitAsync();
             }
-
-            return;
         }
 
         protected virtual void Dispose(bool disposing)
@@ -242,7 +242,7 @@
             await WriteInfo(path + ".info", info);
             leftUploads.Add(info);
             allUploads.TryAdd(info.Id, info);
-            await OnUploadAdded?.Invoke(info);
+            await (OnUploadAdded?.Invoke(info) ?? Task.FromResult(0));
         }
 
         private void CheckOldUploads()
@@ -263,8 +263,7 @@
 
                     try
                     {
-                        var fileinfo = new FileInfo(Path.Combine(info.DirectoryName, id));
-                        var item = FSItem.MakeUploading(uploadinfo.Path, id, uploadinfo.ParentId, fileinfo.Length);
+                        Contract.Assert(info.DirectoryName != null, "info.DirectoryName!=null");
                         leftUploads.Add(uploadinfo);
                         allUploads.TryAdd(id, uploadinfo);
                         OnUploadAdded?.Invoke(uploadinfo);
@@ -347,7 +346,7 @@
                             item.ParentId,
                             Path.GetFileName(item.Path),
                             () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true),
-                            (p) => UploadProgress(item, p));
+                            p => UploadProgress(item, p));
                     }
                     else
                     {
@@ -366,7 +365,7 @@
                         node = await cloud.Files.Overwrite(
                             item.Id,
                             () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true),
-                            (p) => UploadProgress(item, p));
+                            p => UploadProgress(item, p));
                     }
 
                     if (node == null)
@@ -453,7 +452,7 @@
                         }
 
                         Log.Error($"Gateway timeout happened: {item.Path}\r\nBut after 30 seconds file still did not appear.");
-                        await OnUploadFailed(item, FailReason.Unexpected, $"Gateway timeout happened but after 30 seconds file still did not appear");
+                        await OnUploadFailed(item, FailReason.Unexpected, "Gateway timeout happened but after 30 seconds file still did not appear");
                     }
                     else
                     {

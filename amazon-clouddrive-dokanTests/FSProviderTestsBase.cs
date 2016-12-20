@@ -23,10 +23,12 @@ namespace Azi.Cloud.DokanNet.Tests
 
             DeleteDir("TempCache");
 
-            Provider = new FSProvider(Amazon, (a, b, c) => { return Task.FromResult(0); });
-            Provider.CachePath = "TempCache";
-            Provider.SmallFilesCacheSize = 20 * (1 << 20);
-            Provider.SmallFileSizeLimit = 1 * (1 << 20);
+            Provider = new FSProvider(Amazon, (a, b, c) => Task.FromResult(0))
+            {
+                CachePath = "TempCache",
+                SmallFilesCacheSize = 20*(1 << 20),
+                SmallFileSizeLimit = 1*(1 << 20)
+            };
 
             try
             {
@@ -83,9 +85,11 @@ namespace Azi.Cloud.DokanNet.Tests
         protected async Task<IHttpCloud> Authenticate()
         {
             var settings = Properties.Settings.Default;
-            var amazon = new AmazonCloud();
-            amazon.OnAuthUpdated = this;
-            amazon.Id = "UnitTest" + Guid.NewGuid().ToString();
+            var amazon = new AmazonCloud
+            {
+                OnAuthUpdated = this,
+                Id = "UnitTest" + Guid.NewGuid()
+            };
 
             using (var cs = new CancellationTokenSource())
             {
@@ -141,7 +145,7 @@ namespace Azi.Cloud.DokanNet.Tests
                 return;
             }
 
-            foreach (string directory in Directory.GetDirectories(path))
+            foreach (var directory in Directory.GetDirectories(path))
             {
                 DeleteDir(directory);
             }

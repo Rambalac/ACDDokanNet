@@ -1,12 +1,11 @@
 ﻿namespace Azi.Cloud.DokanNet.Gui
 {
     using System.Windows;
-    using System.Windows.Controls;
 
     /// <summary>
     /// Interaction logic for FileItem.xaml
     /// </summary>
-    public partial class FileItem : UserControl
+    public partial class FileItem
     {
         public FileItem()
         {

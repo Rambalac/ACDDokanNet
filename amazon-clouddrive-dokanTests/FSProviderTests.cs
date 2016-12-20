@@ -1,11 +1,8 @@
-﻿using Azi.Cloud.Common;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Azi.Cloud.DokanNet.Tests
 {
@@ -104,7 +101,7 @@ namespace Azi.Cloud.DokanNet.Tests
 
             var buf2 = new byte[17];
             var stream = await Amazon.Files.Download(info.Id);
-            var red = await stream.ReadAsync(buf2, 0, 17);
+            await stream.ReadAsync(buf2, 0, 17);
 
             Assert.Equal(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2, 1 }, buf2);
         }
@@ -139,7 +136,7 @@ namespace Azi.Cloud.DokanNet.Tests
 
             var buf2 = new byte[10];
             var stream = await Amazon.Files.Download(info.Id);
-            int red = await stream.ReadAsync(buf2, 0, 10);
+            await stream.ReadAsync(buf2, 0, 10);
 
             Assert.Equal(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, buf2);
         }
@@ -169,7 +166,7 @@ namespace Azi.Cloud.DokanNet.Tests
 
             var buf2 = new byte[10];
             var stream = await Amazon.Files.Download(info.Id);
-            int red = await stream.ReadAsync(buf2, 0, 10);
+            await stream.ReadAsync(buf2, 0, 10);
 
             Assert.Equal(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, buf2);
         }

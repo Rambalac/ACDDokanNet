@@ -4,7 +4,7 @@
 
     public class DownloadStatisticInfo : AStatisticFileInfo
     {
-        private FSItem info;
+        private readonly FSItem info;
 
         public DownloadStatisticInfo(FSItem info)
         {

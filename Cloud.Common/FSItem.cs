@@ -8,8 +8,6 @@
     {
         private long length;
 
-        private object lengthLock = new object();
-
         public FSItem(FSItem item)
         {
             IsUploading = item.IsUploading;
@@ -39,7 +37,7 @@
 
         public bool IsDir { get; internal set; }
 
-        public bool IsUploading { get; internal set; } = false;
+        public bool IsUploading { get; internal set; }
 
         public DateTime LastAccessTime { get; set; }
 
@@ -61,7 +59,7 @@
         public string Name => System.IO.Path.GetFileName(Path);
 
         // To replacement to cache files in path that does not exist
-        public bool NotExistingDummy { get; private set; } = false;
+        public bool NotExistingDummy { get; private set; }
 
         public ConcurrentBag<string> ParentIds { get; private set; }
 
@@ -89,7 +87,7 @@
                 CreationTime = now,
                 LastAccessTime = now,
                 LastWriteTime = now,
-                ParentIds = new ConcurrentBag<string>(new string[] { parentId })
+                ParentIds = new ConcurrentBag<string>(new[] { parentId })
             };
         }
 
@@ -125,7 +123,7 @@
 
             public string ParentPath { get; set; }
 
-            public FSItem.Builder SetParentPath(string path)
+            public Builder SetParentPath(string path)
             {
                 ParentPath = path;
                 return this;
