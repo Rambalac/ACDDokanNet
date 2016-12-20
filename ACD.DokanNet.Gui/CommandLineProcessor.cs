@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.IO.Pipes;
     using System.Linq;
     using System.Text;
     using System.Text.RegularExpressions;
@@ -13,13 +14,37 @@
     {
         private static readonly Regex SplitRegex = new Regex(@"""(?<match>[^""]*)""|'(?<match>[^']*)'|(?<match>[^\s]+)");
         private readonly ViewModel model;
+        private readonly string id;
+        private bool isShuttingDown;
 
-        public CommandLineProcessor(ViewModel model)
+        public CommandLineProcessor(ViewModel model, string id)
         {
             this.model = model;
+            this.id = id;
         }
 
-        public async Task Process(Stream pipe)
+        public void Stop()
+        {
+            isShuttingDown = true;
+        }
+
+        public void Start()
+        {
+            Task.Factory.StartNew(MainLoop, TaskCreationOptions.LongRunning);
+        }
+
+        private static async Task ShowCommands(TextWriter writer)
+        {
+            await writer.WriteLineAsync("Empty or unknown command");
+            await writer.WriteLineAsync("Available commands:");
+            await writer.WriteLineAsync("    shutdown");
+            await writer.WriteLineAsync("    list");
+            await writer.WriteLineAsync("    mount <drive letter or cloud name in quotas>");
+            await writer.WriteLineAsync("    unmount <drive letter or cloud name in quotas>");
+            await writer.WriteLineAsync("    version");
+        }
+
+        private async Task Process(Stream pipe)
         {
             var writer = new StreamWriter(pipe, Encoding.UTF8, 1024, true);
             var reader = new StreamReader(pipe, Encoding.UTF8, false, 1024, true);
@@ -47,7 +72,7 @@
             }
         }
 
-        private async Task ProcessLine(List<string> parts, TextWriter writer)
+        private async Task ProcessLine(IReadOnlyList<string> parts, TextWriter writer)
         {
             if (parts.Count > 0)
             {
@@ -89,17 +114,6 @@
                 var mounted = cloud.IsMounted ? "mounted" : "unmounted";
                 await writer.WriteLineAsync($"{cloud.CloudInfo.DriveLetter},\"{cloud.CloudInfo.Name}\",{mounted}");
             }
-        }
-
-        private async Task ShowCommands(TextWriter writer)
-        {
-            await writer.WriteLineAsync("Empty or unknown command");
-            await writer.WriteLineAsync("Available commands:");
-            await writer.WriteLineAsync("    shutdown");
-            await writer.WriteLineAsync("    list");
-            await writer.WriteLineAsync("    mount <drive letter or cloud name in quotas>");
-            await writer.WriteLineAsync("    unmount <drive letter or cloud name in quotas>");
-            await writer.WriteLineAsync("    version");
         }
 
         private async Task CommandMount(TextWriter writer, string v)
@@ -162,6 +176,31 @@
             await cloud.UnmountAsync();
 
             await writer.WriteLineAsync("Done");
+        }
+
+        private async Task MainLoop()
+        {
+            do
+            {
+                try
+                {
+                    using (var pipe = new NamedPipeServerStream("pipe" + id, PipeDirection.InOut, 2, PipeTransmissionMode.Byte, PipeOptions.Asynchronous))
+                    {
+                        do
+                        {
+                            await pipe.WaitForConnectionAsync();
+                            await Process(pipe);
+                            pipe.WaitForPipeDrain();
+                        }
+                        while (!isShuttingDown);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex);
+                }
+            }
+            while (!isShuttingDown);
         }
     }
 }

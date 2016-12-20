@@ -1,11 +1,8 @@
-﻿using System.Diagnostics.Contracts;
-using Tools;
-
-namespace Azi.Cloud.DokanNet.Gui
+﻿namespace Azi.Cloud.DokanNet.Gui
 {
     using System;
+    using System.Diagnostics.Contracts;
     using System.IO;
-    using System.IO.Pipes;
     using System.Linq;
     using System.Reflection;
     using System.Threading;
@@ -27,11 +24,12 @@ namespace Azi.Cloud.DokanNet.Gui
     {
         private const string AppName = "ACDDokanNet";
         private const string RegistryAutorunPath = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
+        private readonly UpdateChecker updateCheck = new UpdateChecker(47739891);
         private bool disposedValue;
 
         private Mutex startedMutex;
-        private readonly UpdateChecker updateCheck = new UpdateChecker(47739891);
         private DispatcherTimer updateCheckTimer;
+        private CommandLineProcessor commandLineProcessor;
 
         public static bool IsShuttingDown { get; private set; }
 
@@ -226,37 +224,8 @@ namespace Azi.Cloud.DokanNet.Gui
 
         private void CreateServerPipe()
         {
-            var commandLineProcessor = new CommandLineProcessor(Model);
-
-            Task.Factory.StartNew(
-                async () =>
-                {
-                    do
-                    {
-                        try
-                        {
-                            using (var pipe = new NamedPipeServerStream("pipe" + AppName, PipeDirection.InOut, 2, PipeTransmissionMode.Byte, PipeOptions.Asynchronous))
-                            {
-                                try
-                                {
-                                    await pipe.WaitForConnectionAsync();
-                                    await commandLineProcessor.Process(pipe);
-                                    pipe.WaitForPipeDrain();
-                                }
-                                catch (Exception ex)
-                                {
-                                    Log.Error(ex);
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Error(ex);
-                        }
-                    }
-                    while (!IsShuttingDown);
-                },
-                TaskCreationOptions.LongRunning);
+            commandLineProcessor = new CommandLineProcessor(Model, AppName);
+            commandLineProcessor.Start();
         }
 
         private void ExitMenuItem_Click(object sender, RoutedEventArgs e)
@@ -282,6 +251,7 @@ namespace Azi.Cloud.DokanNet.Gui
             }
 
             IsShuttingDown = true;
+            commandLineProcessor.Stop();
             Shutdown();
         }
 

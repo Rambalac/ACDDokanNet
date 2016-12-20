@@ -1,9 +1,8 @@
-﻿using System.Diagnostics.Contracts;
-
-namespace Azi.Tools
+﻿namespace Azi.Tools
 {
     using System;
     using System.Collections.Concurrent;
+    using System.Diagnostics.Contracts;
     using System.Management;
 
     public static class Processes

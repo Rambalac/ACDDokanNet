@@ -160,10 +160,10 @@
 
         public string Version => Assembly.GetEntryAssembly().GetName().Version.ToString();
 
-        private static App App => App.Current;
-
         // TODO
         public bool CanClearCache => true;
+
+        private static App App => App.Current;
 
         public void AddCloud(AvailableCloud selectedItem)
         {

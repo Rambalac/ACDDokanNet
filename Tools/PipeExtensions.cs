@@ -1,4 +1,4 @@
-﻿namespace Tools
+﻿namespace Azi.Tools
 {
     using System;
     using System.IO.Pipes;
