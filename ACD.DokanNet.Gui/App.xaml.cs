@@ -33,7 +33,7 @@
 
         public static bool IsShuttingDown { get; private set; }
 
-        public static new App Current => Application.Current as App;
+        public static App MyApp => Current as App;
 
         public ViewModel Model => FindResource("Model") as ViewModel;
 

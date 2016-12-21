@@ -163,7 +163,7 @@
         // TODO
         public bool CanClearCache => true;
 
-        private static App App => App.Current;
+        private static App App => App.MyApp;
 
         public void AddCloud(AvailableCloud selectedItem)
         {
@@ -336,7 +336,7 @@
 
         public void Shutdown()
         {
-            App.Dispatcher.Invoke(Shutdown);
+            App.Dispatcher.Invoke(App.Shutdown);
         }
 
         protected virtual void Dispose(bool disposing)

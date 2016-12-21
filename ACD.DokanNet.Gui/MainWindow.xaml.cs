@@ -54,7 +54,7 @@
         {
             try
             {
-                await App.Current.ClearCache();
+                await App.MyApp.ClearCache();
             }
             catch (InvalidOperationException ex)
             {

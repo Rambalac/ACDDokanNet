@@ -16,12 +16,12 @@
 
         private void DismissButton_Click(object sender, RoutedEventArgs e)
         {
-            App.Current.Model.UploadFiles.Remove(Item);
+            App.MyApp.Model.UploadFiles.Remove(Item);
         }
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)
         {
-            App.Current.CancelUpload(Item);
+            App.MyApp.CancelUpload(Item);
         }
     }
 }

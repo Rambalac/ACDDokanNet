@@ -102,7 +102,7 @@
 
         public Visibility UnmountVisible => (!mounting && (MountLetter != null)) ? Visibility.Visible : Visibility.Collapsed;
 
-        private App App => App.Current;
+        private App App => App.MyApp;
 
         public async Task Delete()
         {

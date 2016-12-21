@@ -11,7 +11,7 @@
 
         public void Execute(object parameter)
         {
-            App.Current.OpenSettings();
+            App.MyApp.OpenSettings();
         }
     }
 }
