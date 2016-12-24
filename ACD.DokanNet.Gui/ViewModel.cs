@@ -341,15 +341,17 @@
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!disposedValue)
+            if (disposedValue)
             {
-                if (disposing)
-                {
-                    refreshTimer.Dispose();
-                }
-
-                disposedValue = true;
+                return;
             }
+
+            if (disposing)
+            {
+                refreshTimer.Dispose();
+            }
+
+            disposedValue = true;
         }
 
         private void BuildAvailableClouds()

@@ -129,11 +129,7 @@
         // This code added to correctly implement the disposable pattern.
         public void Dispose()
         {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
             Dispose(true);
-
-            // TODO: uncomment the following line if the finalizer is overridden above.
-            // GC.SuppressFinalize(this);
         }
 
         public IEnumerable<string> GetDir(string filePath)
@@ -245,24 +241,24 @@
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!disposedValue)
+            if (disposedValue)
             {
-                if (disposing)
-                {
-                    lok.Dispose();
-                    cancellation.Dispose();
-                }
-
-                // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
-                // TODO: set large fields to null.
-                disposedValue = true;
+                return;
             }
+
+            if (disposing)
+            {
+                lok.Dispose();
+                cancellation.Dispose();
+            }
+
+            disposedValue = true;
         }
 
         private async Task Cleaner()
         {
             var token = cancellation.Token;
-            while (!token.IsCancellationRequested)
+            while (!token.IsCancellationRequested && !disposedValue)
             {
                 try
                 {

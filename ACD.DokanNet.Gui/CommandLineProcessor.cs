@@ -186,13 +186,9 @@
                 {
                     using (var pipe = new NamedPipeServerStream("pipe" + id, PipeDirection.InOut, 2, PipeTransmissionMode.Byte, PipeOptions.Asynchronous))
                     {
-                        do
-                        {
-                            await pipe.WaitForConnectionAsync();
-                            await Process(pipe);
-                            pipe.WaitForPipeDrain();
-                        }
-                        while (!isShuttingDown);
+                        await pipe.WaitForConnectionAsync();
+                        await Process(pipe);
+                        pipe.WaitForPipeDrain();
                     }
                 }
                 catch (Exception ex)
