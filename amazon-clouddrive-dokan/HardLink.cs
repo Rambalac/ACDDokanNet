@@ -1,12 +1,18 @@
 ﻿namespace Azi.Cloud.DokanNet
 {
     using System;
+    using System.ComponentModel;
+    using System.Runtime.InteropServices;
 
     public static class HardLink
     {
-        public static bool Create(string targetPath, string hardLinkPath)
+        public static void Create(string targetPath, string hardLinkPath)
         {
-            return NativeMethods.CreateHardLink(hardLinkPath, targetPath, IntPtr.Zero);
+            var res = NativeMethods.CreateHardLink(hardLinkPath, targetPath, IntPtr.Zero);
+            if (!res)
+            {
+                throw new Win32Exception(Marshal.GetLastWin32Error());
+            }
         }
     }
 }

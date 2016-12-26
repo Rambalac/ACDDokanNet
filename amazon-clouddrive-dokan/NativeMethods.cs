@@ -11,10 +11,13 @@
             Directory = 1
         }
 
-        [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
-        internal static extern bool CreateSymbolicLink(string lpSymlinkFileName, string lpTargetFileName, SymbolicLink dwFlags);
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        internal static extern bool CreateSymbolicLink(
+            string lpSymlinkFileName,
+            string lpTargetFileName,
+            SymbolicLink dwFlags);
 
-        [DllImport("Kernel32.dll", CharSet = CharSet.Unicode)]
+        [DllImport("Kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         internal static extern bool CreateHardLink(
           string lpFileName,
           string lpExistingFileName,

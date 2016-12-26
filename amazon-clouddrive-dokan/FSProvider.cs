@@ -537,14 +537,15 @@
         {
             Log.Trace("Upload from Shell");
             var result = new ByteArrayBlockWriter();
-            result.OnClose = async () =>
+            result.OnClose = () =>
               {
-                  var bytes = result.Content.ToArray();
-                  var str = Encoding.UTF8.GetString(bytes);
-                  var list = JsonConvert.DeserializeObject<CloudDokanNetUploadHereInfo>(str);
                   try
                   {
-                      await MakeUploads(item, list.Files);
+                      var bytes = result.Content.ToArray();
+                      var str = Encoding.UTF8.GetString(bytes);
+                      var list = JsonConvert.DeserializeObject<CloudDokanNetUploadHereInfo>(str);
+                      Task.Factory.StartNew(async () => await MakeUploads(item, list.Files), TaskCreationOptions.LongRunning);
+                      return Task.FromResult(0);
                   }
                   catch (Exception ex)
                   {
@@ -623,26 +624,41 @@
 
         private async Task MakeUploads(FSItem dest, IEnumerable<string> files)
         {
-            var currentfiles = new Queue<UploadTaskItem>(files.Select(f => new UploadTaskItem { Parent = dest, File = f }));
-
-            while (currentfiles.Count > 0)
+            try
             {
-                var item = currentfiles.Dequeue();
-                if (Directory.Exists(item.File))
+                var currentfiles =
+                    new Queue<UploadTaskItem>(files.Select(f => new UploadTaskItem { Parent = dest, File = f }));
+
+                while (currentfiles.Count > 0)
                 {
-                    var created = await CheckCreateFolder(item.Parent, Path.GetFileName(item.File));
-                    if (created != null)
+                    var item = currentfiles.Dequeue();
+                    if (Directory.Exists(item.File))
                     {
-                        foreach (var file in Directory.EnumerateFileSystemEntries(item.File))
+                        var created = await CheckCreateFolder(item.Parent, Path.GetFileName(item.File));
+                        if (created != null)
                         {
-                            currentfiles.Enqueue(new UploadTaskItem { Parent = created, File = file });
+                            foreach (var file in Directory.EnumerateFileSystemEntries(item.File))
+                            {
+                                currentfiles.Enqueue(new UploadTaskItem { Parent = created, File = file });
+                            }
+                        }
+                    }
+                    else
+                    {
+                        try
+                        {
+                            await UploadService.AddUpload(item.Parent, item.File);
+                        }
+                        catch (Exception e)
+                        {
+                            Log.Error(e);
                         }
                     }
                 }
-                else
-                {
-                    await UploadService.AddUpload(item.Parent, item.File);
-                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex);
             }
         }
 
