@@ -1,9 +1,8 @@
-﻿using System.Diagnostics.Contracts;
-
-namespace Azi.Cloud.DokanNet
+﻿namespace Azi.Cloud.DokanNet
 {
     using System;
     using System.Collections.Concurrent;
+    using System.Diagnostics.Contracts;
     using System.IO;
     using System.Linq;
     using System.Threading;
@@ -22,6 +21,14 @@ namespace Azi.Cloud.DokanNet
         Unexpected,
         Cancelled,
         FileNotFound
+    }
+
+    public enum UploadState
+    {
+        Waiting = 0,
+        ContentId,
+        Uploading,
+        Finishing
     }
 
     public class UploadService : IDisposable
@@ -52,6 +59,8 @@ namespace Azi.Cloud.DokanNet
 
         public delegate Task OnUploadProgressDelegate(UploadInfo item, long done);
 
+        public delegate Task OnUploadStateDelegate(UploadInfo item, UploadState state);
+
         public string CachePath
         {
             get
@@ -81,6 +90,8 @@ namespace Azi.Cloud.DokanNet
         public OnUploadFinishedDelegate OnUploadFinished { get; set; }
 
         public OnUploadProgressDelegate OnUploadProgress { get; set; }
+
+        public OnUploadStateDelegate OnUploadState { get; set; }
 
         public async Task AddOverwrite(FSItem item)
         {
@@ -307,6 +318,8 @@ namespace Azi.Cloud.DokanNet
             var path = Path.Combine(cachePath, item.Id);
             try
             {
+                var itemName = Path.GetFileName(item.Path);
+                var parentId = item.ParentId;
                 try
                 {
                     if (item.Length == 0)
@@ -320,9 +333,16 @@ namespace Azi.Cloud.DokanNet
 
                     Log.Trace("Started upload: " + item.Path);
                     FSItem.Builder node;
+
+                    if (item.ContentId == null)
+                    {
+                        await SetState(item, UploadState.ContentId);
+                        item.ContentId = await CalcContentId(path);
+                    }
+
                     if (!item.Overwrite)
                     {
-                        var checkparent = await cloud.Nodes.GetNode(item.ParentId);
+                        var checkparent = await cloud.Nodes.GetNode(parentId);
                         if (checkparent == null || !checkparent.IsDir)
                         {
                             Log.Error("Folder does not exist to upload file: " + item.Path);
@@ -332,7 +352,7 @@ namespace Azi.Cloud.DokanNet
                             return;
                         }
 
-                        var checknode = await cloud.Nodes.GetChild(item.ParentId, Path.GetFileName(item.Path));
+                        var checknode = await cloud.Nodes.GetChild(parentId, itemName);
                         if (checknode != null)
                         {
                             Log.Warn("File with such name already exists and Upload is New: " + item.Path);
@@ -342,11 +362,35 @@ namespace Azi.Cloud.DokanNet
                             return;
                         }
 
+                        var lastPresenceCheck = DateTime.UtcNow;
+
                         node = await cloud.Files.UploadNew(
-                            item.ParentId,
-                            Path.GetFileName(item.Path),
+                            parentId,
+                            itemName,
                             () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true),
-                            p => UploadProgress(item, p));
+                            async p =>
+                            {
+                                if (DateTime.UtcNow - lastPresenceCheck > TimeSpan.FromMinutes(10))
+                                {
+                                    lastPresenceCheck = DateTime.UtcNow;
+                                    var checknode2 = await cloud.Nodes.GetChild(parentId, itemName);
+                                    if (checknode2 != null)
+                                    {
+                                        if (item.ContentId == checknode2.ContentId)
+                                        {
+                                            Log.Warn($"Found already existing file. File content is the same. Cancel upload new: {item.Path}");
+                                            item.Cancellation.Cancel();
+                                        }
+                                        else
+                                        {
+                                            Log.Warn($"Found already existing file. File content is NOT the same. Conflict: {item.Path}");
+                                            throw new CloudException(System.Net.HttpStatusCode.Conflict, null);
+                                        }
+                                    }
+                                }
+
+                                await UploadProgress(item, p);
+                            });
                     }
                     else
                     {
@@ -362,10 +406,18 @@ namespace Azi.Cloud.DokanNet
                             return;
                         }
 
-                        node = await cloud.Files.Overwrite(
-                            item.Id,
-                            () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true),
-                            p => UploadProgress(item, p));
+                        if (item.ContentId == checknode.ContentId)
+                        {
+                            Log.Warn($"File content is the same. Skip overwrite: {item.Path}");
+                            node = checknode;
+                        }
+                        else
+                        {
+                            node = await cloud.Files.Overwrite(
+                                item.Id,
+                                () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true),
+                                async p => await UploadProgress(item, p));
+                        }
                     }
 
                     if (node == null)
@@ -409,7 +461,7 @@ namespace Azi.Cloud.DokanNet
                 {
                     if (ex.Error == System.Net.HttpStatusCode.Conflict)
                     {
-                        var node = await cloud.Nodes.GetChild(item.ParentId, Path.GetFileName(item.Path));
+                        var node = await cloud.Nodes.GetChild(parentId, itemName);
                         if (node != null)
                         {
                             Log.Warn($"Upload finished with conflict and file does exist: {item.Path}\r\n{ex}");
@@ -437,7 +489,7 @@ namespace Azi.Cloud.DokanNet
                         Log.Warn($"Gateway timeout happened: {item.Path}\r\nWait 30 seconds to check if file was really uploaded");
 
                         await Task.Delay(30000);
-                        var node = await cloud.Nodes.GetChild(item.ParentId, Path.GetFileName(item.Path));
+                        var node = await cloud.Nodes.GetChild(parentId, itemName);
                         if (node != null)
                         {
                             Log.Warn($"Gateway timeout happened: {item.Path}\r\nBut after 30 seconds file did appear");
@@ -479,9 +531,39 @@ namespace Azi.Cloud.DokanNet
             leftUploads.Add(item);
         }
 
-        private void UploadProgress(UploadInfo item, long p)
+        private async Task SetState(UploadInfo item, UploadState state)
         {
-            OnUploadProgress?.Invoke(item, p);
+            if (OnUploadState != null)
+            {
+                await OnUploadState.Invoke(item, state);
+            }
+        }
+
+        private async Task<string> CalcContentId(string path)
+        {
+            using (var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true))
+            {
+                return await cloud.CalculateLocalStreamContentId(file);
+            }
+        }
+
+        private async Task UploadProgress(UploadInfo item, long p)
+        {
+            if (p == 0)
+            {
+                await SetState(item, UploadState.Uploading);
+            }
+
+            if (OnUploadProgress != null)
+            {
+                await OnUploadProgress(item, p);
+            }
+
+            if (p == item.Length)
+            {
+                await SetState(item, UploadState.Finishing);
+            }
+
             cancellation.Token.ThrowIfCancellationRequested();
             item.Cancellation.Token.ThrowIfCancellationRequested();
         }

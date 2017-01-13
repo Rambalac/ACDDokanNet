@@ -18,6 +18,7 @@
             LastAccessTime = item.LastAccessTime;
             LastWriteTime = item.LastWriteTime;
             CreationTime = item.CreationTime;
+            ContentId = item.ContentId;
             ParentIds = new ConcurrentBag<string>(item.ParentIds);
         }
 
@@ -42,6 +43,8 @@
         public DateTime LastAccessTime { get; set; }
 
         public DateTime LastWriteTime { get; set; }
+
+        public string ContentId { get; internal set; }
 
         public long Length
         {
@@ -91,6 +94,16 @@
             };
         }
 
+        public bool IsContentIdEqual(FSItem i)
+        {
+            if (string.IsNullOrWhiteSpace(i?.ContentId) || string.IsNullOrWhiteSpace(ContentId))
+            {
+                return false;
+            }
+
+            return ContentId == i.ContentId;
+        }
+
         public bool IsExpired(int expirationSeconds) => DateTime.UtcNow > FetchTime.AddSeconds(expirationSeconds);
 
         public void MakeNotUploading()
@@ -123,6 +136,8 @@
 
             public string ParentPath { get; set; }
 
+            public string ContentId { get; set; }
+
             public Builder SetParentPath(string path)
             {
                 ParentPath = path;
@@ -144,6 +159,7 @@
                     LastAccessTime = LastAccessTime,
                     LastWriteTime = LastWriteTime,
                     Length = Length,
+                    ContentId = ContentId?.ToLowerInvariant(),
                     ParentIds = new ConcurrentBag<string>(ParentIds),
                     Path = (ParentPath != string.Empty) ? System.IO.Path.Combine(ParentPath, Name) : "\\" + Name
                 };

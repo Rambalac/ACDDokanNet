@@ -1,5 +1,6 @@
 ﻿namespace Azi.Cloud.DokanNet.Gui
 {
+    using System;
     using System.ComponentModel;
     using System.Windows;
 
@@ -7,6 +8,7 @@
     {
         private bool dismissOnly;
         private long done;
+        private UploadState state;
 
         private string errorMessage;
 
@@ -88,21 +90,51 @@
         {
             get
             {
-                if (Total < 1024)
+                if (State == UploadState.Uploading)
                 {
-                    return $"{Done} of {Total} bytes";
+                    if (Total < 1024)
+                    {
+                        return $"{Done} of {Total} bytes";
+                    }
+
+                    if (Total < 1024 * 1024)
+                    {
+                        return $"{Done / 1024} of {Total / 1024} KB";
+                    }
+
+                    return $"{Done / 1024 / 1024} of {Total / 1024 / 1024} MB";
                 }
 
-                if (Total < 1024 * 1024)
+                switch (State)
                 {
-                    return $"{Done / 1024} of {Total / 1024} KB";
+                    case UploadState.Waiting:
+                        return "Waiting in queue";
+                    case UploadState.ContentId:
+                        return "Calculating content hash";
+                    case UploadState.Finishing:
+                        return "Finalazing upload";
+                    default:
+                        throw new ArgumentOutOfRangeException();
                 }
-
-                return $"{Done / 1024 / 1024} of {Total / 1024 / 1024} MB";
             }
         }
 
         public long Total { get; set; }
+
+        public UploadState State
+        {
+            get
+            {
+                return state;
+            }
+
+            set
+            {
+                state = value;
+                OnPropertyChanged(nameof(State));
+                OnPropertyChanged(nameof(ProgressTip));
+            }
+        }
 
         public override bool Equals(object obj)
         {

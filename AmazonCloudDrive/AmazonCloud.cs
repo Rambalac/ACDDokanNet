@@ -5,6 +5,7 @@
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using System.Security.Cryptography;
     using System.Threading;
     using System.Threading.Tasks;
     using Amazon.CloudDrive;
@@ -140,9 +141,13 @@
         {
             try
             {
-                return FromNode(await amazon.Files.Overwrite(id, p, null, uploaded =>
+                return FromNode(await amazon.Files.Overwrite(id, p, null, async uploaded =>
                 {
-                    progress?.Invoke(uploaded);
+                    if (progress != null)
+                    {
+                        await progress.Invoke(uploaded);
+                    }
+
                     return uploaded + (1 << 10);
                 }));
             }
@@ -161,9 +166,13 @@
                     StreamOpener = p,
                     FileName = fileName,
                     ParentId = parentId,
-                    Progress = uploaded =>
+                    ProgressAsync = async uploaded =>
                     {
-                        progress?.Invoke(uploaded);
+                        if (progress != null)
+                        {
+                            await progress.Invoke(uploaded);
+                        }
+
                         return uploaded + (1 << 10);
                     },
                     AllowDuplicate = true
@@ -335,6 +344,15 @@
             await Task.FromResult(0);
         }
 
+        public Task<string> CalculateLocalStreamContentId(Stream stream)
+        {
+            using (var md5 = MD5.Create())
+            {
+                var data = md5.ComputeHash(stream);
+                return Task.FromResult(string.Concat(data.Select(b => b.ToString("x2"))));
+            }
+        }
+
         /// <summary>
         /// Construct FSItem using information from AmazonNode
         /// </summary>
@@ -350,6 +368,7 @@
                 CreationTime = node.createdDate,
                 LastAccessTime = node.modifiedDate,
                 LastWriteTime = node.modifiedDate,
+                ContentId = node.contentProperties?.md5,
                 ParentIds = new ConcurrentBag<string>(node.parents),
                 Name = node.name
             };

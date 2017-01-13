@@ -25,28 +25,36 @@
 
         private void ChangeCacheDir(object sender, RoutedEventArgs e)
         {
-            var path = Environment.ExpandEnvironmentVariables(Model.SmallFileCacheFolder);
-            using (var dlg = new CommonOpenFileDialog
+            try
             {
-                Title = "Select Cache Folder",
-                IsFolderPicker = true,
-                InitialDirectory = path,
-
-                AddToMostRecentlyUsedList = false,
-                AllowNonFileSystemItems = false,
-                DefaultDirectory = path,
-                EnsureFileExists = true,
-                EnsurePathExists = true,
-                EnsureReadOnly = false,
-                EnsureValidNames = true,
-                Multiselect = false,
-                ShowPlacesList = true
-            })
-            {
-                if (dlg.ShowDialog() == CommonFileDialogResult.Ok)
+                var path = Environment.ExpandEnvironmentVariables(Model.SmallFileCacheFolder);
+                using (var dlg = new CommonOpenFileDialog
                 {
-                    Model.SmallFileCacheFolder = dlg.FileName;
+                    Title = "Select Cache Folder",
+                    IsFolderPicker = true,
+                    InitialDirectory = path,
+
+                    AddToMostRecentlyUsedList = false,
+                    AllowNonFileSystemItems = false,
+                    DefaultDirectory = path,
+                    EnsureFileExists = true,
+                    EnsurePathExists = true,
+                    EnsureReadOnly = false,
+                    EnsureValidNames = true,
+                    Multiselect = false,
+                    ShowPlacesList = true
+                })
+                {
+                    if (dlg.ShowDialog() == CommonFileDialogResult.Ok)
+                    {
+                        Model.SmallFileCacheFolder = dlg.FileName;
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex);
+                MessageBox.Show(this, ex.Message);
             }
         }
 
@@ -58,44 +66,61 @@
             }
             catch (InvalidOperationException ex)
             {
+                Log.Error(ex);
                 MessageBox.Show(this, ex.Message);
             }
         }
 
         private void ExportLog_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show(Properties.Resources.LogWarning);
+            try
+            {
+                MessageBox.Show(Properties.Resources.LogWarning);
 
-            Log.Info("Version " + Model.Version);
-            using (var dlg = new CommonSaveFileDialog
-            {
-                Title = "Export Log",
-                DefaultExtension = ".evtx",
-                DefaultFileName = "ACDDokanNetLog.evtx",
-                AddToMostRecentlyUsedList = false,
-                EnsureValidNames = true,
-                ShowPlacesList = true,
-                RestoreDirectory = true
-            })
-            {
-                if (dlg.ShowDialog() == CommonFileDialogResult.Ok)
+                Log.Info("Version " + Model.Version);
+                using (var dlg = new CommonSaveFileDialog
                 {
-                    try
+                    Title = "Export Log",
+                    DefaultExtension = ".evtx",
+                    DefaultFileName = "ACDDokanNetLog.evtx",
+                    AddToMostRecentlyUsedList = false,
+                    EnsureValidNames = true,
+                    ShowPlacesList = true,
+                    RestoreDirectory = true
+                })
+                {
+                    if (dlg.ShowDialog() == CommonFileDialogResult.Ok)
                     {
-                        Log.Export(dlg.FileName);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error(ex);
-                        MessageBox.Show(this, ex.Message);
+                        try
+                        {
+                            Log.Export(dlg.FileName);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Error(ex);
+                            MessageBox.Show(this, ex.Message);
+                        }
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex);
+                MessageBox.Show(this, ex.Message);
             }
         }
 
         private void OpenIssue_Click(object sender, RoutedEventArgs e)
         {
-            Process.Start("https://github.com/Rambalac/ACDDokanNet/issues/new");
+            try
+            {
+                Process.Start("https://github.com/Rambalac/ACDDokanNet/issues/new");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex);
+                MessageBox.Show(this, ex.Message);
+            }
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)

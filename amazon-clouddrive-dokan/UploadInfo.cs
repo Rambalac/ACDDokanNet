@@ -37,7 +37,13 @@
 
         public string ParentId { get; set; }
 
+        /// <summary>
+        /// Gets or sets original remote file path
+        /// </summary>
         public string Path { get; set; }
+
+        [JsonIgnore]
+        public string ContentId { get; set; }
 
         public void Dispose()
         {

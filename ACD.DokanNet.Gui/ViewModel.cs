@@ -226,7 +226,7 @@
             }
         }
 
-        public void OnProviderStatisticsUpdated(CloudMount mount, StatisticUpdateReason reason, AStatisticFileInfo info)
+        public void OnProviderUploadStatisticsUpdated(CloudMount mount, StatisticUpdateReason reason, UploadStatisticInfo info)
         {
             var cloud = mount.CloudInfo;
             switch (reason)
@@ -252,6 +252,78 @@
                     UploadFiles.Remove(new FileItemInfo(cloud.Id, info.Id));
                     break;
 
+                case StatisticUpdateReason.UploadFailed:
+                    {
+                        var item = UploadFiles.Single(f => f.Id == info.Id && f.CloudId == cloud.Id);
+                        item.ErrorMessage = info.ErrorMessage;
+                        UploadFiles.Remove(item);
+                        UploadFiles.Add(item);
+                    }
+
+                    break;
+
+                case StatisticUpdateReason.UploadAborted:
+                    {
+                        var item = UploadFiles.Single(f => f.Id == info.Id && f.CloudId == cloud.Id);
+                        item.ErrorMessage = info.ErrorMessage;
+                        item.DismissOnly = true;
+                        UploadFiles.Remove(item);
+                        UploadFiles.Add(item);
+                    }
+
+                    break;
+
+                case StatisticUpdateReason.Progress:
+                    {
+                        var item = UploadFiles.SingleOrDefault(f => f.Id == info.Id && f.CloudId == cloud.Id);
+                        if (item != null)
+                        {
+                            item.Done = info.Done;
+                        }
+                    }
+
+                    break;
+
+                case StatisticUpdateReason.UploadState:
+                    {
+                        var item = UploadFiles.SingleOrDefault(f => f.Id == info.Id && f.CloudId == cloud.Id);
+                        if (item != null)
+                        {
+                            item.State = info.State;
+                        }
+                    }
+
+                    break;
+
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        public void OnProviderStatisticsUpdated(CloudMount mount, StatisticUpdateReason reason, AStatisticFileInfo info)
+        {
+            var uploadInfo = info as UploadStatisticInfo;
+            if (uploadInfo != null)
+            {
+                OnProviderUploadStatisticsUpdated(mount, reason, uploadInfo);
+                return;
+            }
+
+            var downloadInfo = info as DownloadStatisticInfo;
+            if (downloadInfo != null)
+            {
+                OnProviderDownloadStatisticsUpdated(mount, reason, downloadInfo);
+                return;
+            }
+
+            throw new ArgumentOutOfRangeException(nameof(info));
+        }
+
+        public void OnProviderDownloadStatisticsUpdated(CloudMount mount, StatisticUpdateReason reason, AStatisticFileInfo info)
+        {
+            var cloud = mount.CloudInfo;
+            switch (reason)
+            {
                 case StatisticUpdateReason.DownloadAdded:
                     {
                         var item = new FileItemInfo(cloud.Id, info.Id)
@@ -289,39 +361,6 @@
                     }
 
                     break;
-
-                case StatisticUpdateReason.UploadFailed:
-                    {
-                        var item = UploadFiles.Single(f => f.Id == info.Id && f.CloudId == cloud.Id);
-                        item.ErrorMessage = info.ErrorMessage;
-                        UploadFiles.Remove(item);
-                        UploadFiles.Add(item);
-                    }
-
-                    break;
-
-                case StatisticUpdateReason.UploadAborted:
-                    {
-                        var item = UploadFiles.Single(f => f.Id == info.Id && f.CloudId == cloud.Id);
-                        item.ErrorMessage = info.ErrorMessage;
-                        item.DismissOnly = true;
-                        UploadFiles.Remove(item);
-                        UploadFiles.Add(item);
-                    }
-
-                    break;
-
-                case StatisticUpdateReason.Progress:
-                    {
-                        var item = UploadFiles.SingleOrDefault(f => f.Id == info.Id && f.CloudId == cloud.Id);
-                        if (item != null)
-                        {
-                            item.Done = info.Done;
-                        }
-                    }
-
-                    break;
-
                 default:
                     throw new ArgumentOutOfRangeException();
             }

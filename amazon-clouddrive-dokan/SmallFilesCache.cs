@@ -231,19 +231,22 @@
             var failed = 0;
             try
             {
-                foreach (var file in Directory.GetFiles(oldcachePath, "*", SearchOption.AllDirectories).ToList())
+                if (Directory.Exists(oldcachePath))
                 {
-                    try
+                    foreach (var file in Directory.GetFiles(oldcachePath, "*", SearchOption.AllDirectories).ToList())
                     {
-                        File.Delete(file);
-                    }
-                    catch (IOException)
-                    {
-                        failed++;
+                        try
+                        {
+                            File.Delete(file);
+                        }
+                        catch (IOException)
+                        {
+                            failed++;
+                        }
                     }
                 }
             }
-            catch (FileNotFoundException)
+            catch (Exception e) when (e is FileNotFoundException || e is DirectoryNotFoundException)
             {
                 Log.Warn("Old cache folder was empty");
             }

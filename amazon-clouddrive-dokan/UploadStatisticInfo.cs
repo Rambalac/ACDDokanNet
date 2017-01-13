@@ -22,5 +22,7 @@
         public override string FileName => System.IO.Path.GetFileName(info.Path);
 
         public override string Path => info.Path;
+
+        public UploadState State { get; set; }
     }
 }

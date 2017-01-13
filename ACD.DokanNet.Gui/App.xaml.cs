@@ -1,4 +1,6 @@
-﻿namespace Azi.Cloud.DokanNet.Gui
+﻿using System.Configuration;
+
+namespace Azi.Cloud.DokanNet.Gui
 {
     using System;
     using System.Diagnostics.Contracts;
@@ -152,8 +154,16 @@
                 catch (Exception ex)
                 {
                     Log.Error($"Settings file got currupted. Resetting\r\n{ex}");
-                    Gui.Properties.Settings.Default.Reset();
-                    Gui.Properties.Settings.Default.Save();
+                    var config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.PerUserRoamingAndLocal);
+                    try
+                    {
+                        File.Delete(config.FilePath);
+                    }
+                    catch (Exception ex2)
+                    {
+                        Log.Error($"Could not delete settings file\r\n{ex2}");
+                    }
+
                     await ShowMessage("Settings file got currupted and was reset");
                 }
 

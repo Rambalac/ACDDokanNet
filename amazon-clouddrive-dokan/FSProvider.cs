@@ -23,7 +23,8 @@
         DownloadFailed,
         UploadFailed,
         Progress,
-        UploadAborted
+        UploadAborted,
+        UploadState
     }
 
     public class FSProvider : IDisposable
@@ -79,6 +80,13 @@
                 {
                     itemsTreeCache.Add(item.ToFSItem());
                     await onStatisticsUpdated(cloud, StatisticUpdateReason.UploadAdded, new UploadStatisticInfo(item));
+                },
+                OnUploadState = async (item, state) =>
+                {
+                    await onStatisticsUpdated(
+                            cloud,
+                            StatisticUpdateReason.UploadState,
+                            new UploadStatisticInfo(item) { State = state });
                 }
             };
 
@@ -102,7 +110,7 @@
 
                 if (cachePath != null)
                 {
-                    SmallFilesCache.ClearAllInBackground().Wait();
+                    SmallFilesCache.ClearAllInBackground();
                 }
 
                 cachePath = val;

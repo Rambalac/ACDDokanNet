@@ -6,7 +6,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    public delegate void Progress(long progress);
+    public delegate Task Progress(long progress);
 
     public interface IHttpCloud
     {
@@ -35,6 +35,8 @@
         Task<long> GetTotalUsedSpace();
 
         Task SignOut(string save);
+
+        Task<string> CalculateLocalStreamContentId(Stream stream);
     }
 
     public interface IHttpCloudFiles

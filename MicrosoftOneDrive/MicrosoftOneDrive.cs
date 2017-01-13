@@ -5,6 +5,7 @@
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using System.Security.Cryptography;
     using System.Threading;
     using System.Threading.Tasks;
     using Common;
@@ -228,6 +229,15 @@
             }
         }
 
+        public Task<string> CalculateLocalStreamContentId(Stream stream)
+        {
+            using (var md5 = SHA1.Create())
+            {
+                var data = md5.ComputeHash(stream);
+                return Task.FromResult(string.Concat(data.Select(b => b.ToString("x2"))));
+            }
+        }
+
         private static FSItem.Builder FromNode(Item node)
         {
             return new FSItem.Builder
@@ -237,6 +247,7 @@
                 IsDir = node.Folder != null,
                 ParentIds = (node.ParentReference != null) ? new ConcurrentBag<string>(new[] { node.ParentReference.Id }) : new ConcurrentBag<string>(),
                 CreationTime = node.CreatedDateTime?.LocalDateTime ?? DateTime.UtcNow,
+                ContentId = node.File.Hashes.Sha1Hash.ToLowerInvariant(),
                 LastAccessTime = node.LastModifiedDateTime?.LocalDateTime ?? DateTime.UtcNow,
                 LastWriteTime = node.LastModifiedDateTime?.LocalDateTime ?? DateTime.UtcNow,
                 Name = node.Name
