@@ -458,17 +458,23 @@
                     return Downloader.CreateCompleted(item, path, item.Length);
                 }
 
-                var writer = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite, 4096, FileOptions.Asynchronous | FileOptions.SequentialScan);
+                Stream writer;
 
-                if (writer.Length > item.Length)
+                if (!fileinfo.Exists || fileinfo.Length < item.Length)
                 {
-                    writer.SetLength(0);
+                    writer = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite, 4096,
+                        FileOptions.Asynchronous | FileOptions.SequentialScan);
+                    if (writer.Length > 0)
+                    {
+                        Log.Warn(
+                            $"File was not totally downloaded before. Should be {item.Length} but was {writer.Length}: {item.Path} - {item.Id}");
+                        downloader.Downloaded = writer.Length;
+                    }
                 }
-                else if (writer.Length > 0)
+                else
                 {
-                    Log.Warn(
-                        $"File was not totally downloaded before. Should be {item.Length} but was {writer.Length}: {item.Path} - {item.Id}");
-                    downloader.Downloaded = writer.Length;
+                    writer = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.ReadWrite, 4096,
+                        FileOptions.Asynchronous | FileOptions.SequentialScan);
                 }
 
                 downloader.Task = Task.Factory.StartNew(async () => await Download(item, writer, downloader), TaskCreationOptions.LongRunning);

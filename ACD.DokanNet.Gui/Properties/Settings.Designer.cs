@@ -93,5 +93,17 @@ namespace Azi.Cloud.DokanNet.Gui.Properties {
                 this["WinHeight"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool CheckFileHash {
+            get {
+                return ((bool)(this["CheckFileHash"]));
+            }
+            set {
+                this["CheckFileHash"] = value;
+            }
+        }
     }
 }

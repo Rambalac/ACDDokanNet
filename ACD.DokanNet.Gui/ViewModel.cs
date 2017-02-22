@@ -58,6 +58,26 @@
 
         public Visibility HasUpdate => UpdateAvailable != null ? Visibility.Visible : Visibility.Collapsed;
 
+        public bool CheckFileHash
+        {
+            get
+            {
+                return Properties.Settings.Default.CheckFileHash;
+            }
+
+            set
+            {
+                Properties.Settings.Default.CheckFileHash = value;
+                foreach (var cloud in Clouds)
+                {
+                    if (cloud.Provider != null)
+                    {
+                        cloud.Provider.CheckFileHash = value;
+                    }
+                }
+            }
+        }
+
         public bool IsAutorun
         {
             get

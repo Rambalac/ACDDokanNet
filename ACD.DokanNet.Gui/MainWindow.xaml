@@ -84,6 +84,7 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
@@ -92,28 +93,30 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <CheckBox Content="Start app on Windows start" IsChecked="{Binding IsAutorun}" Margin="5,5,5,5" Grid.ColumnSpan="3" />
+                        
+                        <CheckBox Content="Check files hash (slow)" IsChecked="{Binding CheckFileHash}" Margin="5,5,5,5" Grid.Row="1"  Grid.ColumnSpan="3" />
 
-                        <Label Content="Cache path" Padding="5,0,0,0" Grid.ColumnSpan="2" Grid.Column="0" Grid.Row="1" />
+                        <Label Content="Cache path" Padding="5,0,0,0" Grid.ColumnSpan="2" Grid.Column="0" Grid.Row="2" Grid.RowSpan="1" />
 
-                        <Button x:Name="CacheDirButton" Content="Change dir" IsEnabled="{Binding CanClearCache}" Click="ChangeCacheDir" Margin="0,0,5,0" Grid.Column="1" Grid.Row="1" />
-                        <Button x:Name="CacheClearButton" Content="Clear Cache" IsEnabled="{Binding CanClearCache}" Click="ClearSmallFilesCache" Margin="0,0,0,0" Grid.Column="2" Grid.Row="1" />
-                        <TextBox IsReadOnly="True" Text="{Binding SmallFileCacheFolder}" Grid.Row="2" MaxLines="1" Margin="0,5,0,0" Grid.ColumnSpan="3"
+                        <Button x:Name="CacheDirButton" Content="Change dir" IsEnabled="{Binding CanClearCache}" Click="ChangeCacheDir" Margin="0,0,5,0" Grid.Column="1" Grid.Row="2" Grid.RowSpan="1" />
+                        <Button x:Name="CacheClearButton" Content="Clear Cache" IsEnabled="{Binding CanClearCache}" Click="ClearSmallFilesCache" Margin="0,0,0,0" Grid.Column="2" Grid.Row="2" Grid.RowSpan="1" />
+                        <TextBox IsReadOnly="True" Text="{Binding SmallFileCacheFolder}" Grid.Row="3" MaxLines="1" Margin="0,5,0,0" Grid.ColumnSpan="3"
                                  Grid.Column="0" MouseDoubleClick="TextBox_MouseDoubleClick" />
 
-                        <Label Content="Small files size, Mb" Grid.Row="3" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}" Grid.ColumnSpan="2"
+                        <Label Content="Small files size, Mb" Grid.Row="4" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}" Grid.ColumnSpan="2"
                                Grid.Column="0" Padding="5,5,5,0" />
-                        <TextBox Text="{Binding SmallFileSizeLimit}" Grid.Row="3" Grid.Column="2" MaxLines="1" Margin="0,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}" />
+                        <TextBox Text="{Binding SmallFileSizeLimit}" Grid.Row="4" Grid.Column="2" MaxLines="1" Margin="0,5,0,0" ToolTip="{x:Static p:Resources.SmallFileSizeTooltip}" />
 
-                        <Label Content="Small files cache, Mb" Grid.Row="4" ToolTip="{x:Static p:Resources.SmallFileCacheSizeTooltip}" Grid.ColumnSpan="2"
+                        <Label Content="Small files cache, Mb" Grid.Row="5" ToolTip="{x:Static p:Resources.SmallFileCacheSizeTooltip}" Grid.ColumnSpan="2"
                                Grid.Column="0" Padding="5,5,5,0" />
-                        <TextBox Text="{Binding SmallFilesCacheSize}" Grid.Row="4" Grid.Column="2" MaxLines="1" Margin="0,5,0,0" ToolTip="{x:Static p:Resources.SmallFileCacheSizeTooltip}" />
+                        <TextBox Text="{Binding SmallFilesCacheSize}" Grid.Row="5" Grid.Column="2" MaxLines="1" Margin="0,5,0,0" ToolTip="{x:Static p:Resources.SmallFileCacheSizeTooltip}" />
 
-                        <Label Content="Version" Padding="5,5,5,0" Grid.Row="5" Grid.Column="0" />
-                        <TextBox IsReadOnly="True" Text="{Binding Version, Mode=OneTime}" MaxLines="1" Margin="0,5,0,5"  Grid.Row="5" Grid.Column="2" />
+                        <Label Content="Version" Padding="5,5,5,0" Grid.Row="6" Grid.Column="0" />
+                        <TextBox IsReadOnly="True" Text="{Binding Version, Mode=OneTime}" MaxLines="1" Margin="0,5,0,5"  Grid.Row="6" Grid.Column="2" />
 
-                        <Button Grid.Row="6" Grid.ColumnSpan="3" Grid.Column="0" Content="{Binding UpdateVersion}" ContentStringFormat="Download update {0}" Margin="0,0,0,5" Visibility="{Binding HasUpdate}" Command="{StaticResource DownloadUpdateCommand}" ToolTip="{Binding UpdateAvailable.Description}" Background="#FF34BD00" />
+                        <Button Grid.Row="8" Grid.ColumnSpan="3" Grid.Column="0" Content="{Binding UpdateVersion}" ContentStringFormat="Download update {0}" Margin="0,0,0,18" Visibility="{Binding HasUpdate}" Command="{StaticResource DownloadUpdateCommand}" ToolTip="{Binding UpdateAvailable.Description}" Background="#FF34BD00" />
 
-                        <Grid Grid.Row="7" Grid.ColumnSpan="3" Grid.Column="0" HorizontalAlignment="Center">
+                        <Grid Grid.Row="7" Grid.ColumnSpan="3" Grid.Column="0" HorizontalAlignment="Center" Margin="48,0" Grid.RowSpan="2">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="6" />

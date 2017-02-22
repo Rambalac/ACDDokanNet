@@ -93,6 +93,8 @@
 
         public OnUploadStateDelegate OnUploadState { get; set; }
 
+        public bool CheckFileHash { get; set; }
+
         public async Task AddOverwrite(FSItem item)
         {
             var info = new UploadInfo(item)
@@ -334,7 +336,7 @@
                     Log.Trace("Started upload: " + item.Path);
                     FSItem.Builder node;
 
-                    if (item.ContentId == null)
+                    if (CheckFileHash && item.ContentId == null)
                     {
                         await SetState(item, UploadState.ContentId);
                         item.ContentId = await CalcContentId(path);
@@ -363,6 +365,8 @@
                         }
 
                         var lastPresenceCheck = DateTime.UtcNow;
+
+                        await SetState(item, UploadState.Uploading);
 
                         node = await cloud.Files.UploadNew(
                             parentId,
@@ -413,6 +417,8 @@
                         }
                         else
                         {
+                            await SetState(item, UploadState.Uploading);
+
                             node = await cloud.Files.Overwrite(
                                 item.Id,
                                 () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true),

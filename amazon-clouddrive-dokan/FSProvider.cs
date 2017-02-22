@@ -142,6 +142,19 @@
 
         public string VolumeName { get; set; }
 
+        public bool CheckFileHash
+        {
+            get
+            {
+                return UploadService.CheckFileHash;
+            }
+
+            set
+            {
+                UploadService.CheckFileHash = value;
+            }
+        }
+
         public async Task<long> GetTotalFreeSpace() => await cloud.GetTotalFreeSpace();
 
         public async Task<long> GetTotalSize() => await cloud.GetTotalSize();
