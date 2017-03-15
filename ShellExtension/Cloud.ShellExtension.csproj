@@ -45,7 +45,7 @@
     <SignAssembly>true</SignAssembly>
   </PropertyGroup>
   <PropertyGroup>
-    <AssemblyOriginatorKeyFile>LibraryKeyFile.pfx</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>StrongSign.pfx</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
@@ -81,8 +81,8 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="LibraryKeyFile.pfx" />
     <None Include="packages.config" />
+    <None Include="StrongSign.pfx" />
   </ItemGroup>
   <ItemGroup>
     <Analyzer Include="..\packages\StyleCop.Analyzers.1.0.0\analyzers\dotnet\cs\Newtonsoft.Json.dll" />
@@ -96,12 +96,12 @@
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="..\packages\StrongNamer.0.0.2\build\StrongNamer.targets" Condition="Exists('..\packages\StrongNamer.0.0.2\build\StrongNamer.targets')" />
+  <Import Project="..\packages\StrongNamer.0.0.3\build\StrongNamer.targets" Condition="Exists('..\packages\StrongNamer.0.0.3\build\StrongNamer.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\StrongNamer.0.0.2\build\StrongNamer.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\StrongNamer.0.0.2\build\StrongNamer.targets'))" />
+    <Error Condition="!Exists('..\packages\StrongNamer.0.0.3\build\StrongNamer.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\StrongNamer.0.0.3\build\StrongNamer.targets'))" />
   </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -30,7 +30,7 @@
             stream = new FileStream(filePath, FileMode.Open, writeable ? FileAccess.ReadWrite : FileAccess.Read, FileShare.ReadWrite, 4096, true);
             if (downloader == null && stream.Length != item.Length)
             {
-                Log.Error($"FileBlockReader without downloder, but expected Length: {item.Length} when stream Length: {stream.Length}");
+                Log.ErrorTrace($"FileBlockReader without downloder, but expected Length: {item.Length} when stream Length: {stream.Length}");
             }
 
             if (downloader != null && downloader.Task == null)

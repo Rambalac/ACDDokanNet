@@ -39,9 +39,15 @@
     <SignAssembly>true</SignAssembly>
   </PropertyGroup>
   <PropertyGroup>
-    <AssemblyOriginatorKeyFile>LibraryKeyFile.pfx</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>StrongSign.pfx</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.HockeyApp.Core45, Version=4.1.6.1005, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\HockeySDK.WPF.4.1.6\lib\net45\Microsoft.HockeyApp.Core45.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.HockeyApp.Kit, Version=4.1.6.1005, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\HockeySDK.WPF.4.1.6\lib\net45\Microsoft.HockeyApp.Kit.dll</HintPath>
+    </Reference>
     <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
@@ -68,8 +74,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
-    <None Include="LibraryKeyFile.pfx" />
     <None Include="packages.config" />
+    <None Include="StrongSign.pfx" />
   </ItemGroup>
   <ItemGroup>
     <Analyzer Include="..\packages\StyleCop.Analyzers.1.0.0\analyzers\dotnet\cs\Newtonsoft.Json.dll" />

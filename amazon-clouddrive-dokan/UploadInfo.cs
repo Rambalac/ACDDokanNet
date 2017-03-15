@@ -37,6 +37,8 @@
 
         public string ParentId { get; set; }
 
+        public string SourcePath { get; set; }
+
         /// <summary>
         /// Gets or sets original remote file path
         /// </summary>

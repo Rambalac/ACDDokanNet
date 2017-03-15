@@ -39,7 +39,7 @@
         protected void CopyTempLink(object sender, EventArgs e)
         {
             Clipboard.SetText(string.Join("\r\n", SelectedItemPaths.Select(path => Common.ReadInfo(path) as INodeExtendedInfoTempLink)
-                .Where(info => info.TempLink != null).Select(info => info.TempLink)));
+                .Where(info => info?.TempLink != null).Select(info => info.TempLink)));
         }
 
         protected override ContextMenuStrip CreateMenu()

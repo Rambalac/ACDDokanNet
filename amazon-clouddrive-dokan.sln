@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.26228.4
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cloud.DokanNet", "amazon-clouddrive-dokan\Cloud.DokanNet.csproj", "{213AA535-DB16-4CF9-B3F1-324FF9347F8D}"
 EndProject
@@ -46,6 +46,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Cloud.DokanNet.IntegrationTests", "Cloud.DokanNet.IntegrationTests\Cloud.DokanNet.IntegrationTests.vcxproj", "{F7B40FF9-FF0B-4668-B72F-897556F5901A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cloud.DokanNet.Console", "Cloud.DokanNet.Console\Cloud.DokanNet.Console.csproj", "{E95A8EFE-853D-4A21-AEE3-596133C08343}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AmazonCloudDriveApi", "..\AmazonCloudDriveApi\AmazonCloudDriveApi\AmazonCloudDriveApi.csproj", "{2C611335-3D92-492F-B3EB-2CF3955F63A1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -197,6 +199,18 @@ Global
 		{E95A8EFE-853D-4A21-AEE3-596133C08343}.Release|x64.Build.0 = Release|Any CPU
 		{E95A8EFE-853D-4A21-AEE3-596133C08343}.Release|x86.ActiveCfg = Release|Any CPU
 		{E95A8EFE-853D-4A21-AEE3-596133C08343}.Release|x86.Build.0 = Release|Any CPU
+		{2C611335-3D92-492F-B3EB-2CF3955F63A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2C611335-3D92-492F-B3EB-2CF3955F63A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2C611335-3D92-492F-B3EB-2CF3955F63A1}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{2C611335-3D92-492F-B3EB-2CF3955F63A1}.Debug|x64.Build.0 = Debug|Any CPU
+		{2C611335-3D92-492F-B3EB-2CF3955F63A1}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{2C611335-3D92-492F-B3EB-2CF3955F63A1}.Debug|x86.Build.0 = Debug|Any CPU
+		{2C611335-3D92-492F-B3EB-2CF3955F63A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2C611335-3D92-492F-B3EB-2CF3955F63A1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2C611335-3D92-492F-B3EB-2CF3955F63A1}.Release|x64.ActiveCfg = Release|Any CPU
+		{2C611335-3D92-492F-B3EB-2CF3955F63A1}.Release|x64.Build.0 = Release|Any CPU
+		{2C611335-3D92-492F-B3EB-2CF3955F63A1}.Release|x86.ActiveCfg = Release|Any CPU
+		{2C611335-3D92-492F-B3EB-2CF3955F63A1}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -205,5 +219,6 @@ Global
 		{C40D9D1E-23C5-46BF-B902-4DF1677F7C95} = {F031D0CA-AD7C-4355-838D-CD12011F987C}
 		{43097C04-9303-428D-A06C-1D2BF1D6647D} = {A02FE377-4BF3-4BF5-B4AE-3D85831D4C90}
 		{88E3C06F-D698-44B4-8A20-7951F786AE20} = {A02FE377-4BF3-4BF5-B4AE-3D85831D4C90}
+		{2C611335-3D92-492F-B3EB-2CF3955F63A1} = {A02FE377-4BF3-4BF5-B4AE-3D85831D4C90}
 	EndGlobalSection
 EndGlobal

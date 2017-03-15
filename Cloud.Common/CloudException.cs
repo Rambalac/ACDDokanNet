@@ -7,7 +7,7 @@
     public class CloudException : Exception
     {
         public CloudException(HttpStatusCode error, Exception ex)
-            : base(error.ToString(), ex)
+            : base(ex.Message + ":" + error, ex)
         {
             Error = error;
         }

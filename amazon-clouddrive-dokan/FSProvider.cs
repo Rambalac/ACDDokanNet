@@ -2,7 +2,6 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.Diagnostics.Contracts;
     using System.IO;
     using System.Linq;
     using System.Net;
@@ -381,8 +380,15 @@
             var newDir = Path.GetDirectoryName(newPath);
             var newName = Path.GetFileName(newPath);
 
-            Contract.Assert(oldDir != null, "oldDir!=null");
-            Contract.Assert(newName != null, "newName != null");
+            if (oldDir == null)
+            {
+                throw new InvalidOperationException($"oldDir is null for '{oldPath}'");
+            }
+
+            if (newName == null)
+            {
+                throw new InvalidOperationException($"newName is null for '{newPath}'");
+            }
 
             var item = await FetchNode(oldPath);
             await WaitForReal(item, 25000);
@@ -570,7 +576,7 @@
                   }
                   catch (Exception ex)
                   {
-                      Log.Error($"UploadHere error: {ex}");
+                      Log.Error("UploadHere error", ex);
                       throw;
                   }
               };
@@ -707,6 +713,14 @@
 
                     await onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFinished, new UploadStatisticInfo(uploaditem));
                     return;
+                case FailReason.NoResultNode:
+                    break;
+                case FailReason.NoOverwriteNode:
+                    break;
+                case FailReason.Unexpected:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(reason), reason, null);
             }
 
             await onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFailed, new UploadStatisticInfo(uploaditem, message));

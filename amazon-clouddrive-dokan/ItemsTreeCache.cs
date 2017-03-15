@@ -2,7 +2,6 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.Diagnostics.Contracts;
     using System.IO;
     using System.Linq;
     using System.Threading;
@@ -33,8 +32,7 @@
             try
             {
                 pathToNode[item.Path] = item;
-                DirItem dirItem;
-                if (pathToDirItem.TryGetValue(item.Dir, out dirItem))
+                if (pathToDirItem.TryGetValue(item.Dir, out DirItem dirItem))
                 {
                     dirItem.Items.Add(item.Path);
                 }
@@ -81,9 +79,12 @@
             try
             {
                 var dirPath = Path.GetDirectoryName(filePath);
-                Contract.Assert(dirPath != null, "dirPath!=null");
-                DirItem dirItem;
-                if (pathToDirItem.TryGetValue(dirPath, out dirItem))
+                if (dirPath == null)
+                {
+                    throw new InvalidOperationException($"dirPath is null for '{filePath}'");
+                }
+
+                if (pathToDirItem.TryGetValue(dirPath, out DirItem dirItem))
                 {
                     dirItem.Items.RemoveWhere(i => i == filePath);
                 }
@@ -110,9 +111,12 @@
             try
             {
                 var dirPath = Path.GetDirectoryName(filePath);
-                Contract.Assert(dirPath != null, "dirPath!=null");
-                DirItem dirItem;
-                if (pathToDirItem.TryGetValue(dirPath, out dirItem))
+                if (dirPath == null)
+                {
+                    throw new InvalidOperationException($"dirPath is null for '{filePath}'");
+                }
+
+                if (pathToDirItem.TryGetValue(dirPath, out DirItem dirItem))
                 {
                     dirItem.Items.Remove(filePath);
                 }
@@ -137,8 +141,7 @@
             lok.EnterUpgradeableReadLock();
             try
             {
-                DirItem item;
-                if (!pathToDirItem.TryGetValue(filePath, out item))
+                if (!pathToDirItem.TryGetValue(filePath, out DirItem item))
                 {
                     return null;
                 }
@@ -170,8 +173,7 @@
             lok.EnterUpgradeableReadLock();
             try
             {
-                FSItem item;
-                if (!pathToNode.TryGetValue(filePath, out item))
+                if (!pathToNode.TryGetValue(filePath, out FSItem item))
                 {
                     return null;
                 }

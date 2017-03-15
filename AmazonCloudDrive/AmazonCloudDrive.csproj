@@ -43,13 +43,9 @@
     <SignAssembly>true</SignAssembly>
   </PropertyGroup>
   <PropertyGroup>
-    <AssemblyOriginatorKeyFile>LibraryKeyFile.pfx</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>StrongSign.pfx</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="AmazonCloudDriveApi, Version=1.5.3.0, Culture=neutral, PublicKeyToken=0cfa77774c1d2b9a, processorArchitecture=MSIL">
-      <HintPath>..\packages\AmazonCloudDriveApi.1.5.3\lib\net45\AmazonCloudDriveApi.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
@@ -84,10 +80,14 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
-    <None Include="LibraryKeyFile.pfx" />
     <None Include="packages.config" />
+    <None Include="StrongSign.pfx" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\AmazonCloudDriveApi\AmazonCloudDriveApi\AmazonCloudDriveApi.csproj">
+      <Project>{2c611335-3d92-492f-b3eb-2cf3955f63a1}</Project>
+      <Name>AmazonCloudDriveApi</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Cloud.Common\Cloud.Common.csproj">
       <Project>{93841375-56d7-4b34-aa7c-ba69f29f8b66}</Project>
       <Name>Cloud.Common</Name>

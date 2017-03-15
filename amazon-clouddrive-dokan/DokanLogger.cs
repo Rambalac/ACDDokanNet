@@ -12,17 +12,17 @@
 
         public void Error(string message, params object[] args)
         {
-            Log.Error(Format(message, args), Log.Dokan);
+            Log.ErrorTrace(Format(message, args), Log.Dokan);
         }
 
         public void Fatal(string message, params object[] args)
         {
-            Log.Error(Format(message, args), Log.Dokan);
+            Log.ErrorTrace(Format(message, args), Log.Dokan);
         }
 
         public void Info(string message, params object[] args)
         {
-            Log.Info(Format(message, args), Log.Dokan);
+            Log.Trace(Format(message, args), Log.Dokan);
         }
 
         public void Warn(string message, params object[] args)
@@ -30,7 +30,7 @@
             Log.Warn(Format(message, args), Log.Dokan);
         }
 
-        private string Format(string message, params object[] args)
+        private static string Format(string message, params object[] args)
         {
             if (args == null || args.Length == 0)
             {

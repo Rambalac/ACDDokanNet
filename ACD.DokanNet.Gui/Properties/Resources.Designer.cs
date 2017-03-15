@@ -71,12 +71,27 @@ namespace Azi.Cloud.DokanNet.Gui.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Log file may contain some private information like folder and file names. But application does not know your email or Amazon Cloud Drive password.
+        ///   Looks up a localized string similar to Log file can be created only if you start application As Administrator at least once.
+        ///Log file may contain some private information like folder and file names. But application does not know your email or Amazon Cloud Drive password.
         ///You can open log file in standard Windows Event Viewer just double clicking the file..
         /// </summary>
         public static string LogWarning {
             get {
                 return ResourceManager.GetString("LogWarning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Only Errors and Warnings will be sent.
+        ///It does not contain file content or cloud account info, not even account login basicly because it does not know neither login nor password. 
+        ///Still It may contain some private info like names of folders or files.
+        ///
+        ///You can always disable Telemetry clicking checkbox again. Also checkbox will be unchecked on next app start.
+        ///.
+        /// </summary>
+        public static string SendTelemetryTooltip {
+            get {
+                return ResourceManager.GetString("SendTelemetryTooltip", resourceCulture);
             }
         }
         

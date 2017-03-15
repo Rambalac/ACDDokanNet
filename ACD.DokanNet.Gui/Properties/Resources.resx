@@ -122,7 +122,8 @@
     <value>..\images\app_all.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="LogWarning" xml:space="preserve">
-    <value>Log file may contain some private information like folder and file names. But application does not know your email or Amazon Cloud Drive password.
+    <value>Log file can be created only if you start application As Administrator at least once.
+Log file may contain some private information like folder and file names. But application does not know your email or Amazon Cloud Drive password.
 You can open log file in standard Windows Event Viewer just double clicking the file.</value>
   </data>
   <data name="SmallFileCacheSizeTooltip" xml:space="preserve">
@@ -133,5 +134,13 @@ You can open log file in standard Windows Event Viewer just double clicking the 
   </data>
   <data name="WaitForRedirectMessage" xml:space="preserve">
     <value>Please follow Amazon Cloud Drive login page in your browser and retrun here after it's complete.</value>
+  </data>
+  <data name="SendTelemetryTooltip" xml:space="preserve">
+    <value>Only Errors and Warnings will be sent.
+It does not contain file content or cloud account info, not even account login basicly because it does not know neither login nor password. 
+Still It may contain some private info like names of folders or files.
+
+You can always disable Telemetry clicking checkbox again. Also checkbox will be unchecked on next app start.
+</value>
   </data>
 </root>

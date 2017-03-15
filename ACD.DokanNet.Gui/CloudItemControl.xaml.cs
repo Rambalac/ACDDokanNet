@@ -1,6 +1,4 @@
-﻿using System.Diagnostics.Contracts;
-
-namespace Azi.Cloud.DokanNet.Gui
+﻿namespace Azi.Cloud.DokanNet.Gui
 {
     using System;
     using System.Windows;
@@ -26,7 +24,11 @@ namespace Azi.Cloud.DokanNet.Gui
         private async void MountButton_Click(object sender, RoutedEventArgs e)
         {
             var win = Window.GetWindow(this);
-            Contract.Assert(win != null, "win!=null");
+            if (win == null)
+            {
+                Log.ErrorTrace("Window is null");
+            }
+
             try
             {
                 await Model.MountAsync();
@@ -34,10 +36,17 @@ namespace Azi.Cloud.DokanNet.Gui
             catch (Exception ex)
             {
                 Log.Error(ex);
-                MessageBox.Show(win, ex.Message);
+                if (win != null)
+                {
+                    MessageBox.Show(win, ex.Message);
+                }
+                else
+                {
+                    MessageBox.Show(ex.Message);
+                }
             }
 
-            win.Activate();
+            win?.Activate();
         }
 
         private async void UnmountButton_Click(object sender, RoutedEventArgs e)

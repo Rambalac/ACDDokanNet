@@ -30,6 +30,12 @@
             foreach (var o in processList)
             {
                 var obj = o as ManagementObject;
+                if (obj == null)
+                {
+                    Log.ErrorTrace("obj is null");
+                    continue;
+                }
+
                 Contract.Assert(obj != null, "obj != null");
                 object[] argList = { string.Empty, string.Empty };
                 var returnVal = Convert.ToInt32(obj.InvokeMethod("GetOwner", argList));

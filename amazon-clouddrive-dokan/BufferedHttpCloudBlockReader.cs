@@ -122,8 +122,7 @@
             while (Blocks.Count > KeepLastBlocks)
             {
                 var del = Blocks.Values.Aggregate((curMin, x) => (curMin == null || (x.Access < curMin.Access)) ? x : curMin);
-                Block remove;
-                Blocks.TryRemove(del.Key, out remove);
+                Blocks.TryRemove(del.Key, out Block remove);
             }
         }
 
@@ -173,7 +172,7 @@
 
                     if (red == 0)
                     {
-                        Log.Error("Download 0", Log.BigFile);
+                        Log.ErrorTrace("Download 0", Log.BigFile);
                         throw new InvalidOperationException("Download 0");
                     }
 
@@ -204,8 +203,7 @@
                 long intervalStart;
                 for (intervalStart = v1; intervalStart <= v2; intervalStart++)
                 {
-                    Block cachedBlock;
-                    if (!Blocks.TryGetValue(Block.GetKey(item.Id, intervalStart), out cachedBlock))
+                    if (!Blocks.TryGetValue(Block.GetKey(item.Id, intervalStart), out Block cachedBlock))
                     {
                         break;
                     }
@@ -222,8 +220,7 @@
                 long intervalEnd;
                 for (intervalEnd = v2; intervalEnd > intervalStart; intervalEnd--)
                 {
-                    Block cachedBlock;
-                    if (!Blocks.TryGetValue(Block.GetKey(item.Id, intervalEnd), out cachedBlock))
+                    if (!Blocks.TryGetValue(Block.GetKey(item.Id, intervalEnd), out Block cachedBlock))
                     {
                         break;
                     }

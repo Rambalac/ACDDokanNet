@@ -109,17 +109,17 @@
             }
             catch (Exception e) when (e.InnerException is FileNotFoundException)
             {
-                Log.Error($"File not found: {fileName}\r\n  Access:[{access}]\r\n  Share:[{share}]\r\n  Mode:[{mode}]\r\n  Options:[{options}]\r\n  Attr:[{attributes}]\r\n\r\n{e}");
+                Log.Error($"File not found: {fileName}\r\n  Access:[{access}]\r\n  Share:[{share}]\r\n  Mode:[{mode}]\r\n  Options:[{options}]\r\n  Attr:[{attributes}]", e);
                 return DokanResult.FileNotFound;
             }
             catch (Exception e) when (e.InnerException is TimeoutException)
             {
-                Log.Error($"Timeout: {fileName}\r\n  Access:[{access}]\r\n  Share:[{share}]\r\n  Mode:[{mode}]\r\n  Options:[{options}]\r\n  Attr:[{attributes}]\r\n\r\n{e}");
+                Log.Error($"Timeout: {fileName}\r\n  Access:[{access}]\r\n  Share:[{share}]\r\n  Mode:[{mode}]\r\n  Options:[{options}]\r\n  Attr:[{attributes}]", e);
                 return NtStatus.Timeout;
             }
             catch (Exception e)
             {
-                Log.Error($"Unexpected exception: {fileName}\r\n  Access:[{access}]\r\n  Share:[{share}]\r\n  Mode:[{mode}]\r\n  Options:[{options}]\r\n  Attr:[{attributes}]\r\n\r\n{e}");
+                Log.Error($"Unexpected exception: {fileName}\r\n  Access:[{access}]\r\n  Share:[{share}]\r\n  Mode:[{mode}]\r\n  Options:[{options}]\r\n  Attr:[{attributes}]", e);
                 return DokanResult.Error;
             }
         }
@@ -377,23 +377,27 @@
         {
             Log.Trace(fileName);
 
-            var identity = WindowsIdentity.GetCurrent().Owner;
-            Contract.Assert(identity != null, "identity != null");
-            var result = !info.IsDirectory
-                ? (FileSystemSecurity)new FileSecurity()
-                : new DirectorySecurity();
-            if (sections.HasFlag(AccessControlSections.Access))
-            {
-                result.SetAccessRule(new FileSystemAccessRule(identity, FileSystemRights.FullControl, AccessControlType.Allow));
-                result.SetAccessRuleProtection(false, true);
-            }
+            //var identity = WindowsIdentity.GetCurrent().Owner;
+            //if (identity == null)
+            //{
+            //    throw new InvalidOperationException("identity is null");
+            //}
 
-            if (sections.HasFlag(AccessControlSections.Owner))
-            {
-                result.SetOwner(identity);
-            }
+            //var result = !info.IsDirectory
+            //    ? (FileSystemSecurity)new FileSecurity()
+            //    : new DirectorySecurity();
+            //if (sections.HasFlag(AccessControlSections.Access))
+            //{
+            //    result.SetAccessRule(new FileSystemAccessRule(identity, FileSystemRights.FullControl, AccessControlType.Allow));
+            //    result.SetAccessRuleProtection(false, true);
+            //}
 
-            security = result;
+            //if (sections.HasFlag(AccessControlSections.Owner))
+            //{
+            //    result.SetOwner(identity);
+            //}
+
+            security = null;
             return DokanResult.Success;
         }
 
@@ -473,7 +477,11 @@
             try
             {
                 var reader = info.Context as IBlockStream;
-                Contract.Assert(reader != null, "reader != null");
+                if (reader == null)
+                {
+                    throw new InvalidOperationException("reader is null");
+                }
+
                 bytesRead = Wait(reader.Read(offset, buffer, 0, buffer.Length, ReadTimeout - 1000));
                 Log.Trace($"Read time {DateTime.UtcNow.Subtract(start).TotalSeconds}", Log.VirtualDrive + Log.Performance);
                 return DokanResult.Success;
@@ -526,6 +534,11 @@
                 // Log.Trace(fileName);
                 var file = info.Context as IBlockStream;
                 Contract.Assert(file != null, "file != null");
+                if (file == null)
+                {
+                    throw new InvalidOperationException("file is null");
+                }
+
                 file.SetLength(length);
                 Log.Trace($"{fileName} to {length}");
 

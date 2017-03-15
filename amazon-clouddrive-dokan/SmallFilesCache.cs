@@ -122,8 +122,7 @@
             {
                 var path = Path.Combine(cachePath, item.Id);
                 File.Delete(path);
-                CacheEntry outitem;
-                access.TryRemove(item.Id, out outitem);
+                access.TryRemove(item.Id, out CacheEntry outitem);
             }
             catch (Exception)
             {
@@ -185,8 +184,7 @@
             var path = Path.Combine(cachePath, item.Id);
             var downloader = StartDownload(item, path);
 
-            CacheEntry entry;
-            if (access.TryGetValue(item.Id, out entry))
+            if (access.TryGetValue(item.Id, out CacheEntry entry))
             {
                 entry.AccessTime = DateTime.UtcNow;
             }
@@ -199,8 +197,7 @@
             var path = Path.Combine(cachePath, item.Id);
             var downloader = StartDownload(item, path);
 
-            CacheEntry entry;
-            if (access.TryGetValue(item.Id, out entry))
+            if (access.TryGetValue(item.Id, out CacheEntry entry))
             {
                 entry.AccessTime = DateTime.UtcNow;
             }
@@ -252,7 +249,7 @@
             }
             catch (UnauthorizedAccessException)
             {
-                Log.Error("Cannot access folder: " + oldcachePath);
+                Log.ErrorTrace("Cannot access folder: " + oldcachePath);
                 return;
             }
 
@@ -281,8 +278,7 @@
                         var info = new FileInfo(path);
                         File.Delete(path);
                         deleted += info.Length;
-                        CacheEntry remove;
-                        access.TryRemove(file.Id, out remove);
+                        access.TryRemove(file.Id, out CacheEntry remove);
                     }
                     catch (IOException)
                     {
@@ -369,7 +365,7 @@
             }
             catch (Exception ex)
             {
-                Log.Error($"Download failed: {item.Name} - {item.Id}\r\n{ex}");
+                Log.ErrorTrace($"Download failed: {item.Name} - {item.Id}\r\n{ex}");
                 await downloader.Failed();
                 OnDownloadFailed?.Invoke(item);
             }
@@ -377,7 +373,7 @@
             {
                 if (downloader.Downloaded == 0)
                 {
-                    Log.Error("Downloader finished but zero length");
+                    Log.ErrorTrace("Downloader finished but zero length");
                 }
 
                 lock (DownloadersLock)
@@ -409,8 +405,7 @@
                     }
                     catch (Exception ex)
                     {
-                        Log.Error("Cannot access folder: " + cachePath);
-                        Log.Error(ex);
+                        Log.Error("Cannot access folder: " + cachePath, ex);
                     }
                 }
             }
@@ -431,15 +426,14 @@
         {
             if (item.Length == 0)
             {
-                Log.Error($"Downloader expected length Zero: {item.Name} - {item.Id}");
+                Log.ErrorTrace($"Downloader expected length Zero: {item.Name} - {item.Id}");
             }
 
             var downloader = new Downloader(item, path);
 
             lock (DownloadersLock)
             {
-                Downloader result;
-                if (Downloaders.TryGetValue(item.Path, out result))
+                if (Downloaders.TryGetValue(item.Path, out Downloader result))
                 {
                     if (result.Task == null)
                     {
@@ -462,7 +456,12 @@
 
                 if (!fileinfo.Exists || fileinfo.Length < item.Length)
                 {
-                    writer = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite, 4096,
+                    writer = new FileStream(
+                        path,
+                        FileMode.Append,
+                        FileAccess.Write,
+                        FileShare.ReadWrite,
+                        4096,
                         FileOptions.Asynchronous | FileOptions.SequentialScan);
                     if (writer.Length > 0)
                     {
@@ -473,7 +472,12 @@
                 }
                 else
                 {
-                    writer = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.ReadWrite, 4096,
+                    writer = new FileStream(
+                        path,
+                        FileMode.Create,
+                        FileAccess.Write,
+                        FileShare.ReadWrite,
+                        4096,
                         FileOptions.Asynchronous | FileOptions.SequentialScan);
                 }
 
@@ -524,7 +528,7 @@
 
             public void Dispose()
             {
-                ((IDisposable)lk).Dispose();
+                lk.Dispose();
             }
         }
     }

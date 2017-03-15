@@ -183,9 +183,14 @@
             {
                 await Task.Factory.StartNew(() =>
                 {
+                    if (MountLetter == null)
+                    {
+                        return;
+                    }
+
                     using (unmountingEvent = new ManualResetEventSlim(false))
                     {
-                        VirtualDriveWrapper.Unmount((char)MountLetter);
+                        VirtualDriveWrapper.Unmount(MountLetter.Value);
                         unmountingEvent.Wait();
                     }
                 });
@@ -278,7 +283,7 @@
 
                 if (!authenticated)
                 {
-                    Log.Error("Authentication failed");
+                    Log.ErrorTrace("Authentication failed");
                     throw new InvalidOperationException("Authentication failed");
                 }
 

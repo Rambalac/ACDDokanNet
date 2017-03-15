@@ -54,8 +54,7 @@
                       return false;
                   }
 
-                  Semver.SemVersion relver;
-                  var parsed = Semver.SemVersion.TryParse(tagMatch.Groups[1].Value, out relver);
+                  var parsed = Semver.SemVersion.TryParse(tagMatch.Groups[1].Value, out Semver.SemVersion relver);
                   if (!parsed)
                   {
                       return false;

@@ -1,8 +1,7 @@
-﻿using System.Configuration;
-
-namespace Azi.Cloud.DokanNet.Gui
+﻿namespace Azi.Cloud.DokanNet.Gui
 {
     using System;
+    using System.Configuration;
     using System.Diagnostics.Contracts;
     using System.IO;
     using System.Linq;
@@ -17,7 +16,6 @@ namespace Azi.Cloud.DokanNet.Gui
     using Microsoft.Win32;
     using Newtonsoft.Json;
     using Tools;
-    using Application = System.Windows.Application;
 
     /// <summary>
     /// Interaction logic for App.xaml
@@ -82,7 +80,11 @@ namespace Azi.Cloud.DokanNet.Gui
         {
             using (var rk = Registry.CurrentUser.OpenSubKey(RegistryAutorunPath, true))
             {
-                Contract.Assert(rk != null, "rk != null");
+                if (rk == null)
+                {
+                    throw new InvalidOperationException("rk is null");
+                }
+
                 return rk.GetValue(AppName) != null;
             }
         }
@@ -91,7 +93,11 @@ namespace Azi.Cloud.DokanNet.Gui
         {
             using (var rk = Registry.CurrentUser.OpenSubKey(RegistryAutorunPath, true))
             {
-                Contract.Assert(rk != null, "rk != null");
+                if (rk == null)
+                {
+                    throw new InvalidOperationException("rk is null");
+                }
+
                 if (isChecked)
                 {
                     var uri = new Uri(Assembly.GetExecutingAssembly().CodeBase);
@@ -137,7 +143,9 @@ namespace Azi.Cloud.DokanNet.Gui
         {
             try
             {
-                Log.Info("Starting Version " + Assembly.GetEntryAssembly().GetName().Version);
+                var version = Assembly.GetEntryAssembly().GetName().Version.ToString();
+                await Log.Init(version);
+                Log.Info("Starting Version " + version);
 
                 System.Net.ServicePointManager.DefaultConnectionLimit = 100;
 
@@ -150,10 +158,14 @@ namespace Azi.Cloud.DokanNet.Gui
                 try
                 {
                     var test = Gui.Properties.Settings.Default.NeedUpgrade;
+                    if (test)
+                    {
+                        Log.Info("Updating setting");
+                    }
                 }
                 catch (Exception ex)
                 {
-                    Log.Error($"Settings file got currupted. Resetting\r\n{ex}");
+                    Log.Error("Settings file got currupted. Resetting", ex);
                     var config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.PerUserRoamingAndLocal);
                     try
                     {
@@ -161,7 +173,7 @@ namespace Azi.Cloud.DokanNet.Gui
                     }
                     catch (Exception ex2)
                     {
-                        Log.Error($"Could not delete settings file\r\n{ex2}");
+                        Log.Error("Could not delete settings file", ex2);
                     }
 
                     await ShowMessage("Settings file got currupted and was reset");
@@ -184,8 +196,7 @@ namespace Azi.Cloud.DokanNet.Gui
                     Gui.Properties.Settings.Default.Save();
                 }
 
-                bool created;
-                startedMutex = new Mutex(false, AppName, out created);
+                startedMutex = new Mutex(false, AppName, out bool created);
                 if (!created)
                 {
                     Shutdown();
@@ -364,13 +375,21 @@ namespace Azi.Cloud.DokanNet.Gui
             var newPath = Path.Combine(cacheFolder, UploadService.UploadFolder, cloudinfo.Id);
             Directory.CreateDirectory(newPath);
 
-            var files = Directory.GetFiles(Path.Combine(cacheFolder, UploadService.UploadFolder));
+            var uploadFolder = Path.Combine(cacheFolder, UploadService.UploadFolder);
+            var files = Directory.GetFiles(uploadFolder);
 
             foreach (var file in files)
             {
                 var fileName = Path.GetFileName(file);
                 Contract.Assert(fileName != null, "fileName != null");
-                File.Move(file, Path.Combine(newPath, fileName));
+                if (fileName != null)
+                {
+                    File.Move(file, Path.Combine(newPath, fileName));
+                }
+                else
+                {
+                    Log.ErrorTrace($"Filename is null for '{file}' in '{uploadFolder}'");
+                }
             }
         }
     }

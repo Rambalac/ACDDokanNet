@@ -118,13 +118,12 @@
                 Id = Guid.NewGuid().ToString(),
                 Length = fileinfo.Length,
                 Path = Path.Combine(parent.Path, Path.GetFileName(file)),
-                ParentId = parent.Id
+                ParentId = parent.Id,
+                SourcePath = file
             };
 
             Directory.CreateDirectory(cachePath);
             var path = Path.Combine(cachePath, info.Id);
-            SymbolicLink.CreateFile(file, path);
-
             await WriteInfo(path + ".info", info);
             leftUploads.Add(info);
             allUploads.TryAdd(info.Id, info);
@@ -133,14 +132,12 @@
 
         public void CancelUpload(string id)
         {
-            UploadInfo outitem;
-            if (allUploads.TryGetValue(id, out outitem))
-            {
-                outitem.Cancellation.Cancel();
-                OnUploadFailed(outitem, FailReason.Cancelled, "Upload cancelled");
-                CleanUpload(outitem.Path);
-                allUploads.TryRemove(outitem.Id, out outitem);
-            }
+            if (!allUploads.TryGetValue(id, out UploadInfo outitem)) return;
+
+            outitem.Cancellation.Cancel();
+            OnUploadFailed(outitem, FailReason.Cancelled, "Upload cancelled");
+            allUploads.TryRemove(outitem.Id, out outitem);
+            CleanUpload(outitem);
         }
 
         // This code added to correctly implement the disposable pattern.
@@ -283,8 +280,8 @@
                     }
                     catch (FileNotFoundException)
                     {
-                        Log.Error("Cached upload file not found: " + uploadinfo.Path + " id:" + id);
-                        CleanUpload(Path.Combine(cachePath, id));
+                        Log.ErrorTrace("Cached upload file not found: " + uploadinfo.Path + " id:" + id);
+                        CleanUpload(uploadinfo);
                     }
                 }
                 catch (Exception ex)
@@ -294,30 +291,38 @@
             }
         }
 
-        private void CleanUpload(string path)
+        private void CleanUpload(UploadInfo upload)
         {
-            try
+            if (upload.SourcePath == null)
             {
-                File.Delete(path);
-            }
-            catch (Exception)
-            {
-                Log.Warn("CleanUpload did not find the file, probably successfully moved");
+                var sourcepath = Path.Combine(cachePath, upload.Id);
+                try
+                {
+                    File.Delete(sourcepath);
+                }
+                catch (Exception)
+                {
+                    Log.Warn("CleanUpload did not find the file, probably successfully moved");
+                }
             }
 
             try
             {
-                File.Delete(path + ".info");
+                var infopath = Path.Combine(cachePath, upload.Id + ".info");
+                File.Delete(infopath);
             }
             catch (Exception)
             {
                 Log.Warn("CleanUpload did not find the info file, probably successfully moved");
             }
+
+            upload.Dispose();
         }
 
         private async Task Upload(UploadInfo item)
         {
-            var path = Path.Combine(cachePath, item.Id);
+            var sourcepath = item.SourcePath ?? Path.Combine(cachePath, item.Id);
+            var infopath = Path.Combine(cachePath, item.Id + ".info");
             try
             {
                 var itemName = Path.GetFileName(item.Path);
@@ -328,8 +333,7 @@
                     {
                         Log.Trace("Zero Length file: " + item.Path);
                         await OnUploadFailed(item, FailReason.ZeroLength, null);
-                        CleanUpload(path);
-                        item.Dispose();
+                        CleanUpload(item);
                         return;
                     }
 
@@ -339,7 +343,7 @@
                     if (CheckFileHash && item.ContentId == null)
                     {
                         await SetState(item, UploadState.ContentId);
-                        item.ContentId = await CalcContentId(path);
+                        item.ContentId = await CalcContentId(sourcepath);
                     }
 
                     if (!item.Overwrite)
@@ -347,10 +351,9 @@
                         var checkparent = await cloud.Nodes.GetNode(parentId);
                         if (checkparent == null || !checkparent.IsDir)
                         {
-                            Log.Error("Folder does not exist to upload file: " + item.Path);
+                            Log.ErrorTrace("Folder does not exist to upload file: " + item.Path);
                             await OnUploadFailed(item, FailReason.NoFolderNode, "Parent folder is missing");
-                            CleanUpload(path);
-                            item.Dispose();
+                            CleanUpload(item);
                             return;
                         }
 
@@ -359,8 +362,7 @@
                         {
                             Log.Warn("File with such name already exists and Upload is New: " + item.Path);
                             await OnUploadFailed(item, FailReason.Conflict, "File already exists");
-                            CleanUpload(path);
-                            item.Dispose();
+                            CleanUpload(item);
                             return;
                         }
 
@@ -371,12 +373,12 @@
                         node = await cloud.Files.UploadNew(
                             parentId,
                             itemName,
-                            () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true),
+                            () => new FileStream(sourcepath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true),
                             async p =>
                             {
                                 if (DateTime.UtcNow - lastPresenceCheck > TimeSpan.FromMinutes(10))
                                 {
-                                    lastPresenceCheck = DateTime.UtcNow;
+                                     lastPresenceCheck = DateTime.UtcNow;
                                     var checknode2 = await cloud.Nodes.GetChild(parentId, itemName);
                                     if (checknode2 != null)
                                     {
@@ -401,12 +403,9 @@
                         var checknode = await cloud.Nodes.GetNode(item.Id);
                         if (checknode == null)
                         {
-                            Log.Error("File does not exist to be overwritten: " + item.Path);
-                            File.Delete(path + ".info");
+                            Log.ErrorTrace("File does not exist to be overwritten: " + item.Path);
                             await OnUploadFailed(item, FailReason.NoOverwriteNode, "No file to overwrite");
-                            CleanUpload(path);
-                            item.Dispose();
-
+                            CleanUpload(item);
                             return;
                         }
 
@@ -421,7 +420,7 @@
 
                             node = await cloud.Files.Overwrite(
                                 item.Id,
-                                () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true),
+                                () => new FileStream(sourcepath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true),
                                 async p => await UploadProgress(item, p));
                         }
                     }
@@ -431,23 +430,19 @@
                         throw new NullReferenceException("File node is null: " + item.Path);
                     }
 
-                    CleanUpload(path);
-
                     node.ParentPath = Path.GetDirectoryName(item.Path);
 
                     Log.Trace("Finished upload: " + item.Path + " id:" + node.Id);
                     await OnUploadFinished(item, node);
-                    item.Dispose();
+                    CleanUpload(item);
                     return;
                 }
                 catch (FileNotFoundException ex)
                 {
-                    Log.Error($"Upload error upload file not found: {item.Path}\r\n{ex}");
+                    Log.Error($"Upload error upload file not found: {item.Path}", ex);
                     await OnUploadFailed(item, FailReason.FileNotFound, "Cached upload file is not found");
 
-                    CleanUpload(path);
-                    item.Dispose();
-
+                    CleanUpload(item);
                     return;
                 }
                 catch (OperationCanceledException)
@@ -457,8 +452,7 @@
                         Log.Info("Upload canceled");
 
                         await OnUploadFailed(item, FailReason.Cancelled, "Upload cancelled");
-                        CleanUpload(path);
-                        item.Dispose();
+                        CleanUpload(item);
                     }
 
                     return;
@@ -472,22 +466,19 @@
                         {
                             Log.Warn($"Upload finished with conflict and file does exist: {item.Path}\r\n{ex}");
                             await OnUploadFinished(item, node);
-                            CleanUpload(path);
-                            item.Dispose();
+                            CleanUpload(item);
                             return;
                         }
 
-                        Log.Error($"Upload conflict but no file: {item.Path}\r\n{ex}");
+                        Log.Error($"Upload conflict but no file: {item.Path}", ex);
                         await OnUploadFailed(item, FailReason.Unexpected, "Upload conflict but there is no file in the same place");
                     }
                     else if (ex.Error == System.Net.HttpStatusCode.NotFound)
                     {
-                        Log.Error($"Upload error Folder Not Found: {item.Path}\r\n{ex}");
+                        Log.Error($"Upload error Folder Not Found: {item.Path}", ex);
                         await OnUploadFailed(item, FailReason.NoFolderNode, "Folder node for new file is not found");
 
-                        CleanUpload(path);
-                        item.Dispose();
-
+                        CleanUpload(item);
                         return;
                     }
                     else if (ex.Error == System.Net.HttpStatusCode.GatewayTimeout)
@@ -499,7 +490,7 @@
                         if (node != null)
                         {
                             Log.Warn($"Gateway timeout happened: {item.Path}\r\nBut after 30 seconds file did appear");
-                            File.Delete(path + ".info");
+                            File.Delete(infopath);
 
                             node.ParentPath = Path.GetDirectoryName(item.Path);
 
@@ -509,26 +500,25 @@
                             return;
                         }
 
-                        Log.Error($"Gateway timeout happened: {item.Path}\r\nBut after 30 seconds file still did not appear.");
+                        Log.ErrorTrace($"Gateway timeout happened: {item.Path}\r\nBut after 30 seconds file still did not appear.");
                         await OnUploadFailed(item, FailReason.Unexpected, "Gateway timeout happened but after 30 seconds file still did not appear");
                     }
                     else
                     {
-                        Log.Error($"Cloud exception: {item.Path}");
+                        Log.ErrorTrace($"Upload cloud exception: {item.Path} - {ex.Message}");
                         await OnUploadFailed(item, FailReason.Unexpected, $"Unexpected Error. Upload will retry.\r\n{ex.Message}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Log.Error($"Upload failed: {item.Path}\r\n{ex}");
+                Log.Error($"Upload failed: {item.Path}", ex);
                 await OnUploadFailed(item, FailReason.Unexpected, $"Unexpected Error. Upload will retry.\r\n{ex.Message}");
             }
             finally
             {
                 uploadLimitSemaphore.Release();
-                UploadInfo outItem;
-                allUploads.TryRemove(item.Id, out outItem);
+                allUploads.TryRemove(item.Id, out UploadInfo outItem);
             }
 
             await Task.Delay(ReuploadDelay);
@@ -578,8 +568,7 @@
         {
             try
             {
-                UploadInfo upload;
-                while (leftUploads.TryTake(out upload, -1, cancellation.Token))
+                while (leftUploads.TryTake(out UploadInfo upload, -1, cancellation.Token))
                 {
                     var uploadCopy = upload;
                     if (!uploadLimitSemaphore.Wait(-1, cancellation.Token))
@@ -608,7 +597,7 @@
             }
         }
 
-        private async Task WriteInfo(string path, UploadInfo info)
+        private static async Task WriteInfo(string path, UploadInfo info)
         {
             using (var writer = new StreamWriter(new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, 4096, true)))
             {

@@ -37,7 +37,7 @@
     <SignAssembly>true</SignAssembly>
   </PropertyGroup>
   <PropertyGroup>
-    <AssemblyOriginatorKeyFile>LibraryKeyFile.pfx</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>StrongSign.pfx</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.Graph.Core, Version=1.3.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
@@ -87,8 +87,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
-    <None Include="LibraryKeyFile.pfx" />
     <None Include="packages.config" />
+    <None Include="StrongSign.pfx" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="images\cd_icon.png" />

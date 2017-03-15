@@ -185,6 +185,12 @@
 
         private static App App => App.MyApp;
 
+        public bool HockeyAppEnabled
+        {
+            get { return Log.HockeyAppEnabled; }
+            set { Log.HockeyAppEnabled = value; }
+        }
+
         public void AddCloud(AvailableCloud selectedItem)
         {
             var name = selectedItem.Name;
@@ -464,7 +470,7 @@
             var settings = Properties.Settings.Default;
             if (settings.Clouds == null)
             {
-                Log.Error("No clouds!");
+                Log.ErrorTrace("No clouds!");
                 settings.Clouds = new CloudInfoCollection();
                 settings.Save();
             }
