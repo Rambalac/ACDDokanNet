@@ -20,7 +20,8 @@
         Conflict,
         Unexpected,
         Cancelled,
-        FileNotFound
+        FileNotFound,
+        ContentIdMismatch
     }
 
     public enum UploadState
@@ -132,7 +133,10 @@
 
         public void CancelUpload(string id)
         {
-            if (!allUploads.TryGetValue(id, out UploadInfo outitem)) return;
+            if (!allUploads.TryGetValue(id, out UploadInfo outitem))
+            {
+                return;
+            }
 
             outitem.Cancellation.Cancel();
             OnUploadFailed(outitem, FailReason.Cancelled, "Upload cancelled");
@@ -378,7 +382,7 @@
                             {
                                 if (DateTime.UtcNow - lastPresenceCheck > TimeSpan.FromMinutes(10))
                                 {
-                                     lastPresenceCheck = DateTime.UtcNow;
+                                    lastPresenceCheck = DateTime.UtcNow;
                                     var checknode2 = await cloud.Nodes.GetChild(parentId, itemName);
                                     if (checknode2 != null)
                                     {
@@ -428,6 +432,17 @@
                     if (node == null)
                     {
                         throw new NullReferenceException("File node is null: " + item.Path);
+                    }
+
+                    if (item.ContentId != null && item.ContentId != node.ContentId)
+                    {
+                        Log.ErrorTrace($"Upload finished with content id mismatch: {item.Path} local:{item.ContentId} remote:{node.ContentId}");
+                        await OnUploadFailed(
+                            item,
+                            FailReason.ContentIdMismatch,
+                            "Uploaded item content id does not match local file content id. Consider to check uploaded file and reupload.");
+                        CleanUpload(item);
+                        return;
                     }
 
                     node.ParentPath = Path.GetDirectoryName(item.Path);

@@ -701,6 +701,7 @@
 
                 case FailReason.FileNotFound:
                 case FailReason.Conflict:
+                case FailReason.ContentIdMismatch:
                 case FailReason.NoFolderNode:
                     await onStatisticsUpdated(cloud, StatisticUpdateReason.UploadAborted, new UploadStatisticInfo(uploaditem, message));
                     return;
