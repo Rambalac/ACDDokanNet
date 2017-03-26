@@ -6,16 +6,16 @@ Not just in Windows Explorer, but in any application.
 
 Starting from version 1.6.0 multiple clouds are supported, as example I added Microsoft OneDrive. As it's not ACD only I'm looking for better name. CloudHold?
 
-![Sample](/images/Amazon Cloud Drive as real drive.png)
+![Sample](/images/AmazonCloudDrive.png)
 
-###Amazon CloudDrive
+### Amazon CloudDrive
 Login is done via default web browser, so application itself can not get your login and password, 
 and if you already logged into Amazon Cloud Drive you don't need to enter anything, just click a button.
 
 Shell Extension
 ---------------
 ### Links
-![Context Menu](/images/Context Menu.png)
+![Context Menu](/images/ContextMenu.png)
 
 You can get temp links in Windows Explorer for selected files or open temp link of one selected file in your app used for that file extension. Temp links will work for few days only, Amazon Cloud Drive does not provide any way to create permanent links to files.
 
