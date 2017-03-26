@@ -14,14 +14,14 @@ and if you already logged into Amazon Cloud Drive you don't need to enter anythi
 
 Shell Extension
 ---------------
-###Links
+### Links
 ![Context Menu](/images/Context Menu.png)
 
 You can get temp links in Windows Explorer for selected files or open temp link of one selected file in your app used for that file extension. Temp links will work for few days only, Amazon Cloud Drive does not provide any way to create permanent links to files.
 
 Also you can open folders in browser on Amazon Cloud Drive web site.
 
-###Upload here
+### Upload here
 ![Upload Here](/images/Uploadhere.png)
 
 You can copy files in Explorer and with *Upload here* in destination cloud folder context menu (right mouse button) start upload files and folders instantly.
