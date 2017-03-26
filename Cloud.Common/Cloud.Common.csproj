@@ -73,6 +73,7 @@
     <Compile Include="INodeExtendedInfoWebLink.cs" />
     <Compile Include="NodeExtendedInfo.cs" />
     <Compile Include="NodeShareType.cs" />
+    <Compile Include="Properties\Annotations.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

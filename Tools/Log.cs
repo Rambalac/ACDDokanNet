@@ -19,7 +19,7 @@ namespace Azi.Tools
         public const int VirtualDrive = 200;
         private const string Source = "ACDDokan.Net";
         private static readonly string Query = $"*[System[Provider[@Name = '{Source}']]]";
-        private static string _version;
+        private static string version;
 
         static Log()
         {
@@ -37,7 +37,7 @@ namespace Azi.Tools
             }
             catch (Exception)
             {
-                //Just ignore
+                // Just ignore
             }
         }
 
@@ -46,28 +46,6 @@ namespace Azi.Tools
 #else
         public static bool HockeyAppEnabled { get; set; }
 #endif
-
-        public static async Task Init(string version)
-        {
-            _version = version;
-            await HockeyClient.Current.SendCrashesAsync(true);
-        }
-
-        public static void ErrorTrace(
-            string message,
-            int eventId = 0,
-            short category = 0,
-            [CallerMemberName] string memberName = "",
-            [CallerFilePath] string sourceFilePath = "",
-            [CallerLineNumber] int sourceLineNumber = 0)
-        {
-            Console.WriteLine($"{DateTime.Now} {memberName}: {message}\r\n\r\n{sourceFilePath}: {sourceLineNumber}");
-            WriteEntry($"{memberName}: {message}", EventLogEntryType.Error, eventId, category, memberName, sourceFilePath, sourceLineNumber);
-            if (HockeyAppEnabled)
-            {
-                TrackException(new MessageException(message), MakeDict(eventId, category, memberName, sourceFilePath, sourceLineNumber));
-            }
-        }
 
         public static void Error(
             Exception ex,
@@ -102,28 +80,20 @@ namespace Azi.Tools
             }
         }
 
-        private static void TrackException(Exception exception, IDictionary<string, string> makeDict)
+        public static void ErrorTrace(
+            string message,
+            int eventId = 0,
+            short category = 0,
+            [CallerMemberName] string memberName = "",
+            [CallerFilePath] string sourceFilePath = "",
+            [CallerLineNumber] int sourceLineNumber = 0)
         {
-            (HockeyClient.Current as HockeyClient).HandleException(exception);
-        }
-
-        private static IDictionary<string, string> MakeDict(int eventId, short category, string memberName, string sourceFilePath, int sourceLineNumber, string message = null)
-        {
-            var result = new Dictionary<string, string>
+            Console.WriteLine($"{DateTime.Now} {memberName}: {message}\r\n\r\n{sourceFilePath}: {sourceLineNumber}");
+            WriteEntry($"{memberName}: {message}", EventLogEntryType.Error, eventId, category, memberName, sourceFilePath, sourceLineNumber);
+            if (HockeyAppEnabled)
             {
-                { "eventId", eventId.ToString() },
-                { "category", category.ToString() },
-                { "memberName", memberName },
-                { "sourceFilePath", sourceFilePath },
-                { "sourceLineNumber", sourceLineNumber.ToString() },
-                { "version", _version }
-            };
-            if (message != null)
-            {
-                result.Add("message", message);
+                TrackException(new MessageException(message), MakeDict(eventId, category, memberName, sourceFilePath, sourceLineNumber));
             }
-
-            return result;
         }
 
         public static void Export(string path)
@@ -143,6 +113,12 @@ namespace Azi.Tools
             [CallerLineNumber] int sourceLineNumber = 0)
         {
             WriteEntry(message, EventLogEntryType.Information, eventId, category, memberName, sourceFilePath, sourceLineNumber);
+        }
+
+        public static async Task Init(string vers)
+        {
+            Log.version = vers;
+            await HockeyClient.Current.SendCrashesAsync(true);
         }
 
         [Conditional("TRACE")]
@@ -191,9 +167,33 @@ namespace Azi.Tools
             }
         }
 
-        private class WarningException : Exception
+        private static IDictionary<string, string> MakeDict(int eventId, short category, string memberName, string sourceFilePath, int sourceLineNumber, string message = null)
         {
-            public WarningException(string message)
+            var result = new Dictionary<string, string>
+            {
+                { "eventId", eventId.ToString() },
+                { "category", category.ToString() },
+                { "memberName", memberName },
+                { "sourceFilePath", sourceFilePath },
+                { "sourceLineNumber", sourceLineNumber.ToString() },
+                { "version", version }
+            };
+            if (message != null)
+            {
+                result.Add("message", message);
+            }
+
+            return result;
+        }
+
+        private static void TrackException(Exception exception, IDictionary<string, string> makeDict)
+        {
+            (HockeyClient.Current as HockeyClient).HandleException(exception);
+        }
+
+        private class MessageException : Exception
+        {
+            public MessageException(string message)
                 : base(message)
             {
                 var stack = new StackTrace(2);
@@ -203,9 +203,9 @@ namespace Azi.Tools
             public override string StackTrace { get; }
         }
 
-        private class MessageException : Exception
+        private class WarningException : Exception
         {
-            public MessageException(string message)
+            public WarningException(string message)
                 : base(message)
             {
                 var stack = new StackTrace(2);

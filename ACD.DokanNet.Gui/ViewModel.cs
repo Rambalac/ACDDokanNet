@@ -44,19 +44,8 @@
 
         public List<AvailableCloud> AvailableClouds { get; private set; }
 
-        public ObservableCollection<CloudMount> Clouds { get; set; }
-
-        public ObservableCollection<FileItemInfo> DownloadFailedFiles { get; } = new ObservableCollection<FileItemInfo>();
-
-        public ObservableCollection<FileItemInfo> DownloadFiles { get; } = new ObservableCollection<FileItemInfo>();
-
-        public int DownloadFilesCount => DownloadFiles.Count;
-
-        public string DownloadFilesTooltip => string.Join("\r\n", DownloadFiles.Select(f => f.FileName));
-
-        public bool HasFreeLetters => VirtualDriveWrapper.GetFreeDriveLettes().Any();
-
-        public Visibility HasUpdate => UpdateAvailable != null ? Visibility.Visible : Visibility.Collapsed;
+        // TODO
+        public bool CanClearCache => true;
 
         public bool CheckFileHash
         {
@@ -76,6 +65,26 @@
                     }
                 }
             }
+        }
+
+        public ObservableCollection<CloudMount> Clouds { get; set; }
+
+        public ObservableCollection<FileItemInfo> DownloadFailedFiles { get; } = new ObservableCollection<FileItemInfo>();
+
+        public ObservableCollection<FileItemInfo> DownloadFiles { get; } = new ObservableCollection<FileItemInfo>();
+
+        public int DownloadFilesCount => DownloadFiles.Count;
+
+        public string DownloadFilesTooltip => string.Join("\r\n", DownloadFiles.Select(f => f.FileName));
+
+        public bool HasFreeLetters => VirtualDriveWrapper.GetFreeDriveLettes().Any();
+
+        public Visibility HasUpdate => UpdateAvailable != null ? Visibility.Visible : Visibility.Collapsed;
+
+        public bool HockeyAppEnabled
+        {
+            get { return Log.HockeyAppEnabled; }
+            set { Log.HockeyAppEnabled = value; }
         }
 
         public bool IsAutorun
@@ -180,16 +189,7 @@
 
         public string Version => Assembly.GetEntryAssembly().GetName().Version.ToString();
 
-        // TODO
-        public bool CanClearCache => true;
-
         private static App App => App.MyApp;
-
-        public bool HockeyAppEnabled
-        {
-            get { return Log.HockeyAppEnabled; }
-            set { Log.HockeyAppEnabled = value; }
-        }
 
         public void AddCloud(AvailableCloud selectedItem)
         {
@@ -250,6 +250,72 @@
             {
                 DownloadFiles.Remove(item);
             }
+        }
+
+        public void OnProviderDownloadStatisticsUpdated(CloudMount mount, StatisticUpdateReason reason, AStatisticFileInfo info)
+        {
+            var cloud = mount.CloudInfo;
+            switch (reason)
+            {
+                case StatisticUpdateReason.DownloadAdded:
+                    {
+                        var item = new FileItemInfo(cloud.Id, info.Id)
+                        {
+                            CloudIcon = mount.Instance.CloudServiceIcon,
+                            FileName = info.FileName,
+                            FullPath = $"{mount.MountLetter}:{info.Path}",
+                            ErrorMessage = info.ErrorMessage,
+                            Total = info.Total,
+                            CloudName = cloud.Name
+                        };
+                        DownloadFiles.Remove(item);
+                        DownloadFiles.Add(item);
+                    }
+
+                    break;
+
+                case StatisticUpdateReason.DownloadFinished:
+                    {
+                        DownloadFiles.Remove(new FileItemInfo(cloud.Id, info.Id));
+                    }
+
+                    break;
+
+                case StatisticUpdateReason.DownloadFailed:
+                    {
+                        var item = UploadFiles.Single(f => f.Id == info.Id && f.CloudId == cloud.Id);
+                        item.ErrorMessage = info.ErrorMessage;
+                        DownloadFiles.Remove(item);
+                        DownloadFailedFiles.Add(item);
+                        if (DownloadFailedFiles.Count > 10)
+                        {
+                            DownloadFailedFiles.RemoveAt(DownloadFailedFiles.Count - 1);
+                        }
+                    }
+
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        public void OnProviderStatisticsUpdated(CloudMount mount, StatisticUpdateReason reason, AStatisticFileInfo info)
+        {
+            var uploadInfo = info as UploadStatisticInfo;
+            if (uploadInfo != null)
+            {
+                OnProviderUploadStatisticsUpdated(mount, reason, uploadInfo);
+                return;
+            }
+
+            var downloadInfo = info as DownloadStatisticInfo;
+            if (downloadInfo != null)
+            {
+                OnProviderDownloadStatisticsUpdated(mount, reason, downloadInfo);
+                return;
+            }
+
+            throw new ArgumentOutOfRangeException(nameof(info));
         }
 
         public void OnProviderUploadStatisticsUpdated(CloudMount mount, StatisticUpdateReason reason, UploadStatisticInfo info)
@@ -321,72 +387,6 @@
 
                     break;
 
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-        }
-
-        public void OnProviderStatisticsUpdated(CloudMount mount, StatisticUpdateReason reason, AStatisticFileInfo info)
-        {
-            var uploadInfo = info as UploadStatisticInfo;
-            if (uploadInfo != null)
-            {
-                OnProviderUploadStatisticsUpdated(mount, reason, uploadInfo);
-                return;
-            }
-
-            var downloadInfo = info as DownloadStatisticInfo;
-            if (downloadInfo != null)
-            {
-                OnProviderDownloadStatisticsUpdated(mount, reason, downloadInfo);
-                return;
-            }
-
-            throw new ArgumentOutOfRangeException(nameof(info));
-        }
-
-        public void OnProviderDownloadStatisticsUpdated(CloudMount mount, StatisticUpdateReason reason, AStatisticFileInfo info)
-        {
-            var cloud = mount.CloudInfo;
-            switch (reason)
-            {
-                case StatisticUpdateReason.DownloadAdded:
-                    {
-                        var item = new FileItemInfo(cloud.Id, info.Id)
-                        {
-                            CloudIcon = mount.Instance.CloudServiceIcon,
-                            FileName = info.FileName,
-                            FullPath = $"{mount.MountLetter}:{info.Path}",
-                            ErrorMessage = info.ErrorMessage,
-                            Total = info.Total,
-                            CloudName = cloud.Name
-                        };
-                        DownloadFiles.Remove(item);
-                        DownloadFiles.Add(item);
-                    }
-
-                    break;
-
-                case StatisticUpdateReason.DownloadFinished:
-                    {
-                        DownloadFiles.Remove(new FileItemInfo(cloud.Id, info.Id));
-                    }
-
-                    break;
-
-                case StatisticUpdateReason.DownloadFailed:
-                    {
-                        var item = UploadFiles.Single(f => f.Id == info.Id && f.CloudId == cloud.Id);
-                        item.ErrorMessage = info.ErrorMessage;
-                        DownloadFiles.Remove(item);
-                        DownloadFailedFiles.Add(item);
-                        if (DownloadFailedFiles.Count > 10)
-                        {
-                            DownloadFailedFiles.RemoveAt(DownloadFailedFiles.Count - 1);
-                        }
-                    }
-
-                    break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }

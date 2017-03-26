@@ -86,7 +86,7 @@
                     case "mount":
                         await CommandMount(writer, parts[1]);
                         break;
-                    case "umount":
+                    case "unmount":
                         await CommandUnmount(writer, parts[1]);
                         break;
                     case "list":

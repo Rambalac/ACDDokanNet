@@ -7,9 +7,11 @@
     using System.Linq;
     using System.Security.AccessControl;
     using System.Security.Principal;
+    using System.Threading;
     using System.Threading.Tasks;
     using Common;
     using global::DokanNet;
+    using Nito.AsyncEx.Synchronous;
     using Tools;
     using FileAccess = global::DokanNet.FileAccess;
 
@@ -377,25 +379,25 @@
         {
             Log.Trace(fileName);
 
-            //var identity = WindowsIdentity.GetCurrent().Owner;
-            //if (identity == null)
-            //{
-            //    throw new InvalidOperationException("identity is null");
-            //}
+            var identity = WindowsIdentity.GetCurrent().Owner;
+            if (identity == null)
+            {
+                throw new InvalidOperationException("identity is null");
+            }
 
-            //var result = !info.IsDirectory
-            //    ? (FileSystemSecurity)new FileSecurity()
-            //    : new DirectorySecurity();
-            //if (sections.HasFlag(AccessControlSections.Access))
-            //{
-            //    result.SetAccessRule(new FileSystemAccessRule(identity, FileSystemRights.FullControl, AccessControlType.Allow));
-            //    result.SetAccessRuleProtection(false, true);
-            //}
+            var result = !info.IsDirectory
+                ? (FileSystemSecurity)new FileSecurity()
+                : new DirectorySecurity();
+            if (sections.HasFlag(AccessControlSections.Access))
+            {
+                result.SetAccessRule(new FileSystemAccessRule(identity, FileSystemRights.FullControl, AccessControlType.Allow));
+                result.SetAccessRuleProtection(false, true);
+            }
 
-            //if (sections.HasFlag(AccessControlSections.Owner))
-            //{
-            //    result.SetOwner(identity);
-            //}
+            if (sections.HasFlag(AccessControlSections.Owner))
+            {
+                result.SetOwner(identity);
+            }
 
             security = null;
             return DokanResult.Success;

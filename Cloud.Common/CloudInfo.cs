@@ -2,6 +2,8 @@
 {
     using System.ComponentModel;
     using System.Configuration;
+    using System.Runtime.CompilerServices;
+    using Annotations;
 
     [SettingsSerializeAs(SettingsSerializeAs.Xml)]
     public class CloudInfo : INotifyPropertyChanged
@@ -18,6 +20,8 @@
 
         private bool readOnly;
 
+        private string rootFolder;
+
         public event PropertyChangedEventHandler PropertyChanged;
 
         public string AssemblyFileName
@@ -30,7 +34,7 @@
             set
             {
                 assemblyFileName = value;
-                OnPropertyChanged(nameof(AssemblyFileName));
+                OnPropertyChanged();
             }
         }
 
@@ -46,7 +50,7 @@
             set
             {
                 autoMount = value;
-                OnPropertyChanged(nameof(AutoMount));
+                OnPropertyChanged();
             }
         }
 
@@ -60,7 +64,7 @@
             set
             {
                 className = value;
-                OnPropertyChanged(nameof(ClassName));
+                OnPropertyChanged();
             }
         }
 
@@ -74,7 +78,7 @@
             set
             {
                 driveLetter = value;
-                OnPropertyChanged(nameof(DriveLetter));
+                OnPropertyChanged();
             }
         }
 
@@ -90,7 +94,7 @@
             set
             {
                 name = value;
-                OnPropertyChanged(nameof(Name));
+                OnPropertyChanged();
             }
         }
 
@@ -104,13 +108,24 @@
             set
             {
                 readOnly = value;
-                OnPropertyChanged(nameof(ReadOnly));
+                OnPropertyChanged();
             }
         }
 
-        internal void OnPropertyChanged(string propname)
+        public string RootFolder
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propname));
+            get => rootFolder;
+            set
+            {
+                rootFolder = value;
+                OnPropertyChanged();
+            }
+        }
+
+        [NotifyPropertyChangedInvocator]
+        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }

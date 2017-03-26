@@ -84,6 +84,8 @@
             }
         }
 
+        public bool CheckFileHash { get; set; }
+
         public Func<UploadInfo, Task> OnUploadAdded { get; set; }
 
         public OnUploadFailedDelegate OnUploadFailed { get; set; }
@@ -93,8 +95,6 @@
         public OnUploadProgressDelegate OnUploadProgress { get; set; }
 
         public OnUploadStateDelegate OnUploadState { get; set; }
-
-        public bool CheckFileHash { get; set; }
 
         public async Task AddOverwrite(FSItem item)
         {
@@ -248,6 +248,14 @@
             }
         }
 
+        private static async Task WriteInfo(string path, UploadInfo info)
+        {
+            using (var writer = new StreamWriter(new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, 4096, true)))
+            {
+                await writer.WriteAsync(JsonConvert.SerializeObject(info));
+            }
+        }
+
         private async Task AddUpload(FSItem item)
         {
             var info = new UploadInfo(item);
@@ -257,6 +265,14 @@
             leftUploads.Add(info);
             allUploads.TryAdd(info.Id, info);
             await (OnUploadAdded?.Invoke(info) ?? Task.FromResult(0));
+        }
+
+        private async Task<string> CalcContentId(string path)
+        {
+            using (var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true))
+            {
+                return await cloud.CalculateLocalStreamContentId(file);
+            }
         }
 
         private void CheckOldUploads()
@@ -321,6 +337,14 @@
             }
 
             upload.Dispose();
+        }
+
+        private async Task SetState(UploadInfo item, UploadState state)
+        {
+            if (OnUploadState != null)
+            {
+                await OnUploadState.Invoke(item, state);
+            }
         }
 
         private async Task Upload(UploadInfo item)
@@ -542,22 +566,6 @@
             leftUploads.Add(item);
         }
 
-        private async Task SetState(UploadInfo item, UploadState state)
-        {
-            if (OnUploadState != null)
-            {
-                await OnUploadState.Invoke(item, state);
-            }
-        }
-
-        private async Task<string> CalcContentId(string path)
-        {
-            using (var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true))
-            {
-                return await cloud.CalculateLocalStreamContentId(file);
-            }
-        }
-
         private async Task UploadProgress(UploadInfo item, long p)
         {
             if (p == 0)
@@ -609,14 +617,6 @@
             catch (OperationCanceledException)
             {
                 Log.Info("Upload service stopped");
-            }
-        }
-
-        private static async Task WriteInfo(string path, UploadInfo info)
-        {
-            using (var writer = new StreamWriter(new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, 4096, true)))
-            {
-                await writer.WriteAsync(JsonConvert.SerializeObject(info));
             }
         }
     }
