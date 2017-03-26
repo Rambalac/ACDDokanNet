@@ -26,12 +26,13 @@
         UploadState
     }
 
-    public class FSProvider : IDisposable
+    public class FSProvider : IDisposable, IFSProvider
     {
         private readonly IHttpCloud cloud;
         private readonly ItemsTreeCache itemsTreeCache = new ItemsTreeCache();
         private readonly StatisticUpdateDelegate onStatisticsUpdated;
 
+        private readonly UploadService uploadService;
         private string cachePath;
 
         private bool disposedValue; // To detect redundant calls
@@ -63,7 +64,7 @@
                     }
             };
 
-            UploadService = new UploadService(2, cloud)
+            uploadService = new UploadService(2, cloud)
             {
                 OnUploadFailed = UploadFailed,
                 OnUploadFinished = UploadFinished,
@@ -89,7 +90,7 @@
                 }
             };
 
-            UploadService.Start();
+            uploadService.Start();
         }
 
         public string CachePath
@@ -114,7 +115,20 @@
 
                 cachePath = val;
                 SmallFilesCache.CachePath = val;
-                UploadService.CachePath = val;
+                uploadService.CachePath = val;
+            }
+        }
+
+        public bool CheckFileHash
+        {
+            get
+            {
+                return uploadService.CheckFileHash;
+            }
+
+            set
+            {
+                uploadService.CheckFileHash = value;
             }
         }
 
@@ -137,30 +151,7 @@
 
         public long SmallFileSizeLimit { get; set; } = 20 * 1024 * 1024;
 
-        public UploadService UploadService { get; }
-
         public string VolumeName { get; set; }
-
-        public bool CheckFileHash
-        {
-            get
-            {
-                return UploadService.CheckFileHash;
-            }
-
-            set
-            {
-                UploadService.CheckFileHash = value;
-            }
-        }
-
-        public async Task<long> GetTotalFreeSpace() => await cloud.GetTotalFreeSpace();
-
-        public async Task<long> GetTotalSize() => await cloud.GetTotalSize();
-
-        public async Task<long> GetTotalUsedSpace() => await cloud.GetTotalUsedSpace();
-
-        public async Task<long> GetAvailableFreeSpace() => await cloud.GetAvailableFreeSpace();
 
         public async Task BuildItemInfo(FSItem item)
         {
@@ -172,7 +163,7 @@
 
         public void CancelUpload(string id)
         {
-            UploadService.CancelUpload(id);
+            uploadService.CancelUpload(id);
         }
 
         public async Task ClearSmallFilesCache()
@@ -318,6 +309,8 @@
             return item;
         }
 
+        public async Task<long> GetAvailableFreeSpace() => await cloud.GetAvailableFreeSpace();
+
         public async Task<IList<FSItem>> GetDirItems(string folderPath)
         {
             var cached = itemsTreeCache.GetDir(folderPath);
@@ -360,6 +353,12 @@
                     return new byte[0];
             }
         }
+
+        public async Task<long> GetTotalFreeSpace() => await cloud.GetTotalFreeSpace();
+
+        public async Task<long> GetTotalSize() => await cloud.GetTotalSize();
+
+        public async Task<long> GetTotalUsedSpace() => await cloud.GetTotalUsedSpace();
 
         // TODO: override a finalizer only if Dispose(bool disposing) above has code to free unmanaged resources.
         // ~FSProvider() {
@@ -502,7 +501,7 @@
 
                 item = FSItem.MakeUploading(filePath, Guid.NewGuid().ToString(), dirItem.Id, 0);
 
-                var file = UploadService.OpenNew(item);
+                var file = uploadService.OpenNew(item);
                 SmallFilesCache.AddAsLink(item, file.UploadCachePath);
 
                 itemsTreeCache.Add(item);
@@ -518,7 +517,7 @@
                 item.Length = 0;
                 SmallFilesCache.Delete(item);
                 item.MakeUploading();
-                var file = UploadService.OpenTruncate(item);
+                var file = uploadService.OpenTruncate(item);
 
                 return file;
             }
@@ -537,7 +536,7 @@
                         {
                             it.MakeUploading();
                             var olditemPath = Path.Combine(SmallFilesCache.CachePath, item.Id);
-                            var newitemPath = Path.Combine(UploadService.CachePath, item.Id);
+                            var newitemPath = Path.Combine(uploadService.CachePath, item.Id);
 
                             if (File.Exists(newitemPath))
                             {
@@ -548,7 +547,7 @@
                             SmallFilesCache.AddExisting(it);
                         }
 
-                        await UploadService.AddOverwrite(it);
+                        await uploadService.AddOverwrite(it);
                     };
 
                     return file;
@@ -583,9 +582,9 @@
             return result;
         }
 
-        public void Stop()
+        public void StopUpload()
         {
-            UploadService.Stop();
+            uploadService.Stop();
         }
 
         protected virtual void Dispose(bool disposing)
@@ -595,12 +594,10 @@
                 if (disposing)
                 {
                     itemsTreeCache.Dispose();
-                    UploadService.Dispose();
+                    uploadService.Dispose();
                 }
 
-                // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
-                // TODO: set large fields to null.
-                disposedValue = true;
+                 disposedValue = true;
             }
         }
 
@@ -625,7 +622,7 @@
                 {
                     if (item.IsUploading)
                     {
-                        UploadService.CancelUpload(item.Id);
+                        uploadService.CancelUpload(item.Id);
                     }
                     else
                     {
@@ -674,7 +671,7 @@
                     {
                         try
                         {
-                            await UploadService.AddUpload(item.Parent, item.File);
+                            await uploadService.AddUpload(item.Parent, item.File);
                         }
                         catch (Exception e)
                         {

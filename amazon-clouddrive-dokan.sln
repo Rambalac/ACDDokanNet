@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26228.4
+VisualStudioVersion = 15.0.26228.9
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cloud.DokanNet", "amazon-clouddrive-dokan\Cloud.DokanNet.csproj", "{213AA535-DB16-4CF9-B3F1-324FF9347F8D}"
 EndProject
@@ -25,8 +25,10 @@ Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "ACDDokanNetInstaller", "ACD
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "images", "images", "{C40D9D1E-23C5-46BF-B902-4DF1677F7C95}"
 	ProjectSection(SolutionItems) = preProject
-		images\Amazon Cloud Drive as real drive.png = images\Amazon Cloud Drive as real drive.png
+		images\AmazonCloudDrive.png = images\AmazonCloudDrive.png
 		ACD.DokanNet.Gui\images\cd_icon.png = ACD.DokanNet.Gui\images\cd_icon.png
+		images\ContextMenu.png = images\ContextMenu.png
+		images\Uploadhere.png = images\Uploadhere.png
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cloud.DokanNet.Tests", "amazon-clouddrive-dokanTests\Cloud.DokanNet.Tests.csproj", "{07444044-FB75-4639-AF4B-044A48EAD482}"
@@ -104,7 +106,6 @@ Global
 		{CD0ECDAA-982F-4E35-8BA9-E319D8D1F95F}.Release|x64.ActiveCfg = Release
 		{CD0ECDAA-982F-4E35-8BA9-E319D8D1F95F}.Release|x64.Build.0 = Release
 		{CD0ECDAA-982F-4E35-8BA9-E319D8D1F95F}.Release|x86.ActiveCfg = Release
-		{CD0ECDAA-982F-4E35-8BA9-E319D8D1F95F}.Release|x86.Build.0 = Release
 		{07444044-FB75-4639-AF4B-044A48EAD482}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{07444044-FB75-4639-AF4B-044A48EAD482}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{07444044-FB75-4639-AF4B-044A48EAD482}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -186,7 +187,6 @@ Global
 		{F7B40FF9-FF0B-4668-B72F-897556F5901A}.Release|x64.ActiveCfg = Release|x64
 		{F7B40FF9-FF0B-4668-B72F-897556F5901A}.Release|x64.Build.0 = Release|x64
 		{F7B40FF9-FF0B-4668-B72F-897556F5901A}.Release|x86.ActiveCfg = Release|Win32
-		{F7B40FF9-FF0B-4668-B72F-897556F5901A}.Release|x86.Build.0 = Release|Win32
 		{E95A8EFE-853D-4A21-AEE3-596133C08343}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E95A8EFE-853D-4A21-AEE3-596133C08343}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E95A8EFE-853D-4A21-AEE3-596133C08343}.Debug|x64.ActiveCfg = Debug|Any CPU

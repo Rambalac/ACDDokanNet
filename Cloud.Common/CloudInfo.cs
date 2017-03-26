@@ -26,10 +26,7 @@
 
         public string AssemblyFileName
         {
-            get
-            {
-                return assemblyFileName;
-            }
+            get => assemblyFileName;
 
             set
             {
@@ -42,10 +39,7 @@
 
         public bool AutoMount
         {
-            get
-            {
-                return autoMount;
-            }
+            get => autoMount;
 
             set
             {
@@ -56,10 +50,7 @@
 
         public string ClassName
         {
-            get
-            {
-                return className;
-            }
+            get => className;
 
             set
             {
@@ -70,10 +61,7 @@
 
         public char DriveLetter
         {
-            get
-            {
-                return driveLetter;
-            }
+            get => driveLetter;
 
             set
             {
@@ -86,10 +74,7 @@
 
         public string Name
         {
-            get
-            {
-                return name;
-            }
+            get => name;
 
             set
             {
@@ -100,10 +85,7 @@
 
         public bool ReadOnly
         {
-            get
-            {
-                return readOnly;
-            }
+            get => readOnly;
 
             set
             {

@@ -8,7 +8,7 @@
 
     public delegate Task Progress(long progress);
 
-    public interface IHttpCloud
+    public interface IHttpCloud : IDisposable
     {
         string CloudServiceIcon { get; }
 

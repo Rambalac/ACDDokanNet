@@ -122,7 +122,7 @@
             {
                 var path = Path.Combine(cachePath, item.Id);
                 File.Delete(path);
-                access.TryRemove(item.Id, out CacheEntry outitem);
+                access.TryRemove(item.Id, out _);
             }
             catch (Exception)
             {
@@ -278,7 +278,7 @@
                         var info = new FileInfo(path);
                         File.Delete(path);
                         deleted += info.Length;
-                        access.TryRemove(file.Id, out CacheEntry remove);
+                        access.TryRemove(file.Id, out _);
                     }
                     catch (IOException)
                     {

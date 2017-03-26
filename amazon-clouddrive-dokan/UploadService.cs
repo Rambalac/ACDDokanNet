@@ -29,7 +29,8 @@
         Waiting = 0,
         ContentId,
         Uploading,
-        Finishing
+        Finishing,
+        Failed
     }
 
     public class UploadService : IDisposable
@@ -357,14 +358,6 @@
                 var parentId = item.ParentId;
                 try
                 {
-                    if (item.Length == 0)
-                    {
-                        Log.Trace("Zero Length file: " + item.Path);
-                        await OnUploadFailed(item, FailReason.ZeroLength, null);
-                        CleanUpload(item);
-                        return;
-                    }
-
                     Log.Trace("Started upload: " + item.Path);
                     FSItem.Builder node;
 
@@ -404,24 +397,7 @@
                             () => new FileStream(sourcepath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true),
                             async p =>
                             {
-                                if (DateTime.UtcNow - lastPresenceCheck > TimeSpan.FromMinutes(10))
-                                {
-                                    lastPresenceCheck = DateTime.UtcNow;
-                                    var checknode2 = await cloud.Nodes.GetChild(parentId, itemName);
-                                    if (checknode2 != null)
-                                    {
-                                        if (item.ContentId == checknode2.ContentId)
-                                        {
-                                            Log.Warn($"Found already existing file. File content is the same. Cancel upload new: {item.Path}");
-                                            item.Cancellation.Cancel();
-                                        }
-                                        else
-                                        {
-                                            Log.Warn($"Found already existing file. File content is NOT the same. Conflict: {item.Path}");
-                                            throw new CloudException(System.Net.HttpStatusCode.Conflict, null);
-                                        }
-                                    }
-                                }
+                                lastPresenceCheck = await CheckDuplicate(item, itemName, lastPresenceCheck);
 
                                 await UploadProgress(item, p);
                             });
@@ -557,13 +533,37 @@
             finally
             {
                 uploadLimitSemaphore.Release();
-                allUploads.TryRemove(item.Id, out UploadInfo outItem);
+                allUploads.TryRemove(item.Id, out _);
             }
 
             await Task.Delay(ReuploadDelay);
             Log.Warn($"Repeat upload: {item.Path}");
             allUploads.TryAdd(item.Id, item);
             leftUploads.Add(item);
+        }
+
+        private async Task<DateTime> CheckDuplicate(UploadInfo item, string itemName, DateTime lastPresenceCheck)
+        {
+            if (DateTime.UtcNow - lastPresenceCheck > TimeSpan.FromMinutes(10))
+            {
+                lastPresenceCheck = DateTime.UtcNow;
+                var checknode2 = await cloud.Nodes.GetChild(item.ParentId, itemName);
+                if (checknode2 != null)
+                {
+                    if (item.ContentId == checknode2.ContentId)
+                    {
+                        Log.Warn($"Found already existing file. File content is the same. Cancel upload new: {item.Path}");
+                        item.Cancellation.Cancel();
+                    }
+                    else
+                    {
+                        Log.Warn($"Found already existing file. File content is NOT the same. Conflict: {item.Path}");
+                        throw new CloudException(System.Net.HttpStatusCode.Conflict, null);
+                    }
+                }
+            }
+
+            return lastPresenceCheck;
         }
 
         private async Task UploadProgress(UploadInfo item, long p)

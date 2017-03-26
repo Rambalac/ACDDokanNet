@@ -11,10 +11,10 @@
 
     public class ItemsTreeCache : IDisposable
     {
+        private readonly CancellationTokenSource cancellation = new CancellationTokenSource();
         private readonly ReaderWriterLockSlim lok = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
         private readonly Dictionary<string, DirItem> pathToDirItem = new Dictionary<string, DirItem>();
         private readonly Dictionary<string, FSItem> pathToNode = new Dictionary<string, FSItem>();
-        private readonly CancellationTokenSource cancellation = new CancellationTokenSource();
         private bool disposedValue; // To detect redundant calls
 
         public ItemsTreeCache()
@@ -66,6 +66,20 @@
             try
             {
                 pathToNode[item.Path] = item;
+            }
+            finally
+            {
+                lok.ExitWriteLock();
+            }
+        }
+
+        public void Clear()
+        {
+            lok.EnterWriteLock();
+            try
+            {
+                pathToDirItem.Clear();
+                pathToNode.Clear();
             }
             finally
             {

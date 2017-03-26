@@ -30,8 +30,10 @@
                 <xctk:DropDownButton.DropDownContent>
                     <Border Padding="5">
                         <StackPanel>
-                            <CheckBox x:Name="ReadonlyCheckBox" IsChecked="{Binding CloudInfo.ReadOnly}" Content="Read only" IsEnabled="{Binding IsUnmounted}" Margin="3" VerticalAlignment="Center" />
-                            <CheckBox x:Name="AutomountCheckBox" IsChecked="{Binding CloudInfo.AutoMount}" Content="Mount on start" IsEnabled="{Binding IsMounted}" Margin="3" VerticalAlignment="Center" />
+                            <CheckBox IsChecked="{Binding CloudInfo.ReadOnly}" Content="Read only" IsEnabled="{Binding IsUnmounted}" Margin="3" VerticalAlignment="Center" />
+                            <CheckBox IsChecked="{Binding CloudInfo.AutoMount}" Content="Mount on start" IsEnabled="{Binding IsMounted}" Margin="3" VerticalAlignment="Center" />
+                            <Label Margin="3,3,3,0">Root folder</Label>
+                            <TextBox Text="{Binding CloudInfo.RootFolder}" Margin="3,0,3,3" IsEnabled="{Binding IsUnmounted}"/>
                             <Separator />
                             <Button x:Name="LogoutButton" Content="Delete" Padding="5,1" Margin="3" Click="DeleteButton_Click" />
                         </StackPanel>

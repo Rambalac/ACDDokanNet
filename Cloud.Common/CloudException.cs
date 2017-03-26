@@ -7,7 +7,7 @@
     public class CloudException : Exception
     {
         public CloudException(HttpStatusCode error, Exception ex)
-            : base(ex.Message + ":" + error, ex)
+            : base($"{ex.Message} ({(int)error})", ex)
         {
             Error = error;
         }

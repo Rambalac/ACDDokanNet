@@ -13,7 +13,7 @@
 
         private char mountLetter;
 
-        public VirtualDriveWrapper(FSProvider provider)
+        public VirtualDriveWrapper(IFSProvider provider)
         {
             virtualDrive = new VirtualDrive(provider)
             {

@@ -26,10 +26,6 @@
             {
                 refreshTimer = new Timer(RefreshLetters, null, 1000, 1000);
 
-                BuildAvailableClouds();
-                LoadClouds();
-
-                Clouds.CollectionChanged += Clouds_CollectionChanged;
                 UploadFiles.CollectionChanged += UploadFiles_CollectionChanged;
                 DownloadFiles.CollectionChanged += DownloadFiles_CollectionChanged;
             }
@@ -67,7 +63,7 @@
             }
         }
 
-        public ObservableCollection<CloudMount> Clouds { get; set; }
+        public ObservableCollection<CloudMount> Clouds { get; private set; } = new ObservableCollection<CloudMount>();
 
         public ObservableCollection<FileItemInfo> DownloadFailedFiles { get; } = new ObservableCollection<FileItemInfo>();
 
@@ -224,6 +220,40 @@
             SaveClouds();
         }
 
+        public void BuildAvailableClouds()
+        {
+            AvailableClouds = new List<AvailableCloud>();
+            try
+            {
+                foreach (var file in Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory, "Clouds.*.dll"))
+                {
+                    try
+                    {
+                        var assembly = Assembly.LoadFrom(file);
+
+                        var types = assembly.GetExportedTypes().Where(t => typeof(IHttpCloud).IsAssignableFrom(t));
+
+                        AvailableClouds.AddRange(types.Where(t => t.IsClass)
+                                .Select(t => new AvailableCloud
+                                {
+                                    AssemblyFileName = Path.GetFileName(file),
+                                    ClassName = t.FullName,
+                                    Name = (string)t.GetProperty("CloudServiceName").GetValue(null),
+                                    Icon = (string)t.GetProperty("CloudServiceIcon").GetValue(null)
+                                }));
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(ex);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex);
+            }
+        }
+
         public void DeleteCloud(CloudMount cloud)
         {
             Clouds.Remove(cloud);
@@ -235,6 +265,20 @@
         {
             // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
             Dispose(true);
+        }
+
+        public void LoadClouds()
+        {
+            var settings = Properties.Settings.Default;
+            if (settings.Clouds == null)
+            {
+                Log.ErrorTrace("No clouds!");
+                settings.Clouds = new CloudInfoCollection();
+                settings.Save();
+            }
+
+            Clouds = new ObservableCollection<CloudMount>(settings.Clouds.Select(s => new CloudMount(s, this)));
+            Clouds.CollectionChanged += Clouds_CollectionChanged;
         }
 
         public void NotifyUnmount(string cloudid)
@@ -301,15 +345,13 @@
 
         public void OnProviderStatisticsUpdated(CloudMount mount, StatisticUpdateReason reason, AStatisticFileInfo info)
         {
-            var uploadInfo = info as UploadStatisticInfo;
-            if (uploadInfo != null)
+            if (info is UploadStatisticInfo uploadInfo)
             {
                 OnProviderUploadStatisticsUpdated(mount, reason, uploadInfo);
                 return;
             }
 
-            var downloadInfo = info as DownloadStatisticInfo;
-            if (downloadInfo != null)
+            if (info is DownloadStatisticInfo downloadInfo)
             {
                 OnProviderDownloadStatisticsUpdated(mount, reason, downloadInfo);
                 return;
@@ -321,32 +363,36 @@
         public void OnProviderUploadStatisticsUpdated(CloudMount mount, StatisticUpdateReason reason, UploadStatisticInfo info)
         {
             var cloud = mount.CloudInfo;
+            if (reason == StatisticUpdateReason.UploadAdded)
+            {
+                var newitem = new FileItemInfo(cloud.Id, info.Id)
+                {
+                    CloudIcon = mount.Instance.CloudServiceIcon,
+                    FileName = info.FileName,
+                    FullPath = $"{mount.MountLetter}:{info.Path}",
+                    ErrorMessage = info.ErrorMessage,
+                    Total = info.Total,
+                    CloudName = cloud.Name
+                };
+                UploadFiles.Remove(newitem);
+                UploadFiles.Add(newitem);
+                return;
+            }
+
+            var item = UploadFiles.SingleOrDefault(f => f.Id == info.Id && f.CloudId == cloud.Id);
+            if (item == null)
+            {
+                return;
+            }
+
             switch (reason)
             {
-                case StatisticUpdateReason.UploadAdded:
-                    {
-                        var item = new FileItemInfo(cloud.Id, info.Id)
-                        {
-                            CloudIcon = mount.Instance.CloudServiceIcon,
-                            FileName = info.FileName,
-                            FullPath = $"{mount.MountLetter}:{info.Path}",
-                            ErrorMessage = info.ErrorMessage,
-                            Total = info.Total,
-                            CloudName = cloud.Name
-                        };
-                        UploadFiles.Remove(item);
-                        UploadFiles.Add(item);
-                    }
-
-                    break;
-
                 case StatisticUpdateReason.UploadFinished:
                     UploadFiles.Remove(new FileItemInfo(cloud.Id, info.Id));
                     break;
 
                 case StatisticUpdateReason.UploadFailed:
                     {
-                        var item = UploadFiles.Single(f => f.Id == info.Id && f.CloudId == cloud.Id);
                         item.ErrorMessage = info.ErrorMessage;
                         UploadFiles.Remove(item);
                         UploadFiles.Add(item);
@@ -356,7 +402,6 @@
 
                 case StatisticUpdateReason.UploadAborted:
                     {
-                        var item = UploadFiles.Single(f => f.Id == info.Id && f.CloudId == cloud.Id);
                         item.ErrorMessage = info.ErrorMessage;
                         item.DismissOnly = true;
                         UploadFiles.Remove(item);
@@ -367,22 +412,14 @@
 
                 case StatisticUpdateReason.Progress:
                     {
-                        var item = UploadFiles.SingleOrDefault(f => f.Id == info.Id && f.CloudId == cloud.Id);
-                        if (item != null)
-                        {
-                            item.Done = info.Done;
-                        }
+                        item.Done = info.Done;
                     }
 
                     break;
 
                 case StatisticUpdateReason.UploadState:
                     {
-                        var item = UploadFiles.SingleOrDefault(f => f.Id == info.Id && f.CloudId == cloud.Id);
-                        if (item != null)
-                        {
-                            item.State = info.State;
-                        }
+                        item.State = info.State;
                     }
 
                     break;
@@ -419,40 +456,6 @@
             disposedValue = true;
         }
 
-        private void BuildAvailableClouds()
-        {
-            AvailableClouds = new List<AvailableCloud>();
-            try
-            {
-                foreach (var file in Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory, "Clouds.*.dll"))
-                {
-                    try
-                    {
-                        var assembly = Assembly.LoadFrom(file);
-
-                        var types = assembly.GetExportedTypes().Where(t => typeof(IHttpCloud).IsAssignableFrom(t));
-
-                        AvailableClouds.AddRange(types.Where(t => t.IsClass)
-                                .Select(t => new AvailableCloud
-                                {
-                                    AssemblyFileName = Path.GetFileName(file),
-                                    ClassName = t.FullName,
-                                    Name = (string)t.GetProperty("CloudServiceName").GetValue(null),
-                                    Icon = (string)t.GetProperty("CloudServiceIcon").GetValue(null)
-                                }));
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error(ex);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex);
-            }
-        }
-
         private void Clouds_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
             OnPropertyChanged(nameof(Clouds));
@@ -463,19 +466,6 @@
             OnPropertyChanged(nameof(DownloadFiles));
             OnPropertyChanged(nameof(DownloadFilesCount));
             OnPropertyChanged(nameof(DownloadFilesTooltip));
-        }
-
-        private void LoadClouds()
-        {
-            var settings = Properties.Settings.Default;
-            if (settings.Clouds == null)
-            {
-                Log.ErrorTrace("No clouds!");
-                settings.Clouds = new CloudInfoCollection();
-                settings.Save();
-            }
-
-            Clouds = new ObservableCollection<CloudMount>(settings.Clouds.Select(s => new CloudMount(s, this)));
         }
 
         private void OnPropertyChanged(string name)

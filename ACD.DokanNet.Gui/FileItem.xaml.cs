@@ -18,10 +18,5 @@
         {
             App.MyApp.Model.UploadFiles.Remove(Item);
         }
-
-        private void CancelButton_Click(object sender, RoutedEventArgs e)
-        {
-            App.MyApp.CancelUpload(Item);
-        }
     }
 }

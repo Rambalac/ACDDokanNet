@@ -2,15 +2,18 @@
 {
     using System;
     using System.ComponentModel;
+    using System.Runtime.CompilerServices;
     using System.Windows;
+    using Common.Annotations;
 
     public class FileItemInfo : INotifyPropertyChanged
     {
         private bool dismissOnly;
         private long done;
-        private UploadState state;
-
         private string errorMessage;
+        private bool isChecked;
+        private UploadState state;
+        private DateTime uploadStartTime;
 
         public FileItemInfo(string cloudid, string id)
         {
@@ -19,8 +22,6 @@
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
-
-        public Visibility CancelButton => dismissOnly ? Visibility.Collapsed : Visibility.Visible;
 
         public string CloudIcon { get; set; }
 
@@ -41,7 +42,7 @@
             {
                 dismissOnly = value;
                 OnPropertyChanged(nameof(DismissButton));
-                OnPropertyChanged(nameof(CancelButton));
+                OnPropertyChanged(nameof(IsCheckVisible));
             }
         }
 
@@ -54,7 +55,17 @@
 
             set
             {
+                if (done == value)
+                {
+                    return;
+                }
+
                 done = value;
+                if (State != UploadState.Waiting && done != Total)
+                {
+                    State = UploadState.Uploading;
+                }
+
                 OnPropertyChanged(nameof(Done));
                 OnPropertyChanged(nameof(Progress));
                 OnPropertyChanged(nameof(ProgressTip));
@@ -71,6 +82,11 @@
             set
             {
                 errorMessage = value;
+                if (errorMessage != null)
+                {
+                    State = UploadState.Failed;
+                }
+
                 OnPropertyChanged(nameof(ErrorMessage));
                 OnPropertyChanged(nameof(HasError));
             }
@@ -84,6 +100,27 @@
 
         public string Id { get; }
 
+        public bool IsChecked
+        {
+            get
+            {
+                return isChecked;
+            }
+
+            set
+            {
+                if (value == isChecked)
+                {
+                    return;
+                }
+
+                isChecked = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public Visibility IsCheckVisible => dismissOnly ? Visibility.Collapsed : Visibility.Visible;
+
         public int Progress => Total != 0 ? (int)(Done * 100 / Total) : 0;
 
         public string ProgressTip
@@ -92,17 +129,29 @@
             {
                 if (State == UploadState.Uploading)
                 {
+                    string donetip;
                     if (Total < 1024)
                     {
-                        return $"{Done} of {Total} bytes";
+                        donetip = $"{Done} of {Total} bytes";
                     }
-
-                    if (Total < 1024 * 1024)
+                    else if (Total < 1024 * 1024)
                     {
-                        return $"{Done / 1024} of {Total / 1024} KB";
+                        donetip = $"{Done / 1024} of {Total / 1024} KB";
+                    }
+                    else
+                    {
+                        donetip = $"{Done / 1024 / 1024} of {Total / 1024 / 1024} MB";
                     }
 
-                    return $"{Done / 1024 / 1024} of {Total / 1024 / 1024} MB";
+                    double past = (DateTime.UtcNow - uploadStartTime).TotalSeconds;
+                    if (past > 15 && Done != 0)
+                    {
+                        var total = past * Total / Done;
+                        var left = TimeSpan.FromSeconds(total - past);
+                        donetip += "." + left.ToString("h'h 'mm'm 'ss's'").TrimStart(' ', '0', 'h', 'm') + " left.";
+                    }
+
+                    return donetip;
                 }
 
                 switch (State)
@@ -113,13 +162,13 @@
                         return "Calculating content hash";
                     case UploadState.Finishing:
                         return "Finalazing upload";
+                    case UploadState.Failed:
+                        return "Upload failed";
                     default:
-                        throw new ArgumentOutOfRangeException();
+                        throw new ArgumentException();
                 }
             }
         }
-
-        public long Total { get; set; }
 
         public UploadState State
         {
@@ -130,11 +179,19 @@
 
             set
             {
+                if (state != UploadState.Uploading && value == UploadState.Uploading)
+                {
+                    uploadStartTime = DateTime.UtcNow;
+                }
+
                 state = value;
+
                 OnPropertyChanged(nameof(State));
                 OnPropertyChanged(nameof(ProgressTip));
             }
         }
+
+        public long Total { get; set; }
 
         public override bool Equals(object obj)
         {
@@ -152,9 +209,10 @@
             return Id.GetHashCode() ^ CloudId.GetHashCode();
         }
 
-        private void OnPropertyChanged(string name)
+        [NotifyPropertyChangedInvocator]
+        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }

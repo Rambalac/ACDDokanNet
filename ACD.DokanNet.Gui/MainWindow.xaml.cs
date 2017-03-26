@@ -2,6 +2,7 @@
 {
     using System;
     using System.Diagnostics;
+    using System.Linq;
     using System.Windows;
     using Microsoft.WindowsAPICodePack.Dialogs;
     using Tools;
@@ -136,6 +137,43 @@
         private void TextBox_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             Process.Start(Model.SmallFileCacheFolder);
+        }
+
+        private void CancelAll_OnClick(object sender, RoutedEventArgs e)
+        {
+            foreach (var item in Model.UploadFiles.Where(f => f.IsChecked && !f.DismissOnly))
+            {
+                var cloud = Model.Clouds.SingleOrDefault(c => c.CloudInfo.Id == item.CloudId);
+                cloud?.Provider.CancelUpload(item.Id);
+            }
+        }
+
+        private void DismissAll_OnClick(object sender, RoutedEventArgs e)
+        {
+            FileItemInfo item;
+            while ((item = Model.UploadFiles.FirstOrDefault(f => f.DismissOnly)) != null)
+            {
+                Model.UploadFiles.Remove(item);
+            }
+        }
+
+        private void SelectAll_OnClick(object sender, RoutedEventArgs e)
+        {
+            var process = Model.UploadFiles.Where(f => !f.IsChecked).ToList();
+            if (process.Count != 0)
+            {
+                foreach (var upload in process)
+                {
+                    upload.IsChecked = true;
+                }
+            }
+            else
+            {
+                foreach (var upload in Model.UploadFiles)
+                {
+                    upload.IsChecked = true;
+                }
+            }
         }
     }
 }

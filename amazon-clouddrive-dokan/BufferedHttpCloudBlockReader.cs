@@ -122,7 +122,7 @@
             while (Blocks.Count > KeepLastBlocks)
             {
                 var del = Blocks.Values.Aggregate((curMin, x) => (curMin == null || (x.Access < curMin.Access)) ? x : curMin);
-                Blocks.TryRemove(del.Key, out Block remove);
+                Blocks.TryRemove(del.Key, out _);
             }
         }
 

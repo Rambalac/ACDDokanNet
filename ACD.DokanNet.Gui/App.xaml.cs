@@ -2,7 +2,6 @@
 {
     using System;
     using System.Configuration;
-    using System.Diagnostics.Contracts;
     using System.IO;
     using System.Linq;
     using System.Reflection;
@@ -10,11 +9,8 @@
     using System.Threading.Tasks;
     using System.Windows;
     using System.Windows.Threading;
-    using System.Xml;
-    using Common;
     using Hardcodet.Wpf.TaskbarNotification;
     using Microsoft.Win32;
-    using Newtonsoft.Json;
     using Tools;
 
     /// <summary>
@@ -25,11 +21,11 @@
         private const string AppName = "ACDDokanNet";
         private const string RegistryAutorunPath = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
         private readonly UpdateChecker updateCheck = new UpdateChecker(47739891);
+        private CommandLineProcessor commandLineProcessor;
         private bool disposedValue;
 
         private Mutex startedMutex;
         private DispatcherTimer updateCheckTimer;
-        private CommandLineProcessor commandLineProcessor;
 
         public static bool IsShuttingDown { get; private set; }
 
@@ -44,39 +40,7 @@
             Dispose(true);
         }
 
-        public void OpenSettings()
-        {
-            MainWindow.Show();
-            MainWindow.Activate();
-        }
-
-        internal void CancelUpload(FileItemInfo item)
-        {
-            var cloud = Model.Clouds.SingleOrDefault(c => c.CloudInfo.Id == item.CloudId);
-
-            cloud?.Provider.CancelUpload(item.Id);
-        }
-
-        internal async Task ClearCache()
-        {
-            var any = false;
-            foreach (var mount in Model.Clouds)
-            {
-                var provider = mount.Provider;
-                if (provider != null)
-                {
-                    any = true;
-                    await provider.ClearSmallFilesCache();
-                }
-            }
-
-            if (!any)
-            {
-                throw new InvalidOperationException("Mount at least one cloud");
-            }
-        }
-
-        internal bool GetAutorun()
+        public bool GetAutorun()
         {
             using (var rk = Registry.CurrentUser.OpenSubKey(RegistryAutorunPath, true))
             {
@@ -89,7 +53,13 @@
             }
         }
 
-        internal void SetAutorun(bool isChecked)
+        public void OpenSettings()
+        {
+            MainWindow.Show();
+            MainWindow.Activate();
+        }
+
+        public void SetAutorun(bool isChecked)
         {
             using (var rk = Registry.CurrentUser.OpenSubKey(RegistryAutorunPath, true))
             {
@@ -111,6 +81,25 @@
             }
         }
 
+        internal async Task ClearCache()
+        {
+            var any = false;
+            foreach (var mount in Model.Clouds)
+            {
+                var provider = mount.Provider;
+                if (provider != null)
+                {
+                    any = true;
+                    await provider.ClearSmallFilesCache();
+                }
+            }
+
+            if (!any)
+            {
+                throw new InvalidOperationException("Mount at least one cloud");
+            }
+        }
+
         protected virtual void Dispose(bool disposing)
         {
             if (!disposedValue)
@@ -123,6 +112,11 @@
 
                 disposedValue = true;
             }
+        }
+
+        private void App_OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+        {
+            Log.Error(e.Exception);
         }
 
         private void Application_Exit(object sender, ExitEventArgs e)
@@ -155,6 +149,9 @@
                     Shutdown();
                 }
 
+                Model.BuildAvailableClouds();
+                Model.LoadClouds();
+
                 try
                 {
                     var test = Gui.Properties.Settings.Default.NeedUpgrade;
@@ -182,15 +179,6 @@
                 if (Gui.Properties.Settings.Default.NeedUpgrade)
                 {
                     Gui.Properties.Settings.Default.Upgrade();
-
-                    try
-                    {
-                        UpdateSettingsV1();
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error(ex);
-                    }
 
                     Gui.Properties.Settings.Default.NeedUpgrade = false;
                     Gui.Properties.Settings.Default.Save();
@@ -327,70 +315,6 @@
         private async void UpdateCheckTimer_Tick(object sender, EventArgs e)
         {
             await UpdateCheck();
-        }
-
-        private void UpdateSettingsV1()
-        {
-            var settings = Gui.Properties.Settings.Default;
-            if (settings.Clouds != null && settings.Clouds.Count > 0)
-            {
-                return;
-            }
-
-            var versionsPath = Environment.ExpandEnvironmentVariables("%LOCALAPPDATA%\\Rambalac\\ACD.DokanNet.Gui.exe_Url_3nx2g2l53nrtm2p32mr11ar350hkhmgy");
-            var topVersion = Directory.GetDirectories(versionsPath).OrderByDescending(Path.GetFileName).FirstOrDefault();
-            if (topVersion == null)
-            {
-                return;
-            }
-
-            var config = Path.Combine(topVersion, "user.config");
-
-            var doc = new XmlDocument();
-            doc.Load(config);
-
-            var authinfo = new AmazonCloudDrive.AuthInfo
-            {
-                AuthToken = doc.SelectSingleNode("//setting[@name='AuthToken']/value")?.InnerText,
-                AuthRenewToken = doc.SelectSingleNode("//setting[@name='AuthRenewToken']/value")?.InnerText,
-                AuthTokenExpiration = DateTime.Parse(doc.SelectSingleNode("//setting[@name='AuthTokenExpiration']/value")?.InnerText)
-            };
-
-            var readOnly = bool.Parse(doc.SelectSingleNode("//setting[@name='ReadOnly']/value")?.InnerText ?? "false");
-            var letter = doc.SelectSingleNode("//setting[@name='LastDriveLetter']/value")?.InnerText[0] ?? VirtualDriveWrapper.GetFreeDriveLettes().FirstOrDefault();
-
-            var cloudinfo = new CloudInfo
-            {
-                Id = Guid.NewGuid().ToString(),
-                Name = "Amazon Cloud Drive",
-                ClassName = "Azi.Cloud.AmazonCloudDrive.AmazonCloud",
-                AssemblyFileName = "Clouds.AmazonCloudDrive.dll",
-                DriveLetter = letter,
-                ReadOnly = readOnly,
-                AuthSave = JsonConvert.SerializeObject(authinfo)
-            };
-            settings.Clouds = new CloudInfoCollection(new[] { cloudinfo });
-
-            var cacheFolder = Environment.ExpandEnvironmentVariables(settings.CacheFolder);
-            var newPath = Path.Combine(cacheFolder, UploadService.UploadFolder, cloudinfo.Id);
-            Directory.CreateDirectory(newPath);
-
-            var uploadFolder = Path.Combine(cacheFolder, UploadService.UploadFolder);
-            var files = Directory.GetFiles(uploadFolder);
-
-            foreach (var file in files)
-            {
-                var fileName = Path.GetFileName(file);
-                Contract.Assert(fileName != null, "fileName != null");
-                if (fileName != null)
-                {
-                    File.Move(file, Path.Combine(newPath, fileName));
-                }
-                else
-                {
-                    Log.ErrorTrace($"Filename is null for '{file}' in '{uploadFolder}'");
-                }
-            }
         }
     }
 }

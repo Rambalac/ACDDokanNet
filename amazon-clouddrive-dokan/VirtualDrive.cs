@@ -7,11 +7,9 @@
     using System.Linq;
     using System.Security.AccessControl;
     using System.Security.Principal;
-    using System.Threading;
     using System.Threading.Tasks;
     using Common;
     using global::DokanNet;
-    using Nito.AsyncEx.Synchronous;
     using Tools;
     using FileAccess = global::DokanNet.FileAccess;
 
@@ -31,13 +29,13 @@
         private const int ReadTimeout = 30000;
 
         private readonly string creator = WindowsIdentity.GetCurrent().Name;
-        private readonly FSProvider provider;
+        private readonly IFSProvider provider;
 
 #if TRACE
         private string lastFilePath;
 #endif
 
-        public VirtualDrive(FSProvider provider)
+        public VirtualDrive(IFSProvider provider)
         {
             this.provider = provider;
         }

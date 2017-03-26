@@ -27,13 +27,13 @@
 
         public static string CloudServiceName => "Microsoft OneDrive";
 
-        public IHttpCloudFiles Files => this;
-
-        public string Id { get; set; }
-
         string IHttpCloud.CloudServiceIcon => CloudServiceIcon;
 
         string IHttpCloud.CloudServiceName => CloudServiceName;
+
+        public IHttpCloudFiles Files => this;
+
+        public string Id { get; set; }
 
         public IHttpCloudNodes Nodes => this;
 
@@ -59,10 +59,23 @@
             return msaAuthenticationProvider.IsAuthenticated;
         }
 
+        public Task<string> CalculateLocalStreamContentId(Stream stream)
+        {
+            using (var md5 = SHA1.Create())
+            {
+                var data = md5.ComputeHash(stream);
+                return Task.FromResult(string.Concat(data.Select(b => b.ToString("x2"))));
+            }
+        }
+
         public async Task<FSItem.Builder> CreateFolder(string parentid, string name)
         {
             var item = await GetItem(parentid).Children.Request().AddAsync(new Item { Name = name, Folder = new Folder() }).ConfigureAwait(false);
             return FromNode(item);
+        }
+
+        public void Dispose()
+        {
         }
 
         public async Task<Stream> Download(string id)
@@ -226,15 +239,6 @@
             {
                 var newitem = await GetItem(parentId).ItemWithPath(fileName).Content.Request().PutAsync<Item>(stream);
                 return FromNode(newitem);
-            }
-        }
-
-        public Task<string> CalculateLocalStreamContentId(Stream stream)
-        {
-            using (var md5 = SHA1.Create())
-            {
-                var data = md5.ComputeHash(stream);
-                return Task.FromResult(string.Concat(data.Select(b => b.ToString("x2"))));
             }
         }
 

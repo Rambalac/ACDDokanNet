@@ -27,7 +27,10 @@ namespace Azi.Tools
 #if DEBUG
             ((HockeyClient)HockeyClient.Current).OnHockeySDKInternalException += (sender, args) =>
             {
-                if (Debugger.IsAttached) { Debugger.Break(); }
+                if (Debugger.IsAttached)
+                {
+                    Debugger.Break();
+                }
             };
 #endif
 
@@ -115,9 +118,9 @@ namespace Azi.Tools
             WriteEntry(message, EventLogEntryType.Information, eventId, category, memberName, sourceFilePath, sourceLineNumber);
         }
 
-        public static async Task Init(string vers)
+        public static async Task Init(string version)
         {
-            Log.version = vers;
+            Log.version = version;
             await HockeyClient.Current.SendCrashesAsync(true);
         }
 
@@ -188,7 +191,7 @@ namespace Azi.Tools
 
         private static void TrackException(Exception exception, IDictionary<string, string> makeDict)
         {
-            (HockeyClient.Current as HockeyClient).HandleException(exception);
+            (HockeyClient.Current as HockeyClient)?.HandleException(exception);
         }
 
         private class MessageException : Exception

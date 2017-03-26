@@ -98,7 +98,7 @@
 
         public Visibility MountVisible => (!unmounting && (MountLetter == null)) ? Visibility.Visible : Visibility.Collapsed;
 
-        public FSProvider Provider { get; private set; }
+        public IFSProvider Provider { get; private set; }
 
         public Visibility UnmountVisible => (!mounting && (MountLetter != null)) ? Visibility.Visible : Visibility.Collapsed;
 
@@ -196,7 +196,7 @@
                 });
 
                 MountLetter = null;
-                Provider.Stop();
+                Provider.StopUpload();
                 model.NotifyUnmount(cloudInfo.Id);
             }
             finally
@@ -287,13 +287,18 @@
                     throw new InvalidOperationException("Authentication failed");
                 }
 
-                Provider = new FSProvider(instance, ProviderStatisticsUpdated)
+                var origProv = new FSProvider(instance, ProviderStatisticsUpdated)
                 {
                     VolumeName = CloudInfo.Name,
                     CachePath = Environment.ExpandEnvironmentVariables(Properties.Settings.Default.CacheFolder),
                     SmallFilesCacheSize = Properties.Settings.Default.SmallFilesCacheLimit * (1 << 20),
                     SmallFileSizeLimit = Properties.Settings.Default.SmallFileSizeLimit * (1 << 20)
                 };
+
+                var rfProv = new RootFolderFSProvider(origProv);
+                await rfProv.SetRootFolder(CloudInfo.RootFolder);
+
+                Provider = rfProv;
 
                 var cloudDrive = new VirtualDriveWrapper(Provider);
 
