@@ -113,6 +113,15 @@ If you did not get your cloud mounted or have other reason, sad to hear it. Here
 
 News
 ----
+### 2017-03-28
+* Release 1.6.5
+* Fixed zero length upload & download (need more testing)
+* Root folder in cloud options (not tested much)
+* Few fixes to reduce http requstes to speed up.
+* Fixed auth saving broken in 1.6.5
+* Fixed unmount console command typo
+* Removed hard link use in small file opening for editing 
+
 ### 2017-03-16
 * Release 1.6.5
 * Fixed several upload retry bugs. Failed files will be retried after all other files were uploaded or at least tried to upload in all cases.
