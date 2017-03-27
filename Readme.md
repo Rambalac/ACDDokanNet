@@ -54,11 +54,11 @@ Prerequisites
 -------------
 - For use
     * Windows 7 or newer
-    * [Dokany 1.0.0](https://github.com/dokan-dev/dokany/releases/tag/v0.8.0) is required.
+    * [Dokany 1.0.3](https://github.com/dokan-dev/dokany/releases/tag/v1.0.3) is required.
 
 - For developing
-    * VS 2015
-    * .NET 4.5
+    * VS 2017
+    * .NET 4.6
     * Check [Build](Build.md) info page
 
 Installation
@@ -66,7 +66,7 @@ Installation
 * Read [Issues](#issues) and [Notes](#notes) sections tobe sure you know about main limitations, it may not work for apps you want to use.
 
 * Install Dokany
-  * For versions after 1.6.0 install Dokany with DokanSetup-1.0.0.5000.exe from https://github.com/dokan-dev/dokany/releases/tag/v1.0.0 .
+  * For versions after 1.6.0 install Dokany with DokanSetup.exe from https://github.com/dokan-dev/dokany/releases/tag/v1.0.3 .
   * For versions before 1.6.0 install DokanInstall_0.8.0_redist.exe from https://github.com/dokan-dev/dokany/releases/tag/v0.8.0 .
 
 * Install my latest release from https://github.com/Rambalac/ACDDokanNet/releases/latest .
