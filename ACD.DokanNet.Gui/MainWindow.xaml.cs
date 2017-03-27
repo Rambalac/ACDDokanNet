@@ -171,7 +171,7 @@
             {
                 foreach (var upload in Model.UploadFiles)
                 {
-                    upload.IsChecked = true;
+                    upload.IsChecked = false;
                 }
             }
         }

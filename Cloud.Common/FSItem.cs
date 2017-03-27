@@ -140,7 +140,11 @@
 
             public Builder SetParentPath(string path)
             {
-                ParentPath = path;
+                if (path != null)
+                {
+                    ParentPath = path.StartsWith("\\") ? path : "\\" + path;
+                }
+
                 return this;
             }
 

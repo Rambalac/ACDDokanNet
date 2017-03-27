@@ -106,12 +106,12 @@
     <Compile Include="BufferedHttpCloudBlockReader.cs" />
     <Compile Include="ByteArrayBlockReader.cs" />
     <Compile Include="ByteArrayBlockWriter.cs" />
+    <Compile Include="CacheEntry.cs" />
     <Compile Include="DokanLogger.cs" />
     <Compile Include="Downloader.cs" />
     <Compile Include="DownloadStatisticInfo.cs" />
     <Compile Include="DummyBlockStream.cs" />
     <Compile Include="FSProvider.cs" />
-    <Compile Include="HardLink.cs" />
     <Compile Include="IBlockStream.cs" />
     <Compile Include="IFSProvider.cs" />
     <Compile Include="ItemsTreeCache.cs" />
@@ -120,7 +120,6 @@
     <Compile Include="RootFolderFSProvider.cs" />
     <Compile Include="SmallFileBlockStream.cs" />
     <Compile Include="SmallFilesCache.cs" />
-    <Compile Include="SymbolicLink.cs" />
     <Compile Include="UploadInfo.cs" />
     <Compile Include="UploadService.cs" />
     <Compile Include="UploadStatisticInfo.cs" />

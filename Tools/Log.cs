@@ -11,6 +11,11 @@ namespace Azi.Tools
     using System.Threading.Tasks;
     using Microsoft.HockeyApp;
 
+    public static class UnitTestDetector
+    {
+        public static bool IsUnitTest { get; set; }
+    }
+
     public static class Log
     {
         public const int BigFile = 300;
@@ -23,25 +28,30 @@ namespace Azi.Tools
 
         static Log()
         {
-            HockeyClient.Current.Configure("7ca5f74596c44804825d1d2a4d3a99e5");
-#if DEBUG
-            ((HockeyClient)HockeyClient.Current).OnHockeySDKInternalException += (sender, args) =>
+            if (!UnitTestDetector.IsUnitTest)
             {
-                if (Debugger.IsAttached)
+                HockeyClient.Current.Configure("7ca5f74596c44804825d1d2a4d3a99e5");
+#if DEBUG
+                ((HockeyClient) HockeyClient.Current).OnHockeySDKInternalException += (sender, args) =>
                 {
-                    Debugger.Break();
-                }
-            };
+                    if (Debugger.IsAttached)
+                    {
+                        Debugger.Break();
+                    }
+                };
 #endif
 
-            try
-            {
-                EventLog.CreateEventSource(Source, "Application");
+                try
+                {
+                    EventLog.CreateEventSource(Source, "Application");
+                }
+                catch (Exception)
+                {
+                    // Just ignore
+                }
             }
-            catch (Exception)
-            {
-                // Just ignore
-            }
+
+            HockeyAppEnabled = !UnitTestDetector.IsUnitTest;
         }
 
 #if DEBUG

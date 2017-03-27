@@ -20,9 +20,11 @@
 
         private readonly AmazonDrive amazon;
 
+        // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
+        private readonly TokenUpdateListener tokenUpdateListener;
+
         private Quota lastQuota;
         private DateTime lastQuotaTime;
-        private TokenUpdateListener tokenUpdateListener;
 
         public AmazonCloud()
         {

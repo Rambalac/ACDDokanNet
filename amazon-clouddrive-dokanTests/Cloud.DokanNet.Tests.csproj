@@ -112,6 +112,10 @@
       <Project>{93841375-56D7-4B34-AA7C-BA69F29F8B66}</Project>
       <Name>Cloud.Common</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Tools\Tools.csproj">
+      <Project>{199CDB28-7472-41BD-BB1F-BF345451A68D}</Project>
+      <Name>Tools</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />

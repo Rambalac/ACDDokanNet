@@ -279,7 +279,7 @@
             try
             {
                 Instance.OnAuthUpdated = this;
-                var authenticated = await Authenticate(instance, MountCancellation.Token, interactiveAuth);
+                var authenticated = await Authenticate(Instance, MountCancellation.Token, interactiveAuth);
 
                 if (!authenticated)
                 {
@@ -330,7 +330,8 @@
                                 {
                                     cloudDrive.Mount(letter, CloudInfo.ReadOnly);
                                     unmountingEvent.Set();
-
+                                    Instance.Dispose();
+                                    instance = null;
                                     wasMounted = true;
                                     break;
                                 }

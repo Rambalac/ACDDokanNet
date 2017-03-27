@@ -4,6 +4,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Azi.Tools;
 
 namespace Azi.Cloud.DokanNet.Tests
 {
@@ -43,6 +44,7 @@ namespace Azi.Cloud.DokanNet.Tests
 
         protected FSProviderTestsBase()
         {
+            UnitTestDetector.IsUnitTest = true;
             StartSTATask(Init).Wait();
         }
 

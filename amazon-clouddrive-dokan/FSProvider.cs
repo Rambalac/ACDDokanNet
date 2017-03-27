@@ -10,6 +10,7 @@
     using Common;
     using Newtonsoft.Json;
     using Tools;
+    using FileInformation = global::DokanNet.FileInformation;
 
     public delegate Task StatisticUpdateDelegate(IHttpCloud cloud, StatisticUpdateReason reason, AStatisticFileInfo info);
 
@@ -29,6 +30,13 @@
     public class FSProvider : IDisposable, IFSProvider
     {
         private readonly IHttpCloud cloud;
+        private readonly HashSet<string> excludedFiles = new HashSet<string>
+        {
+            "desktop.ini",
+            "folder.jpg",
+            "folder.gif"
+        };
+
         private readonly ItemsTreeCache itemsTreeCache = new ItemsTreeCache();
         private readonly StatisticUpdateDelegate onStatisticsUpdated;
 
@@ -72,9 +80,9 @@
                     async (item, done) =>
                     {
                         await onStatisticsUpdated(
-                                cloud,
-                                StatisticUpdateReason.Progress,
-                                new UploadStatisticInfo(item) { Done = done });
+                            cloud,
+                            StatisticUpdateReason.Progress,
+                            new UploadStatisticInfo(item) { Done = done });
                     },
                 OnUploadAdded = async item =>
                 {
@@ -84,9 +92,9 @@
                 OnUploadState = async (item, state) =>
                 {
                     await onStatisticsUpdated(
-                            cloud,
-                            StatisticUpdateReason.UploadState,
-                            new UploadStatisticInfo(item) { State = state });
+                        cloud,
+                        StatisticUpdateReason.UploadState,
+                        new UploadStatisticInfo(item) { State = state });
                 }
             };
 
@@ -121,15 +129,9 @@
 
         public bool CheckFileHash
         {
-            get
-            {
-                return uploadService.CheckFileHash;
-            }
+            get { return uploadService.CheckFileHash; }
 
-            set
-            {
-                uploadService.CheckFileHash = value;
-            }
+            set { uploadService.CheckFileHash = value; }
         }
 
         public string FileSystemName => "Cloud Drive";
@@ -138,15 +140,9 @@
 
         public long SmallFilesCacheSize
         {
-            get
-            {
-                return SmallFilesCache.CacheSize;
-            }
+            get { return SmallFilesCache.CacheSize; }
 
-            set
-            {
-                SmallFilesCache.CacheSize = value;
-            }
+            set { SmallFilesCache.CacheSize = value; }
         }
 
         public long SmallFileSizeLimit { get; set; } = 20 * 1024 * 1024;
@@ -251,6 +247,16 @@
                 return (await cloud.Nodes.GetRoot()).BuildRoot();
             }
 
+            if (!itemPath.StartsWith("\\"))
+            {
+                itemPath = "\\" + itemPath;
+            }
+
+            if (excludedFiles.Contains(Path.GetFileName(itemPath)))
+            {
+                return null;
+            }
+
             var cached = itemsTreeCache.GetItem(itemPath);
             if (cached != null)
             {
@@ -278,18 +284,19 @@
                 item = itemsTreeCache.GetItem(curpath);
             }
             while (item == null);
+
             if (item == null)
             {
                 item = (await cloud.Nodes.GetRoot()).BuildRoot();
             }
 
+            if (curpath == "\\")
+            {
+                curpath = string.Empty;
+            }
+
             foreach (var name in folders)
             {
-                if (curpath == "\\")
-                {
-                    curpath = string.Empty;
-                }
-
                 var newpath = curpath + "\\" + name;
 
                 var newnode = await cloud.Nodes.GetChild(item.Id, name);
@@ -313,6 +320,11 @@
 
         public async Task<IList<FSItem>> GetDirItems(string folderPath)
         {
+            if (!folderPath.StartsWith("\\"))
+            {
+                folderPath = "\\" + folderPath;
+            }
+
             var cached = itemsTreeCache.GetDir(folderPath);
             if (cached != null)
             {
@@ -354,17 +366,45 @@
             }
         }
 
+        public async Task<FileInformation?> GetItemInfo(string fileName)
+        {
+            var item = await FetchNode(fileName);
+            if (item == null)
+            {
+                return null;
+            }
+
+            var result = new FileInformation
+            {
+                Length = item.Length,
+                FileName = item.Name,
+                Attributes = item.IsDir ? FileAttributes.Directory : FileAttributes.Normal,
+                LastAccessTime = item.LastAccessTime,
+                LastWriteTime = item.LastWriteTime,
+                CreationTime = item.CreationTime
+            };
+
+            var info = SmallFilesCache.GetItemInfo(item);
+
+            if (info != null)
+            {
+                result.LastAccessTime = item.LastAccessTime > info.LastAccessTimeUtc
+                    ? item.LastAccessTime
+                    : info.LastAccessTimeUtc;
+                result.LastWriteTime = item.LastWriteTime > info.LastWriteTimeUtc
+                    ? item.LastWriteTime
+                    : info.LastWriteTimeUtc;
+            }
+
+            return result;
+        }
+
         public async Task<long> GetTotalFreeSpace() => await cloud.GetTotalFreeSpace();
 
         public async Task<long> GetTotalSize() => await cloud.GetTotalSize();
 
         public async Task<long> GetTotalUsedSpace() => await cloud.GetTotalUsedSpace();
 
-        // TODO: override a finalizer only if Dispose(bool disposing) above has code to free unmanaged resources.
-        // ~FSProvider() {
-        //   // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-        //   Dispose(false);
-        // }
         public async Task MoveFile(string oldPath, string newPath, bool replace)
         {
             if (oldPath == newPath)
@@ -443,9 +483,7 @@
             }
         }
 
-#pragma warning disable RECS0154 // Parameter is never used
         public async Task<IBlockStream> OpenFile(string filePath, FileMode mode, FileAccess fileAccess, FileShare share, FileOptions options)
-#pragma warning restore RECS0154 // Parameter is never used
         {
             var item = await FetchNode(filePath);
             if (fileAccess == FileAccess.Read)
@@ -487,7 +525,7 @@
                 return buffered;
             }
 
-            if (item == null || item.Length == 0)
+            if (item == null)
             {
                 Log.Trace($"Creating {filePath} as New because mode:{mode} and {((item == null) ? "item is null" : "length is 0")}");
 
@@ -511,7 +549,7 @@
 
             await WaitForReal(item, 25000);
 
-            if ((mode == FileMode.Create || mode == FileMode.Truncate) && item.Length > 0)
+            if (mode == FileMode.Create || mode == FileMode.Truncate)
             {
                 Log.Trace($"Opening {filePath} as Truncate because mode:{mode} and length {item.Length}");
                 item.Length = 0;
@@ -543,8 +581,15 @@
                                 File.Delete(newitemPath);
                             }
 
-                            HardLink.Create(olditemPath, newitemPath);
-                            SmallFilesCache.AddExisting(it);
+                            try
+                            {
+                                File.Move(olditemPath, newitemPath);
+                                SmallFilesCache.AddExisting(it);
+                            }
+                            catch (Exception e)
+                            {
+                                Log.Error(e);
+                            }
                         }
 
                         await uploadService.AddOverwrite(it);
@@ -597,7 +642,7 @@
                     uploadService.Dispose();
                 }
 
-                 disposedValue = true;
+                disposedValue = true;
             }
         }
 
@@ -690,12 +735,6 @@
         {
             switch (reason)
             {
-                case FailReason.ZeroLength:
-                    var item = await FetchNode(uploaditem.Path);
-                    item?.MakeNotUploading();
-                    await onStatisticsUpdated(cloud, StatisticUpdateReason.UploadFinished, new UploadStatisticInfo(uploaditem));
-                    return;
-
                 case FailReason.FileNotFound:
                 case FailReason.Conflict:
                 case FailReason.ContentIdMismatch:

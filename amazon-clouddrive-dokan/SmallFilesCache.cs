@@ -6,21 +6,20 @@
     using System.Diagnostics;
     using System.IO;
     using System.Linq;
-    using System.Threading;
     using System.Threading.Tasks;
     using Common;
     using Tools;
 
-    public class SmallFilesCache
+    public partial class SmallFilesCache
     {
         private static readonly Dictionary<string, Downloader> Downloaders = new Dictionary<string, Downloader>(10);
         private static readonly object DownloadersLock = new object();
 
         private static string cachePath;
 
-        private readonly IHttpCloud cloud;
         private readonly UniqueBackgroundWorker cleanAllWorker;
         private readonly UniqueBackgroundWorker<long> cleanSizeWorker;
+        private readonly IHttpCloud cloud;
         private readonly object totalSizeLock = new object();
 
         private ConcurrentDictionary<string, CacheEntry> access = new ConcurrentDictionary<string, CacheEntry>(10, 1000);
@@ -99,16 +98,19 @@
         public void AddAsLink(FSItem item, string path)
         {
             Directory.CreateDirectory(cachePath);
-            HardLink.Create(path, Path.Combine(cachePath, item.Id));
-            AddExisting(item);
+            AddExisting(item, path);
         }
 
-        public void AddExisting(FSItem item)
+        public CacheEntry AddExisting(FSItem item, string sourcePath = null)
         {
-            if (access.TryAdd(item.Id, new CacheEntry { Id = item.Id, AccessTime = DateTime.UtcNow }))
+            var newentry = new CacheEntry { Id = item.Id, AccessTime = DateTime.UtcNow, LinkPath = sourcePath };
+            if (access.TryAdd(item.Id, newentry))
             {
                 TotalSizeIncrease(item.Length);
+                return newentry;
             }
+
+            return null;
         }
 
         public Task ClearAllInBackground()
@@ -121,13 +123,23 @@
             try
             {
                 var path = Path.Combine(cachePath, item.Id);
-                File.Delete(path);
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                }
+
                 access.TryRemove(item.Id, out _);
             }
             catch (Exception)
             {
                 Log.Warn($"Could not delete small file in cache {item.Name}");
             }
+        }
+
+        public FileInfo GetItemInfo(FSItem item)
+        {
+            var path = GetFilePath(item);
+            return (path != null) ? new FileInfo(path) : null;
         }
 
         public void MoveToCache(string olditemPath, FSItem newitem)
@@ -154,25 +166,10 @@
 
         public SmallFileBlockStream OpenReadCachedOnly(FSItem item, Downloader downloader = null)
         {
-            CacheEntry entry;
-            var path = Path.Combine(cachePath, item.Id);
-            if (!File.Exists(path))
+            var path = GetFilePath(item);
+            if (path == null)
             {
-                if (access.TryRemove(item.Id, out entry))
-                {
-                    TotalSizeDecrease(item.Length);
-                }
-
                 return null;
-            }
-
-            if (access.TryGetValue(item.Id, out entry))
-            {
-                entry.AccessTime = DateTime.UtcNow;
-            }
-            else
-            {
-                AddExisting(item);
             }
 
             Log.Trace("Opened cached: " + item.Id);
@@ -266,11 +263,12 @@
             try
             {
                 long deleted = 0;
-                foreach (var file in access.Values.OrderBy(f => f.AccessTime).TakeWhile(f =>
-                {
-                    size -= f.Length;
-                    return size > 0;
-                }).ToList())
+                var cacheEntries = access.Values.Where(i => i.LinkPath == null).OrderBy(f => f.AccessTime).TakeWhile(f =>
+                    {
+                        size -= f.Length;
+                        return size > 0;
+                    }).ToList();
+                foreach (var file in cacheEntries)
                 {
                     try
                     {
@@ -371,16 +369,40 @@
             }
             finally
             {
-                if (downloader.Downloaded == 0)
-                {
-                    Log.ErrorTrace("Downloader finished but zero length");
-                }
-
                 lock (DownloadersLock)
                 {
                     Downloaders.Remove(item.Path);
                 }
             }
+        }
+
+        private string GetFilePath(FSItem item)
+        {
+            var path = Path.Combine(cachePath, item.Id);
+            if (!access.TryGetValue(item.Id, out CacheEntry entry))
+            {
+                if (!File.Exists(path))
+                {
+                    return null;
+                }
+
+                entry = AddExisting(item);
+            }
+
+            entry.AccessTime = DateTime.UtcNow;
+
+            if (entry.LinkPath != null && File.Exists(entry.LinkPath))
+            {
+                path = entry.LinkPath;
+            }
+
+            if (!File.Exists(path))
+            {
+                access.TryRemove(item.Id, out _);
+                return null;
+            }
+
+            return path;
         }
 
         private void RecalculateTotalSize()
@@ -424,11 +446,6 @@
 
         private Downloader StartDownload(FSItem item, string path)
         {
-            if (item.Length == 0)
-            {
-                Log.ErrorTrace($"Downloader expected length Zero: {item.Name} - {item.Id}");
-            }
-
             var downloader = new Downloader(item, path);
 
             lock (DownloadersLock)
@@ -485,50 +502,6 @@
                 Downloaders.Add(item.Path, downloader);
 
                 return downloader;
-            }
-        }
-
-        private class CacheEntry : IDisposable
-        {
-            private readonly ReaderWriterLockSlim lk = new ReaderWriterLockSlim();
-            private DateTime accessTime;
-
-            public DateTime AccessTime
-            {
-                get
-                {
-                    lk.EnterReadLock();
-                    try
-                    {
-                        return accessTime;
-                    }
-                    finally
-                    {
-                        lk.ExitReadLock();
-                    }
-                }
-
-                set
-                {
-                    lk.EnterWriteLock();
-                    try
-                    {
-                        accessTime = value;
-                    }
-                    finally
-                    {
-                        lk.ExitWriteLock();
-                    }
-                }
-            }
-
-            public string Id { get; set; }
-
-            public long Length { get; set; }
-
-            public void Dispose()
-            {
-                lk.Dispose();
             }
         }
     }

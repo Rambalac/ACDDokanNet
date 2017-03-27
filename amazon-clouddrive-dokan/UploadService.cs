@@ -13,7 +13,6 @@
 
     public enum FailReason
     {
-        ZeroLength,
         NoResultNode,
         NoFolderNode,
         NoOverwriteNode,
@@ -432,6 +431,12 @@
                     if (node == null)
                     {
                         throw new NullReferenceException("File node is null: " + item.Path);
+                    }
+
+                    if (node.Length != item.Length)
+                    {
+                        item.Overwrite = true;
+                        throw new Exception($"Uploaded file size not correct: {item.Path} Correct Size: {item.Length} Got: {node.Length}");
                     }
 
                     if (item.ContentId != null && item.ContentId != node.ContentId)

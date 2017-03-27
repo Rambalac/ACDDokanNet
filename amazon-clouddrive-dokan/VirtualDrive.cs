@@ -343,11 +343,10 @@
                     streamName = names[1];
                 }
 
-                var item = GetItem(fileName);
-
-                if (item != null)
+                var nodeinfo = MakeFileInformation(fileName);
+                if (nodeinfo != null)
                 {
-                    fileInfo = MakeFileInformation(item);
+                    fileInfo = (FileInformation)nodeinfo;
                     if (streamName != null)
                     {
                         fileInfo.Length = 1;
@@ -377,27 +376,9 @@
         {
             Log.Trace(fileName);
 
-            var identity = WindowsIdentity.GetCurrent().Owner;
-            if (identity == null)
-            {
-                throw new InvalidOperationException("identity is null");
-            }
-
-            var result = !info.IsDirectory
+            security = !info.IsDirectory
                 ? (FileSystemSecurity)new FileSecurity()
                 : new DirectorySecurity();
-            if (sections.HasFlag(AccessControlSections.Access))
-            {
-                result.SetAccessRule(new FileSystemAccessRule(identity, FileSystemRights.FullControl, AccessControlType.Allow));
-                result.SetAccessRuleProtection(false, true);
-            }
-
-            if (sections.HasFlag(AccessControlSections.Owner))
-            {
-                result.SetOwner(identity);
-            }
-
-            security = null;
             return DokanResult.Success;
         }
 
@@ -410,7 +391,8 @@
                 FileSystemFeatures.CasePreservedNames |
                 FileSystemFeatures.CaseSensitiveSearch |
                 FileSystemFeatures.UnicodeOnDisk |
-                FileSystemFeatures.SupportsEncryption |
+                //FileSystemFeatures.PersistentAcls|
+                //FileSystemFeatures.SupportsEncryption |
                 FileSystemFeatures.SequentialWriteOnce;
             if (ReadOnly)
             {
@@ -590,9 +572,7 @@
             return DokanResult.Success;
         }
 
-#pragma warning disable RECS0154 // Parameter is never used
         public NtStatus Unmount(DokanFileInfo info)
-#pragma warning restore RECS0154 // Parameter is never used
         {
             return DokanResult.Success;
         }
@@ -643,6 +623,24 @@
                 Log.Error(e);
                 bytesWritten = 0;
                 return DokanResult.AccessDenied;
+            }
+        }
+
+        private static T Wait<T>(Task<T> task, int timeout = ReadTimeout)
+        {
+            if (!task.Wait(timeout))
+            {
+                throw new AggregateException(new TimeoutException());
+            }
+
+            return task.Result;
+        }
+
+        private static void Wait(Task task, int timeout = ReadTimeout)
+        {
+            if (!task.Wait(timeout))
+            {
+                throw new AggregateException(new TimeoutException());
             }
         }
 
@@ -849,6 +847,18 @@
             return result;
         }
 
+        private FileInformation? MakeFileInformation(string fileName)
+        {
+            var result = Wait(provider.GetItemInfo(fileName));
+            if (result != null && ReadOnly)
+            {
+                var info = (FileInformation)result;
+                info.Attributes |= FileAttributes.ReadOnly;
+            }
+
+            return result;
+        }
+
         private NtStatus OpenAsByteArray(byte[] data, DokanFileInfo info)
         {
             info.Context = new ByteArrayBlockReader(data);
@@ -896,24 +906,6 @@
         {
             info.Context = provider.OpenUploadHere(item);
             return DokanResult.Success;
-        }
-
-        private T Wait<T>(Task<T> task, int timeout = ReadTimeout)
-        {
-            if (!task.Wait(timeout))
-            {
-                throw new AggregateException(new TimeoutException());
-            }
-
-            return task.Result;
-        }
-
-        private void Wait(Task task, int timeout = ReadTimeout)
-        {
-            if (!task.Wait(timeout))
-            {
-                throw new AggregateException(new TimeoutException());
-            }
         }
     }
 }

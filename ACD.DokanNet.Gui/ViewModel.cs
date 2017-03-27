@@ -18,13 +18,14 @@
         private readonly Timer refreshTimer;
         private bool disposedValue;
 
+        private int lastUsedLetterNumber;
         private UpdateChecker.UpdateInfo updateAvailable;
 
         public ViewModel()
         {
             try
             {
-                refreshTimer = new Timer(RefreshLetters, null, 1000, 1000);
+                refreshTimer = new Timer(RefreshLetters, null, 1000, 5000);
 
                 UploadFiles.CollectionChanged += UploadFiles_CollectionChanged;
                 DownloadFiles.CollectionChanged += DownloadFiles_CollectionChanged;
@@ -475,20 +476,26 @@
 
         private void RefreshLetters(object state)
         {
-            if (App == null)
+            var newnumber = Environment.GetLogicalDrives().Length;
+            if (lastUsedLetterNumber == newnumber)
             {
                 return;
             }
 
-            if (Clouds != null)
-            {
-                foreach (var cloud in Clouds)
-                {
-                    cloud.OnPropertyChanged(nameof(cloud.DriveLetters));
-                }
-            }
+            lastUsedLetterNumber = newnumber;
 
-            OnPropertyChanged(nameof(HasFreeLetters));
+            App?.Dispatcher.Invoke(() =>
+            {
+                if (Clouds != null)
+                {
+                    foreach (var cloud in Clouds)
+                    {
+                        cloud.OnPropertyChanged(nameof(cloud.DriveLetters));
+                    }
+                }
+
+                OnPropertyChanged(nameof(HasFreeLetters));
+            });
         }
 
         private void UploadFiles_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)

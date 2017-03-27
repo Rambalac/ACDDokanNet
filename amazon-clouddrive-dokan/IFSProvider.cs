@@ -4,6 +4,7 @@
     using System.IO;
     using System.Threading.Tasks;
     using Common;
+    using FileInformation=global::DokanNet.FileInformation;
 
     public interface IFSProvider
     {
@@ -58,5 +59,7 @@
         ByteArrayBlockWriter OpenUploadHere(FSItem item);
 
         void StopUpload();
+
+        Task<FileInformation?> GetItemInfo(string fileName);
     }
 }

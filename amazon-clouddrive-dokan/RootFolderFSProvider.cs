@@ -4,6 +4,7 @@ namespace Azi.Cloud.DokanNet
     using System.IO;
     using System.Threading.Tasks;
     using Common;
+    using FileInformation=global::DokanNet.FileInformation;
 
     public class RootFolderFSProvider : IFSProvider
     {
@@ -49,59 +50,32 @@ namespace Azi.Cloud.DokanNet
             set { provider.VolumeName = value; }
         }
 
-        public Task BuildItemInfo(FSItem item)
-        {
-            return provider.BuildItemInfo(item);
-        }
+        public async Task BuildItemInfo(FSItem item) => await provider.BuildItemInfo(item).ConfigureAwait(false);
 
-        public void CancelUpload(string id)
-        {
-            provider.CancelUpload(id);
-        }
+        public void CancelUpload(string id) => provider.CancelUpload(id);
 
-        public Task ClearSmallFilesCache()
-        {
-            return provider.ClearSmallFilesCache();
-        }
+        public async Task ClearSmallFilesCache() => await provider.ClearSmallFilesCache().ConfigureAwait(false);
 
-        public Task CreateDir(string filePath)
-        {
-            return provider.CreateDir(FixRoot(filePath));
-        }
+        public async Task CreateDir(string filePath) => await provider.CreateDir(FixRoot(filePath)).ConfigureAwait(false);
 
-        public Task DeleteDir(string filePath)
-        {
-            return provider.DeleteDir(FixRoot(filePath));
-        }
+        public async Task DeleteDir(string filePath) => await provider.DeleteDir(FixRoot(filePath)).ConfigureAwait(false);
 
-        public Task DeleteFile(string filePath)
-        {
-            return provider.DeleteFile(FixRoot(filePath));
-        }
+        public async Task DeleteFile(string filePath) => await provider.DeleteFile(FixRoot(filePath)).ConfigureAwait(false);
 
         public void Dispose()
         {
             provider.Dispose();
         }
 
-        public Task<bool> Exists(string filePath)
-        {
-            return provider.Exists(FixRoot(filePath));
-        }
+        public async Task<bool> Exists(string filePath) => await provider.Exists(FixRoot(filePath)).ConfigureAwait(false);
 
-        public Task<FSItem> FetchNode(string itemPath)
-        {
-            return provider.FetchNode(FixRoot(itemPath));
-        }
+        public async Task<FSItem> FetchNode(string itemPath) => await provider.FetchNode(FixRoot(itemPath)).ConfigureAwait(false);
 
-        public Task<long> GetAvailableFreeSpace()
-        {
-            return provider.GetAvailableFreeSpace();
-        }
+        public async Task<long> GetAvailableFreeSpace() => await provider.GetAvailableFreeSpace().ConfigureAwait(false);
 
         public async Task<IList<FSItem>> GetDirItems(string folderPath)
         {
-            var result = await provider.GetDirItems(FixRoot(folderPath));
+            var result = await provider.GetDirItems(FixRoot(folderPath)).ConfigureAwait(false);
             foreach (var fsItem in result)
             {
                 if (fsItem.Path.StartsWith(rootFolder))
@@ -113,31 +87,24 @@ namespace Azi.Cloud.DokanNet
             return result;
         }
 
-        public Task<byte[]> GetExtendedInfo(string[] streamNameGroups, FSItem item)
+        public async Task<byte[]> GetExtendedInfo(string[] streamNameGroups, FSItem item) => await provider.GetExtendedInfo(streamNameGroups, item).ConfigureAwait(false);
+
+        public async Task<long> GetTotalFreeSpace() => await provider.GetTotalFreeSpace().ConfigureAwait(false);
+
+        public async Task<long> GetTotalSize() => await provider.GetTotalSize().ConfigureAwait(false);
+
+        public async Task<long> GetTotalUsedSpace() => await provider.GetTotalUsedSpace().ConfigureAwait(false);
+
+        public async Task MoveFile(string oldPath, string newPath, bool replace) => await provider.MoveFile(FixRoot(oldPath), FixRoot(newPath), replace).ConfigureAwait(false);
+
+        public async Task<IBlockStream> OpenFile(string filePath, FileMode mode, FileAccess fileAccess, FileShare share, FileOptions options)
         {
-            return provider.GetExtendedInfo(streamNameGroups, item);
+            return await provider.OpenFile(FixRoot(filePath), mode, fileAccess, share, options).ConfigureAwait(false);
         }
 
-        public Task<long> GetTotalFreeSpace() => provider.GetTotalFreeSpace();
+        public async Task<FileInformation?> GetItemInfo(string fileName) => await provider.GetItemInfo(FixRoot(fileName)).ConfigureAwait(false);
 
-        public Task<long> GetTotalSize() => provider.GetTotalSize();
-
-        public Task<long> GetTotalUsedSpace() => provider.GetTotalUsedSpace();
-
-        public Task MoveFile(string oldPath, string newPath, bool replace)
-        {
-            return provider.MoveFile(FixRoot(oldPath), FixRoot(newPath), replace);
-        }
-
-        public Task<IBlockStream> OpenFile(string filePath, FileMode mode, FileAccess fileAccess, FileShare share, FileOptions options)
-        {
-            return provider.OpenFile(FixRoot(filePath), mode, fileAccess, share, options);
-        }
-
-        public ByteArrayBlockWriter OpenUploadHere(FSItem item)
-        {
-            return provider.OpenUploadHere(item);
-        }
+        public ByteArrayBlockWriter OpenUploadHere(FSItem item) => provider.OpenUploadHere(item);
 
         public async Task SetRootFolder(string rootfolder)
         {
@@ -148,17 +115,11 @@ namespace Azi.Cloud.DokanNet
             }
 
             rootFolder = "\\" + rootfolder.TrimStart('\\');
-            rootFolder = await provider.Exists(rootfolder) ? rootfolder : string.Empty;
+            rootFolder = await provider.Exists(rootfolder).ConfigureAwait(false) ? rootfolder : string.Empty;
         }
 
-        public void StopUpload()
-        {
-            provider.StopUpload();
-        }
+        public void StopUpload() => provider.StopUpload();
 
-        private string FixRoot(string folderPath)
-        {
-            return Path.Combine(rootFolder, folderPath.TrimStart('\\'));
-        }
+        private string FixRoot(string folderPath) => Path.Combine(rootFolder, folderPath.TrimStart('\\'));
     }
 }

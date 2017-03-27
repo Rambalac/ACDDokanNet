@@ -31,11 +31,6 @@
 
             set
             {
-                if (value == 0)
-                {
-                    throw new Exception($"Downloaded is set to Zero, item length: {Item.Length}");
-                }
-
                 using (lck.Lock())
                 {
                     Interlocked.Exchange(ref downloaded, value);
@@ -60,11 +55,6 @@
                 if (task != null)
                 {
                     throw new InvalidOperationException("Cannot reset task");
-                }
-
-                if (Downloaded == 0 && value.IsCompleted)
-                {
-                    throw new Exception("Downloaded Zero but IsCompleted");
                 }
 
                 task = value;
