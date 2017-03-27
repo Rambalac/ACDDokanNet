@@ -100,6 +100,10 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\AmazonCloudDriveApi\AmazonCloudDriveApi\AmazonCloudDriveApi.csproj">
+      <Project>{2C611335-3D92-492F-B3EB-2CF3955F63A1}</Project>
+      <Name>AmazonCloudDriveApi</Name>
+    </ProjectReference>
     <ProjectReference Include="..\amazon-clouddrive-dokan\Cloud.DokanNet.csproj">
       <Project>{213AA535-DB16-4CF9-B3F1-324FF9347F8D}</Project>
       <Name>Cloud.DokanNet</Name>

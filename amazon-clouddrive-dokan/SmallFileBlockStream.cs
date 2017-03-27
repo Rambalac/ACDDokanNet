@@ -120,14 +120,13 @@
                     try
                     {
                         stream.Position = position;
-                        if (downloader == null)
+                        var toread = (int)Math.Min(count, (downloader?.Downloaded ?? item.Length) - position);
+                        if (toread < 0)
                         {
-                            red = await stream.ReadAsync(buffer, offset, (int)Math.Min(count, item.Length - position), timeoutcancel.Token);
+                            Log.ErrorTrace("toread less than zero:" + item.Name);
                         }
-                        else
-                        {
-                            red = await stream.ReadAsync(buffer, offset, (int)Math.Min(count, downloader.Downloaded - position), timeoutcancel.Token);
-                        }
+
+                        red = await stream.ReadAsync(buffer, offset, toread, timeoutcancel.Token);
                     }
                     finally
                     {
