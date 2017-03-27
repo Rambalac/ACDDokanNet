@@ -6,22 +6,22 @@ Not just in Windows Explorer, but in any application.
 
 Starting from version 1.6.0 multiple clouds are supported, as example I added Microsoft OneDrive. As it's not ACD only I'm looking for better name. CloudHold?
 
-![Sample](/images/Amazon Cloud Drive as real drive.png)
+![Sample](/images/AmazonCloudDrive.png)
 
-###Amazon CloudDrive
+### Amazon CloudDrive
 Login is done via default web browser, so application itself can not get your login and password, 
 and if you already logged into Amazon Cloud Drive you don't need to enter anything, just click a button.
 
 Shell Extension
 ---------------
-###Links
-![Context Menu](/images/Context Menu.png)
+### Links
+![Context Menu](/images/ContextMenu.png)
 
 You can get temp links in Windows Explorer for selected files or open temp link of one selected file in your app used for that file extension. Temp links will work for few days only, Amazon Cloud Drive does not provide any way to create permanent links to files.
 
 Also you can open folders in browser on Amazon Cloud Drive web site.
 
-###Upload here
+### Upload here
 ![Upload Here](/images/Uploadhere.png)
 
 You can copy files in Explorer and with *Upload here* in destination cloud folder context menu (right mouse button) start upload files and folders instantly.
@@ -113,6 +113,13 @@ If you did not get your cloud mounted or have other reason, sad to hear it. Here
 
 News
 ----
+### 2017-03-16
+* Release 1.6.5
+* Fixed several upload retry bugs. Failed files will be retried after all other files were uploaded or at least tried to upload in all cases.
+* Fixed *Upload here* removing use of symbolic links as they need administrator rights.
+* Added optional file hash calculation to compare with files in clouds. Disabled by default because it's slow.
+* Added **optional** remote telemetry for better bugs reporting. Can be enabled only manually, disabled any time and on app start it will be always disabled. Added because people reporting bugs never attach logs. Also does not need creating issues on GitHub and so does not need GitHub account. As telemetry enabled any exceptions get sent automatically. Old way is still available though to created logs you need to start app *as administrator*.
+
 ### 2016-12-08
 * Release 1.6.4.
 * Fixed few minor bugs with small files downloading.
