@@ -50,12 +50,10 @@ namespace Azi.Tools
                     // Just ignore
                 }
             }
-
-            HockeyAppEnabled = !UnitTestDetector.IsUnitTest;
         }
 
 #if DEBUG
-        public static bool HockeyAppEnabled { get; set; } = true;
+        public static bool HockeyAppEnabled { get; set; } = !UnitTestDetector.IsUnitTest;
 #else
         public static bool HockeyAppEnabled { get; set; }
 #endif
