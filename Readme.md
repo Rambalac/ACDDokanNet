@@ -114,8 +114,9 @@ If you did not get your cloud mounted or have other reason, sad to hear it. Here
 News
 ----
 ### 2017-03-28
-* Release 1.7.1
+* Release 1.7.2
 * Fixed remote telemetry checkbox bug, sorry.
+* Fixed Update button in Options
 
 ### 2017-03-28
 * Release 1.7.0
