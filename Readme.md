@@ -114,7 +114,11 @@ If you did not get your cloud mounted or have other reason, sad to hear it. Here
 News
 ----
 ### 2017-03-28
-* Release 1.6.5
+* Release 1.7.1
+* Fix remote telemetry checkbox bug, sorry.
+
+### 2017-03-28
+* Release 1.7.0
 * Fixed zero length upload & download (need more testing)
 * Root folder in cloud options (not tested much)
 * Few fixes to reduce http requstes to speed up.
