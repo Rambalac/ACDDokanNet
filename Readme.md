@@ -114,9 +114,10 @@ If you did not get your cloud mounted or have other reason, sad to hear it. Here
 News
 ----
 ### 2017-03-28
-* Release 1.7.2
+* Release 1.7.3
 * Fixed remote telemetry checkbox bug, sorry.
 * Fixed Update button in Options
+* Removed HocketApp async initializing as it freezes app after several starts.
 
 ### 2017-03-28
 * Release 1.7.0
