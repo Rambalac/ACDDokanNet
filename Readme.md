@@ -115,7 +115,7 @@ News
 ----
 ### 2017-03-28
 * Release 1.7.1
-* Fix remote telemetry checkbox bug, sorry.
+* Fixed remote telemetry checkbox bug, sorry.
 
 ### 2017-03-28
 * Release 1.7.0
