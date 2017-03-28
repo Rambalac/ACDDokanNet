@@ -102,6 +102,7 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         <CheckBox Content="Start app on Windows start" IsChecked="{Binding IsAutorun}" Margin="5,5,5,5" Grid.ColumnSpan="3" />
 
@@ -128,7 +129,7 @@
 
                         <Button Grid.Row="7" Grid.ColumnSpan="3" Grid.Column="0" Content="{Binding UpdateVersion}" ContentStringFormat="Download update {0}" Margin="0,9,0,4.186" Visibility="{Binding HasUpdate}" Command="{StaticResource DownloadUpdateCommand}" ToolTip="{Binding UpdateAvailable.Description}" Background="#FF34BD00" />
 
-                        <Grid Grid.Row="7" Grid.ColumnSpan="3" Grid.Column="0" HorizontalAlignment="Center">
+                        <Grid Grid.Row="8" Grid.ColumnSpan="3" Grid.Column="0" HorizontalAlignment="Center">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
@@ -138,7 +139,7 @@
                             <Button Grid.Column="1" Content="Export Log" Margin="0,0,5,0" Padding="5,2,5,2" Click="ExportLog_Click" />
                             <Button Content="Open GitHub Issue" Padding="5,2,5,2" Margin="5,0,0,0" Grid.Column="2" Click="OpenIssue_Click" />
                         </Grid>
-                        <CheckBox Content="Send online telemetry (hover for more info)" IsChecked="{Binding HockeyAppEnabled}" Margin="5,5,5,5" Grid.Row="8"  Grid.ColumnSpan="3" ToolTip="{x:Static p:Resources.SendTelemetryTooltip}"
+                        <CheckBox Content="Send online telemetry (hover for more info)" IsChecked="{Binding HockeyAppEnabled}" Margin="5,5,5,5" Grid.Row="9"  Grid.ColumnSpan="3" ToolTip="{x:Static p:Resources.SendTelemetryTooltip}"
                                   Grid.Column="0" />
                     </Grid>
                 </Expander>
