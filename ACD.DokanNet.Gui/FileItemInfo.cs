@@ -148,7 +148,7 @@
                     {
                         var total = past * Total / Done;
                         var left = TimeSpan.FromSeconds(total - past);
-                        donetip += "." + left.ToString("h'h 'mm'm 'ss's'").TrimStart(' ', '0', 'h', 'm') + " left.";
+                        donetip += ". Est. " + left.ToString("h'h 'mm'm 'ss's'").TrimStart(' ', '0', 'h', 'm') + " left.";
                     }
 
                     return donetip;
