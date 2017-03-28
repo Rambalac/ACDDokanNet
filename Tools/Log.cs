@@ -126,10 +126,10 @@ namespace Azi.Tools
             WriteEntry(message, EventLogEntryType.Information, eventId, category, memberName, sourceFilePath, sourceLineNumber);
         }
 
-        public static async Task Init(string version)
+        public static void Init(string version)
         {
             Log.version = version;
-            await HockeyClient.Current.SendCrashesAsync(true);
+            //await HockeyClient.Current.SendCrashesAsync(true);
         }
 
         [Conditional("TRACE")]

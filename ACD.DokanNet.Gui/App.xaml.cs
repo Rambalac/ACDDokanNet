@@ -138,7 +138,7 @@
             try
             {
                 var version = Assembly.GetEntryAssembly().GetName().Version.ToString();
-                await Log.Init(version);
+                Log.Init(version);
                 Log.Info("Starting Version " + version);
 
                 System.Net.ServicePointManager.DefaultConnectionLimit = 100;
