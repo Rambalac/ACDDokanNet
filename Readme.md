@@ -1,3 +1,9 @@
+PROJECT IS ABANDONED
+====================
+Amazon rejected application for API2.0 and removed unlimited plans. There is no any way and point to continue this project.
+
+As project is abandoned there maybe some security issues due outdated packages.
+
 ACD Dokan.NET
 =============
 This is [Dokan.NET](https://github.com/dokan-dev/dokan-dotnet) based driver for Amazon Cloud Drive. 
